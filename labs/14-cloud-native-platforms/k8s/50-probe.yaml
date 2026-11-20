@@ -1,0 +1,18 @@
+# A long-running client that calls the Service 5x per second and prints one line per call:
+#   <unix-seconds> <version|ERR>
+# Used to prove "zero failed requests during a rolling update" and to measure canary share.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe
+  namespace: lumen
+spec:
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: lumen-api:v1
+      imagePullPolicy: Never
+      command: ["python", "-u", "client.py", "probe", "http://api.lumen.svc.cluster.local/"]
+      resources:
+        requests: {cpu: 20m, memory: 32Mi}
+        limits: {cpu: 100m, memory: 64Mi}

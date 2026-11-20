@@ -1,0 +1,55 @@
+# Lab L12 — observability. Run with:  docker compose -p sd-12 up -d --build
+# Host ports 11200-11299 (unique to this lab).
+name: sd-12
+services:
+  lgtm:
+    image: grafana/otel-lgtm:0.41.0
+    ports:
+      - "127.0.0.1:11200:3000"   # Grafana            http://localhost:11200 (admin/admin)
+      - "127.0.0.1:11290:9090"   # Prometheus UI/API  http://localhost:11290
+      - "127.0.0.1:11218:4318"   # OTLP/HTTP (optional: send your own telemetry)
+    volumes:
+      - ./config/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - ./config/slo-rules.yaml:/otel-lgtm/slo-rules.yaml:ro
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:13133/ready && curl -sf http://127.0.0.1:9090/-/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+
+  api:
+    build: ./app
+    image: sd-12-lumen-api:lab
+    depends_on:
+      lgtm: {condition: service_healthy}
+    environment:
+      OTEL_SERVICE_NAME: lumen-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
+      OTEL_BSP_SCHEDULE_DELAY: "1000"
+      HEAD_SAMPLE_RATIO: "${HEAD_SAMPLE_RATIO:-1.0}"
+    ports:
+      - "127.0.0.1:11280:8080"   # the service itself  http://localhost:11280/api/answer
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz')\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  load:
+    image: grafana/k6:2.4.0
+    profiles: [load]            # started explicitly:  docker compose -p sd-12 run --rm load
+    depends_on:
+      api: {condition: service_healthy}
+    environment:
+      TARGET: http://api:8080
+      RATE: "${RATE:-20}"
+      DURATION: "${DURATION:-15m}"
+      USERS: "${USERS:-5000}"
+    volumes:
+      - ./load/answer.js:/scripts/answer.js:ro
+    command: ["run", "--quiet", "/scripts/answer.js"]

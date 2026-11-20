@@ -1,0 +1,50 @@
+# L08 — queues, poison messages, DLQ and an idempotent consumer.
+# Run with: docker compose -p sd-08 up -d --build
+name: sd-08
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.4.1-management-alpine
+    hostname: rabbit-08
+    ports:
+      - "10856:5672"     # AMQP 0-9-1 (optional, for host-side clients)
+      - "10815:15672"    # management UI: http://localhost:10815 (guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+    volumes:
+      - rabbit-data:/var/lib/rabbitmq
+
+  consumer:
+    build: ./app
+    command: ["python", "-u", "consumer.py"]
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/%2F
+      IDEMPOTENT: ${IDEMPOTENT:-1}          # 1 = inbox/dedup table, 0 = naive
+      CRASH_ONCE_ON: ${CRASH_ONCE_ON:-}      # payment_id: crash after commit, before ack (once)
+      PREFETCH: ${PREFETCH:-10}
+      WORK_MS: ${WORK_MS:-0}                 # artificial per-message work to create a backlog
+      RETRY_VERB: ${RETRY_VERB:-reject}      # reject | nack (experiment 4)
+    volumes:
+      - ledger:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+  tools:
+    build: ./app
+    profiles: ["tools"]                      # only started via `docker compose run`
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672/%2F
+    volumes:
+      - ledger:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  rabbit-data:
+  ledger:

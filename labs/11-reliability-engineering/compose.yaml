@@ -1,0 +1,48 @@
+# Lab L11 -- retry storm. Run with:  docker compose -p sd-11 up -d
+# Host ports stay inside 11100-11199 so parallel labs do not collide.
+services:
+  backend:
+    image: python:3.15.2-slim
+    command: ["python", "-u", "/app/backend.py"]
+    environment:
+      WORKERS: "4"        # concurrent worker slots
+      SERVICE_MS: "20"    # work per request => capacity ~200 req/s
+    volumes:
+      - ./backend.py:/app/backend.py:ro
+    ports:
+      - "127.0.0.1:11180:8080"   # data plane, direct (bypasses the proxy)
+      - "127.0.0.1:11181:8081"   # admin plane: /stats, /reset, /config
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/stats', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.13.0
+    sysctls: &many_short_connections
+      # Every client-side timeout leaves a TIME_WAIT socket. A retry storm opens
+      # tens of thousands of short connections, enough to exhaust the default
+      # ephemeral port range (32768-60999) inside a container network namespace.
+      net.ipv4.ip_local_port_range: "1024 65000"
+      net.ipv4.tcp_tw_reuse: "1"
+    ports:
+      - "127.0.0.1:11174:8474"   # Toxiproxy HTTP API
+      - "127.0.0.1:11166:8666"   # the proxied backend (clients go through here)
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  fleet:
+    image: python:3.15.2-slim
+    profiles: ["fleet"]          # not started by `up`; run on demand
+    sysctls: *many_short_connections
+    command: ["python", "-u", "/app/fleet.py"]
+    environment:
+      RPS: "125"          # 62.5% of backend capacity
+      TIMEOUT_MS: "200"
+      TOXIC_LATENCY_MS: "300"
+    volumes:
+      - ./fleet.py:/app/fleet.py:ro
+    depends_on:
+      - toxiproxy

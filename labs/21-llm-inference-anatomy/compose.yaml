@@ -1,0 +1,65 @@
+# Lab L21 — anatomy of LLM inference (CPU-only, laptop scale)
+# Run with an explicit project name:  docker compose -p sd-21 up -d
+# Default service: vLLM CPU build serving a 0.5B model on http://localhost:12101
+# Fallback (profile "llamacpp"): llama.cpp llama-server on http://localhost:12102
+name: sd-21
+
+services:
+  vllm:
+    image: vllm/vllm-openai-cpu:v0.34.0-x86_64
+    command:
+      - ${MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
+      # float32: AVX2-only laptop CPUs lack fast BF16 matmuls (vLLM logs a oneDNN fallback); use bfloat16 on AVX-512 CPUs
+      - --dtype=${DTYPE:-float32}
+      - --max-model-len=${MAX_MODEL_LEN:-4096}
+      - --max-num-seqs=${MAX_NUM_SEQS:-16}
+      - --max-num-batched-tokens=${MAX_BATCHED_TOKENS:-2048}
+      - --kv-cache-memory-bytes=${KV_BYTES:-2147483648}   # 2 GiB of KV cache on host RAM
+      - --enforce-eager                     # skip torch.compile: much faster start-up on a laptop CPU
+      - --port=8000
+    environment:
+      VLLM_CPU_OMP_THREADS_BIND: ${OMP_BIND:-auto}
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+    ports:
+      - "127.0.0.1:12101:8000"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+      - vllm-cache:/root/.cache/vllm
+      - triton-cache:/root/.triton          # Triton-CPU kernels compiled on first use (slow once, then cached)        # torch.compile cache: makes restarts much faster
+    # Recommended by the vLLM CPU docs to avoid "get_mempolicy: Operation not permitted".
+    cap_add: [SYS_NICE]
+    security_opt: ["seccomp=unconfined"]
+    shm_size: "2g"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  llamacpp:
+    profiles: ["llamacpp"]
+    image: ghcr.io/ggml-org/llama.cpp:server-b12464
+    command:
+      - -hf
+      - ${GGUF_REPO:-Qwen/Qwen2.5-0.5B-Instruct-GGUF:q8_0}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ctx-size
+      - "8192"
+      - --parallel
+      - "4"                                 # 4 slots, continuously batched
+    ports:
+      - "127.0.0.1:12102:8080"
+    volumes:
+      - llama-cache:/root/.cache/llama.cpp
+
+volumes:
+  hf-cache:
+  vllm-cache:
+  triton-cache:
+  llama-cache:

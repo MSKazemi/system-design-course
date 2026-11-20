@@ -1,0 +1,49 @@
+schema_version: 1
+course_id: SYSDESIGN
+slug: system-design-course
+title: System Design
+status: DRAFTING
+audiences:
+- students
+- software engineers
+levels:
+- beginner
+- intermediate
+- advanced
+description: 'Modern system design: classical foundations plus the new requirements
+  of AI-era systems (LLM serving with vLLM, GPUs, RAG, agents, cost, energy, sovereignty,
+  supply-chain security), with theory, hands-on labs and an interview track.'
+prerequisites:
+- basic programming
+- HTTP and a relational database
+- Linux shell
+- Docker (for labs)
+canonical_content_dir: course
+lesson_prefix: SYSDESIGN
+delivery:
+- github
+- book
+- text-first-slides
+research_policy: primary-sources
+lab_policy: explicit-test-status
+cost_policy: free-first-disclose-cost
+repositories:
+  public: MSKazemi/system-design-course
+  private: MSKazemi/system-design-course-private
+chatgpt_project: null
+modules:
+- id: '00'
+  title: Orientation
+- id: '01'
+  title: Classical foundations
+- id: '02'
+  title: Modern requirements
+- id: '03'
+  title: AI-native systems
+- id: '04'
+  title: Case studies
+- id: '05'
+  title: Interview track
+maintainer_review_date: null
+license_text: TBD
+license_code: TBD

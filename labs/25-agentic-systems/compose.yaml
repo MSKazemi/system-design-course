@@ -1,0 +1,29 @@
+# Lab L25 — agentic systems (SYSDESIGN-25)
+# Run with:  docker compose -p sd-25 up -d
+# Host port (127.0.0.1 only): 12501 — OpenAI-compatible chat endpoint with tool calling.
+# The agent runtime and the MCP tool server run on the host (see README); the sandbox is a container.
+name: sd-25
+
+services:
+  llm:
+    image: ghcr.io/ggml-org/llama.cpp:server-b12464   # CPU build
+    environment:
+      LLAMA_CACHE: /models
+    volumes:
+      - models:/models
+    # Qwen2.5-0.5B-Instruct, Q4_0 GGUF (~430 MB). --jinja enables the model's chat template, which carries
+    # the tool-calling format; without it tool calls are not parsed.
+    command: ["--hf-repo", "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+              "--hf-file", "qwen2.5-0.5b-instruct-q4_0.gguf",
+              "--jinja", "--ctx-size", "8192", "--threads", "4",
+              "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "127.0.0.1:12501:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 240
+
+volumes:
+  models:

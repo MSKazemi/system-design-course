@@ -1,0 +1,41 @@
+# Lab L03 — load balancing. Project name: sd-03. Host ports 10300-10399.
+name: sd-03
+
+x-app: &app
+  build: ./service
+  image: sd-03-service:local
+  stop_grace_period: 20s
+
+services:
+  app1:
+    <<: *app
+    environment: { NAME: app1, WORKERS: "${WORKERS:-4}", SERVICE_MS: "${SERVICE_MS:-20}", DRAIN_S: "${DRAIN_S:-0}" }
+  app2:
+    <<: *app
+    environment: { NAME: app2, WORKERS: "${WORKERS:-4}", SERVICE_MS: "${SERVICE_MS:-20}", DRAIN_S: "${DRAIN_S:-0}" }
+  app3:
+    <<: *app
+    # APP3_SERVICE_MS lets you make one replica slower than its siblings (a "noisy neighbour").
+    environment: { NAME: app3, WORKERS: "${WORKERS:-4}", SERVICE_MS: "${APP3_SERVICE_MS:-20}", DRAIN_S: "${DRAIN_S:-0}" }
+
+  lb:
+    image: haproxy:3.4.8-alpine
+    environment:
+      RETRIES: "${RETRIES:-0}"
+      HC_INTER: "${HC_INTER:-1s}"
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "127.0.0.1:10380:8080"   # round robin
+      - "127.0.0.1:10381:8081"   # least connections
+      - "127.0.0.1:10382:8082"   # power of two choices
+      - "127.0.0.1:10383:8083"   # consistent hash on ?key=
+      - "127.0.0.1:10384:8084"   # map-based (mod N) hash on ?key=
+      - "127.0.0.1:10390:8404"   # stats page and /metrics
+    depends_on: [app1, app2, app3]
+
+  k6:
+    image: grafana/k6:2.4.0
+    profiles: ["tools"]
+    volumes:
+      - ./k6:/scripts:ro

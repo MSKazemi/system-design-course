@@ -1,0 +1,85 @@
+# Lab L24 — retrieval & vector systems (SYSDESIGN-24)
+# Run with:  docker compose -p sd-24 up -d
+# Host ports (127.0.0.1 only): 12401 Postgres, 12411 embedding server, 12412 optional chat server.
+name: sd-24
+
+x-llamacpp: &llamacpp
+  image: ghcr.io/ggml-org/llama.cpp:server-b12464   # CPU build, OpenAI-compatible HTTP API
+  environment:
+    LLAMA_CACHE: /models                           # GGUF files downloaded from Hugging Face land here
+  volumes:
+    - models:/models
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    shm_size: 1gb          # parallel HNSW builds use dynamic shared memory; Docker's 64 MB default fails
+    environment:
+      POSTGRES_USER: lumen
+      POSTGRES_PASSWORD: lumen-lab-only      # local lab credential, not a secret
+      POSTGRES_DB: lumen
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - maintenance_work_mem=512MB             # HNSW builds are much faster when the graph fits here
+      - -c
+      - max_parallel_maintenance_workers=2
+    ports:
+      - "127.0.0.1:12401:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumen -d lumen"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # all-MiniLM-L6-v2 (384-d sentence embeddings), Q8_0 GGUF, ~25 MB
+  embed:
+    <<: *llamacpp
+    command: ["--hf-repo", "second-state/All-MiniLM-L6-v2-Embedding-GGUF",
+              "--hf-file", "all-MiniLM-L6-v2-Q8_0.gguf",
+              "--embedding", "--pooling", "mean", "--ctx-size", "512", "--batch-size", "512", "--ubatch-size", "512",
+              "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "127.0.0.1:12411:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 120
+
+  # Optional, only for `rag_demo.py --generate`: Qwen2.5-0.5B-Instruct Q4_0 GGUF, ~430 MB
+  chat:
+    <<: *llamacpp
+    profiles: ["gen"]
+    command: ["--hf-repo", "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+              "--hf-file", "qwen2.5-0.5b-instruct-q4_0.gguf",
+              "--ctx-size", "4096", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "127.0.0.1:12412:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 240
+
+  # One-shot client container: `docker compose -p sd-24 run --rm app python <script>.py`
+  app:
+    build: ./app
+    profiles: ["tools"]
+    environment:
+      PGURL: postgresql://lumen:lumen-lab-only@db:5432/lumen
+      EMBED_URL: http://embed:8080/v1
+      CHAT_URL: http://chat:8080/v1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app:/app:ro
+
+volumes:
+  pgdata:
+  models:

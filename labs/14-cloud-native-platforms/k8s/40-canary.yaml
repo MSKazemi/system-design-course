@@ -1,0 +1,38 @@
+# Canary track: one v2 pod behind the same Service as the stable track.
+# Traffic share ~= canary pods / (stable pods + canary pods), because kube-proxy
+# spreads connections across all ready endpoints. Coarse, but needs no mesh.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-canary
+  namespace: lumen
+  labels: {app: api, track: canary}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: api, track: canary}
+  template:
+    metadata:
+      labels: {app: api, track: canary}
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: api
+          image: lumen-api:v2
+          imagePullPolicy: Never
+          env:
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          ports: [{containerPort: 8080, name: http}]
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 128Mi}
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 2
+            failureThreshold: 1
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

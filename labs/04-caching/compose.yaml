@@ -1,0 +1,43 @@
+# Lab L04 — caching in front of Postgres. Run with:  docker compose -p sd-04 up -d --build --wait
+# Host ports (localhost only): Postgres 10432, Redis 10479. Project name sd-04 avoids collisions.
+name: sd-04
+
+services:
+  db:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_USER: lumen
+      POSTGRES_PASSWORD: lumen-lab-only     # local lab credential, not a secret
+      POSTGRES_DB: catalog
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    ports:
+      - "127.0.0.1:10432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lumen -d catalog"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  cache:
+    image: redis:8.10.3-alpine
+    # Pure cache: no persistence, bounded memory, LRU eviction. bench.py changes the policy at runtime.
+    command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru",
+              "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:10479:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  bench:
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+      cache: {condition: service_healthy}
+    environment:
+      PGURL: postgresql://lumen:lumen-lab-only@db:5432/catalog
+      REDIS_HOST: cache
+    profiles: ["bench"]        # started only by `docker compose run bench ...`

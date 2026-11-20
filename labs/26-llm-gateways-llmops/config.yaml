@@ -1,0 +1,41 @@
+# LiteLLM proxy config for L26 (LiteLLM v1.108.12-lts). Keys and prices are lab-only and fictional.
+model_list:
+  # Alias "lumen-chat" -> two deployments (replicas) of the same small model: load balancing + failover
+  - model_name: lumen-chat
+    litellm_params:
+      model: openai/qwen2.5-0.5b-instruct      # "openai/" = any OpenAI-compatible server
+      api_base: http://llm-a:8080/v1
+      api_key: none
+      rpm: 600
+      input_cost_per_token: 0.0000002          # illustrative internal transfer price, for cost attribution
+      output_cost_per_token: 0.0000008
+  - model_name: lumen-chat
+    litellm_params:
+      model: openai/qwen2.5-0.5b-instruct
+      api_base: http://llm-b:8080/v1
+      api_key: none
+      rpm: 600
+      input_cost_per_token: 0.0000002
+      output_cost_per_token: 0.0000008
+
+  # Alias "lumen-premium" -> a backend that does not exist (simulates a provider outage). Falls back below.
+  - model_name: lumen-premium
+    litellm_params:
+      model: openai/premium-model
+      api_base: http://premium-provider.invalid:8080/v1
+      api_key: none
+      timeout: 3
+
+router_settings:
+  routing_strategy: simple-shuffle
+  allowed_fails: 1          # cool a deployment down after more than 1 failure in the window
+  cooldown_time: 30         # seconds
+  fallbacks: [{"lumen-premium": ["lumen-chat"]}]
+
+litellm_settings:
+  num_retries: 2            # retried before any fallback
+  request_timeout: 60
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL

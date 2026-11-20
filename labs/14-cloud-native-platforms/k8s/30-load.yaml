@@ -1,0 +1,23 @@
+# Load generator: 4 parallel clients hammering /work for 180 s, then exiting.
+# Uses the lab's own image (client.py), so nothing extra is pulled into the cluster.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load
+  namespace: lumen
+spec:
+  parallelism: 4
+  completions: 4
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: load
+          image: lumen-api:v1
+          imagePullPolicy: Never
+          command: ["python", "-u", "client.py", "load", "http://api.lumen.svc.cluster.local/work", "180"]
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 64Mi}

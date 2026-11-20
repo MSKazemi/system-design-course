@@ -1,0 +1,59 @@
+# Lab L01 — saturation point. Project name: sd-01. Host ports 10100-10199.
+name: sd-01
+
+services:
+  service:
+    build: ./service
+    image: sd-01-service:local
+    environment:
+      WORKERS: "${WORKERS:-1}"
+      SERVICE_MS: "${SERVICE_MS:-10}"
+      DIST: "${DIST:-exp}"
+      MODE: "${MODE:-sleep}"
+      NAME: lumen-1
+    ports:
+      - "127.0.0.1:10101:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+
+  # Load generator; started on demand with `docker compose run`.
+  k6:
+    image: grafana/k6:2.4.0
+    profiles: ["tools"]
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_STATS: "p(50),p(90),p(99),avg"
+    depends_on:
+      service:
+        condition: service_healthy
+
+  # Optional observability stack: `docker compose --profile observe up -d`
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    profiles: ["observe"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+      - --storage.tsdb.retention.time=1d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "127.0.0.1:10190:9090"
+
+  grafana:
+    image: grafana/grafana:13.3.1
+    profiles: ["observe"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "127.0.0.1:10130:3000"
+    depends_on: [prometheus]

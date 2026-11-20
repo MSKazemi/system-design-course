@@ -1,0 +1,25 @@
+# L10 — rate limiter lab (SYSDESIGN-10)
+# Run:   docker compose -p sd-10 up --build --abort-on-container-exit --exit-code-from driver
+# Clean: docker compose -p sd-10 down -v
+name: sd-10
+
+services:
+  redis:
+    image: redis:8.10.3-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:11079:6379"   # optional: poke at keys with redis-cli -p 11079
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  driver:
+    build: ./app
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["python", "-u", "run_experiments.py", "--all"]

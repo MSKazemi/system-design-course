@@ -1,0 +1,70 @@
+# Lab L12 — SLO recording rules and multi-window, multi-burn-rate alerts.
+#
+# SLO: 99.5% of /api/answer requests succeed (non-5xx) over 30 days  -> error budget = 0.5% = 0.005.
+# Alert design follows the Google SRE Workbook, "Alerting on SLOs", Table 5-8:
+#     page:   burn 14.4 over 1h, confirmed by 5m       (2% of a 30-day budget spent)
+#     page:   burn 6    over 6h, confirmed by 30m      (5% of the budget spent)
+#     ticket: burn 1    over 3d, confirmed by 6h       (10% of the budget spent)
+# The short window is 1/12 of the long one so the alert resets soon after the problem stops.
+#
+# LAB-SPEED: every window below is the production window divided by 12 (1h -> 5m, 5m -> 25s,
+# 6h -> 30m, 30m -> 150s) so that you can watch alerts fire and resolve within minutes.
+# For production, use the windows in the comments and keep the burn-rate thresholds unchanged.
+groups:
+  - name: lumen-slo-recording
+    interval: 5s
+    rules:
+      - record: lumen:sli_error:ratio_rate25s        # production: 5m
+        expr: |
+          (sum(rate(http_server_request_duration_seconds_count{job="lumen-api",http_response_status_code=~"5.."}[25s])) or vector(0))
+          /
+          sum(rate(http_server_request_duration_seconds_count{job="lumen-api"}[25s]))
+      - record: lumen:sli_error:ratio_rate5m         # production: 1h
+        expr: |
+          (sum(rate(http_server_request_duration_seconds_count{job="lumen-api",http_response_status_code=~"5.."}[5m])) or vector(0))
+          /
+          sum(rate(http_server_request_duration_seconds_count{job="lumen-api"}[5m]))
+      - record: lumen:sli_error:ratio_rate150s       # production: 30m
+        expr: |
+          (sum(rate(http_server_request_duration_seconds_count{job="lumen-api",http_response_status_code=~"5.."}[150s])) or vector(0))
+          /
+          sum(rate(http_server_request_duration_seconds_count{job="lumen-api"}[150s]))
+      - record: lumen:sli_error:ratio_rate30m        # production: 6h
+        expr: |
+          (sum(rate(http_server_request_duration_seconds_count{job="lumen-api",http_response_status_code=~"5.."}[30m])) or vector(0))
+          /
+          sum(rate(http_server_request_duration_seconds_count{job="lumen-api"}[30m]))
+      # "or vector(0)" makes the ratio 0 (not empty) while there are no 5xx series yet.
+      # Burn rate = observed error ratio / error budget (0.005). 1.0 = exactly on budget.
+      - record: lumen:slo_burn_rate:5m
+        expr: lumen:sli_error:ratio_rate5m / 0.005
+      - record: lumen:slo_burn_rate:25s
+        expr: lumen:sli_error:ratio_rate25s / 0.005
+      # Latency SLI: fraction of requests slower than 300 ms (bucket le="0.3" is "good").
+      - record: lumen:sli_latency_bad:ratio_rate5m
+        expr: |
+          1 - (
+            sum(rate(http_server_request_duration_seconds_bucket{job="lumen-api",le="0.3"}[5m]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="lumen-api"}[5m]))
+          )
+
+  - name: lumen-slo-alerts
+    interval: 5s
+    rules:
+      - alert: LumenErrorBudgetFastBurn
+        expr: |
+          lumen:sli_error:ratio_rate5m  > (14.4 * 0.005)
+          and
+          lumen:sli_error:ratio_rate25s > (14.4 * 0.005)
+        labels: {severity: page, slo: lumen-answer-availability}
+        annotations:
+          summary: "Lumen /api/answer is burning error budget at >14.4x (2% of 30-day budget per hour)"
+      - alert: LumenErrorBudgetSlowBurn
+        expr: |
+          lumen:sli_error:ratio_rate30m  > (6 * 0.005)
+          and
+          lumen:sli_error:ratio_rate150s > (6 * 0.005)
+        labels: {severity: page, slo: lumen-answer-availability}
+        annotations:
+          summary: "Lumen /api/answer is burning error budget at >6x (5% of 30-day budget per 6 hours)"
