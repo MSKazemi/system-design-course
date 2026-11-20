@@ -136,7 +136,19 @@ Source lesson: [course/02-modern-requirements/18-security-by-design.md](../cours
 
 **Speaker notes:** Work backwards from 24 hours: a quarterly dependency spreadsheet cannot meet that clock.
 
-## Slide 13 — Interview angle
+## Slide 13 — Agent identity and delegation chains
+
+- Agent = workload (own SPIFFE ID, kept out of the model's context) + delegate (acts for a user); never impersonate
+- RFC 8693 token exchange: subject = user, actor = agent; nested `act` records the chain, only the outermost actor is used for access control
+- Each hop narrows: one audience (RFC 8707), subset scope, ≤ 5 min, sender-constrained; MCP forbids token passthrough
+- Other trust domains: ID-JAG (draft -06, 31 Oct 2026) and identity chaining (draft -17); inside one domain: Transaction Tokens (draft -11, 30 Jul 2026)
+- Audit = token-service record per minted token (jti, parent jti, sub, actor chain, scope); revoke by refusing to mint for the agent's ID
+
+**Visual:** Sequence: Lumen app → agent runtime → token service → Docs API, and agent runtime → Acme IdP (ID-JAG) → CRM authorisation server → CRM MCP server, with claim tags (sub, act, aud, scope, exp) on each arrow. Icons: ai-agent, security-token, security-jwt, security-oauth, ai-mcp, ops-logs.
+
+**Speaker notes:** The agent is both a service and a delegate, so it needs both identities in one token. Authority only shrinks as it travels, and chain-wide rules belong at the token service because resource servers ignore prior actors. Every draft on this slide is still an Internet-Draft as of 2026-11.
+
+## Slide 14 — Interview angle
 
 - CLARIFY trust boundaries and tenants running code
 - QUANTIFY blast radius, credential lifetime, revocation lag

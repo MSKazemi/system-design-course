@@ -72,7 +72,9 @@ cat trace.jsonl | head
 5. **Model size.** Point `--hf-file` in `compose.yaml` at a larger instruct model (for example Qwen2.5-1.5B-Instruct
    GGUF) and compare how often the agent completes the multi-step email task. Count steps and tokens from
    `trace.jsonl`.
-6. **pass^k.** Run the same real-model task 5 times. How many succeed? (See τ-bench's pass^k in the lesson.)
+6. **pass^k.** Run the same real-model task 5 times. How many succeed? (See τ-bench's pass^k in the lesson's
+   Numbers that matter, and [SYSDESIGN-32](../../course/03-ai-systems/32-observing-evaluating-agents.md) for
+   estimating it with intervals.)
 
 ## Expected results
 

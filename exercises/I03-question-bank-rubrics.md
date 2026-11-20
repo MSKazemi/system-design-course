@@ -68,8 +68,10 @@ Which course units would you study for (a) DI-01 ad-click aggregation, (b) AG-03
 
 (a) [20](../course/02-modern-requirements/20-real-time-streaming.md) for event time, windows and watermarks;
 [08](../course/01-foundations/08-async-event-driven.md) for delivery semantics and idempotent sinks.
-(b) [25](../course/03-ai-systems/25-agentic-systems.md) for agent orchestration and durable execution;
-[08](../course/01-foundations/08-async-event-driven.md) for sagas, outbox and idempotency.
+(b) [33](../course/03-ai-systems/33-agent-platform-runtime.md) for durable-execution engines and their history and
+payload limits, run leases and idempotent tool effects; [C17](../course/04-case-studies/C17-workflow-automation-agent.md)
+for runs that wait days and outlive deploys; [08](../course/01-foundations/08-async-event-driven.md) for sagas, outbox
+and idempotency. ([25](../course/03-ai-systems/25-agentic-systems.md) now covers only the single-agent runtime.)
 (c) [19](../course/02-modern-requirements/19-privacy-compliance-sovereignty.md) for residency and the AI Act;
 [28](../course/03-ai-systems/28-ai-trust-safety-governance.md) for AI governance as system requirements;
 [15](../course/02-modern-requirements/15-multi-region-edge.md) for cell-based regional architecture.
@@ -105,4 +107,77 @@ constraint (EU-only, or 4× longer contexts). Score every mock; spend the remain
 dimensions. Load check with the I03 rules (unit reading time, 1 h per mock): week 1 ≈ 13.5 h of reading + 2 h of
 mocks ≈ 15.5 h, week 2 ≈ 9 h + 4 h ≈ 13 h. That is above the bank's 8–11 h/week plans, which is acceptable for a
 two-week crash plan; to cut it, skim 22 and C09 instead of reading them (≈ 4.5 h saved).
+</details>
+
+## 8. [Interview] Score an AG-05 answer
+
+A candidate answering AG-05 says: "The agent has a refund tool. The system prompt tells it never to refund more than
+$50 and to escalate when it is unsure. We log every refund and review the logs weekly." Score it and say what moves
+it to Hire.
+
+<details><summary>Answer</summary>
+
+**No hire.** A limit written only in the prompt is not enforced, so the tool is effectively unrestricted, which is the
+AG-05 no-hire anchor. Two red flags from the question appear: the limit is in the prompt, and "unsure" (model
+confidence) is the only escalation rule. Weekly log review detects losses days after they happen.
+
+To reach **Hire**, the candidate must move control out of the model: verify the customer's identity (with step-up
+before money moves); have the tool broker fill in the customer and read the amount from the order, not from the chat;
+enforce per-refund, per-customer and per-window caps in a deterministic policy engine that fails closed; escalate on
+rules (intents, limits, repeated failure) with a handoff summary; and evaluate offline on past tickets. **Strong
+hire** adds the exposure line (5 % of 400 k conversations × $50 ≈ $1 M a day in C15's numbers) and a spend-rate circuit
+breaker sized from it.
+</details>
+
+## 9. [Core] Numbers to expect for AG-09
+
+An agent's base prompt is 2,000 tokens and each step adds 1,000. A bug makes tasks run 60 steps instead of 30. By how
+much does input-token spend per task grow, and what does that imply for the controls?
+
+<details><summary>Answer</summary>
+
+30 steps: 30 × 2,000 + 1,000 × 435 = 495,000 tokens. 60 steps: 60 × 2,000 + 1,000 × 1,770 = 1,890,000 tokens. Twice
+the steps cost ≈ **3.8×** the input, because each call re-sends the growing history. Implications: a step cap alone
+lets cost grow quadratically up to the cap, so also cap tokens and money per task, enforced before each call
+(reserve, then reconcile); alert on the spend *rate*, which here jumps within minutes, rather than on a daily total;
+and set the caps from the context-growth curve, not from a guessed number of steps.
+</details>
+
+## 10. [Interview] Probe a release gate
+
+You are interviewing on AG-12. The candidate says: "We have 50 test tasks, run each once, and ship if success does not
+drop." Which follow-up do you ask, and what does a hire-level reply contain?
+
+<details><summary>Answer</summary>
+
+Ask: "Your success rate is 85 %. Would 50 tasks catch a 3-point drop?" At 85 % on 50 tasks the standard error is
+√(0.85 × 0.15 / 50) ≈ 5.0 points, so the 95 % interval is about ±10 points: a 3-point regression is invisible. A
+hire-level reply moves to a paired comparison on the same tasks, sized for the regression that matters (chapter 32
+derives ≈ 870 paired tasks for 3 points, assuming 10 % of tasks change outcome between versions; at 900 tasks it
+blocks when the paired difference is below about −2.1 points, catching ≈ 81 % of true 3-point drops), runs several trials per task and reports pass^k for a
+customer-facing agent, grades the final state, and keeps the 50-task set as a cheap smoke suite per change. Strong
+hire adds a canary with guardrail metrics and says how late outcomes (for example a 7-day re-contact) are handled.
+</details>
+
+## 11. [Interview] A junior agentic answer (AG-21)
+
+A junior candidate answers AG-21 (ticket triage): "I'd build an agent that reads the ticket, decides which tools it
+needs, and replies to the customer when it is confident." Score it against the AG-21 junior anchor, and give the two
+numbers that make the case for a different design.
+
+<details><summary>Answer</summary>
+
+**No hire** on the full rubric and below the junior hire anchor: it is an autonomous agent that replies without a
+human review step, the AG-21 no-hire anchor, and "use an agent" comes with no reason. Chapter 29's decision test
+points the other way: the steps (classify, prioritise, draft) can be written down in advance, so a workflow with one
+model step is enough.
+
+The numbers, on AG-21's assumptions (20,000 tickets a day, one call of ≈ 3,000 input and 300 output tokens at
+chapter 25's illustrative $1/$4 per million): one call is 0.003 + 0.0012 ≈ **$0.004 per ticket**, ≈ $84 a day. The
+same job as chapter 25's 15-step agent at ≈ $0.22 per task is ≈ $4,400 a day, about **50×** more, for no gain in a task
+with known steps. That 50× is the case of a 15-step loop; a 3-step agent would be ≈ $0.017 per ticket, ≈ $340 a day,
+about 4×. A junior hire draws queue → model call → schema check → human review, keys the write by ticket id so
+a retry does not create a second draft, and names one quality metric, such as the share of drafts sent with few edits.
+An acceptable alternative is a workflow with one optional lookup step, as long as the candidate states when that
+step would justify an agent.
 </details>

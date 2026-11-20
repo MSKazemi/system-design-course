@@ -80,10 +80,15 @@ wave replaces up to 20 pods: ≈ 2 waves ≈ 1.5 minutes, with no extra capacity
 capacity can dip to 75% — acceptable only if you have headroom.
 </details>
 
-### 6. [Interview] Canary sample size
+### 6. [Interview] Canary sample size and the control
 
 A service handles 500 req/s with a 0.2% error rate. You want a canary to detect a regression to 1% errors. With a 2%
 canary, how long must you wait to see a clear signal? What if the regression is to 0.3%?
+
+Part 2 (with a control). The answer API serves 1,000 req/s with a 0.5% baseline error ratio. You run a 10% canary and a 10% control (a same-size
+control slice, the lesson's simplification) for 15 minutes. (a) How many requests and expected errors per arm? (b) Using a Poisson approximation, could you distinguish
+a 20% relative rise in the canary's error ratio? A 10% rise? (c) Give two ways to see smaller regressions, and say
+what each costs. (d) Why compare against a control instead of the previous hour?
 
 <details><summary>Answer</summary>
 
@@ -93,6 +98,15 @@ minutes is likely clear). For 0.3% (18 expected vs 12), σ ≈ 3.5–4.2 makes t
 detectable** in 10 minutes; you would need a much larger sample (roughly ten times more requests for a ~3σ
 signal), a bigger canary share, or a longer bake time. Lesson: canaries catch big regressions fast; small
 regressions need SLO burn-rate monitoring after full rollout.
+
+Part 2. (a) 100 req/s × 900 s = **90,000** requests per arm; 0.5% → **450** expected errors each. (b) Noise on the difference
+≈ √(450 + 450) = 30. A 20% rise adds 90 errors ≈ 3 noise units: borderline detectable. A 10% rise adds 45 ≈ 1.5
+units: not reliably. (c) A larger canary (more users exposed to a possibly bad version) or a longer bake (slower
+delivery; the Workbook notes canaries must get shorter as deploy frequency rises [35]); or accept that small
+regressions are caught later by SLO burn-rate alerts and keep rollback cheap. (d) Metrics drift with time (traffic mix,
+time of day, other teams' deploys), so before/after comparisons confound the change with everything else; a
+concurrent control sees the same conditions [35]. Acceptable addition: segment by tenant or route if the change only
+touches part of the traffic.
 </details>
 
 ### 7. [Core] GitOps principles in practice
@@ -174,4 +188,30 @@ per 15 s period, the larger of +100% (2 → 4) or +4 pods (2 → 6): **6**. The 
 controller uses the highest recommendation of the last 60 s, so it waits about a minute before acting, then the
 default scale-down policy (up to 100% per period) brings it to the minimum in one or two steps (8 → 5 → 2 in the
 test run).
+</details>
+
+### 12. [Core] Rename a hot column without downtime
+
+Lumen wants to rename `messages.body` to `messages.content` on a PostgreSQL 18 table that takes 20,000 inserts/s at
+peak, while v1 of the chat service is running. (a) List the sequence of schema changes and deploys. (b) Which step is
+the point of no return, and what do you do before it? (c) Which PostgreSQL settings or statements keep each schema
+step from blocking traffic? (d) What breaks if you do it in one deploy with `ALTER TABLE ... RENAME COLUMN`?
+
+<details><summary>Answer</summary>
+
+(a) Expand: add nullable `content` (no default, so no rewrite [42]). Deploy v2: write both columns, read `body`.
+Backfill `content` from `body` in small, idempotent, resumable batches, throttled on replica lag. Verify (compare
+reads or count mismatches). Deploy v3: read `content`, still write both. Deploy v4: write `content` only. Contract:
+drop `body` [39][40]. (b) The drop is the final point of no return; stopping writes to `body` (v4) already prevents
+rolling back to code that reads it (v2, v1) without a reverse backfill, while v4 → v3 stays safe because v3 reads
+`content`. Before the drop: a bake period of days with v4 healthy [44], a backup, and confirmation that no job, report
+or replica consumer still reads `body`. If you want read-old rollback available during the bake, keep v3's dual
+write until just before the drop. (c) Run DDL with a short `lock_timeout` and retry, because `ALTER TABLE` usually needs `ACCESS
+EXCLUSIVE`, which conflicts even with plain `SELECT`s and otherwise waits indefinitely [42]; build any new index with
+`CREATE INDEX CONCURRENTLY` outside a transaction block and check for `INVALID` leftovers [41]; add constraints `NOT
+VALID` (a foreign key still takes `SHARE ROW EXCLUSIVE` on both tables, so keep the `lock_timeout`), then `VALIDATE
+CONSTRAINT`, which takes only `SHARE UPDATE EXCLUSIVE` [42]. These lock levels are from the PostgreSQL 18 manual;
+PostgreSQL 19 was released on 2026-11-19 [46], so re-check them for 19. (d) During the rolling update, v1 pods still query `body`, which no longer
+exists: errors until the rollout finishes, and rolling back the code does not bring the column name back. Acceptable
+alternative: a view or generated column as a compatibility shim during the migration.
 </details>

@@ -223,7 +223,12 @@ Layer by layer:
 | Audit log | Reconstruct what happened | Append-only, tamper-evident log | Detective, not preventive |
 
 The **policy engine is the security boundary**, because it is deterministic code outside the model that the
-attacker cannot talk to. Everything above it reduces how often it has to say no.
+attacker cannot talk to. Everything above it reduces how often it has to say no. But the engine is a boundary only
+for what it can inspect. The attacker still controls the arguments it checks, the text an approver reads, and the
+model's explanation of why the call is needed (OWASP ASI09 Human-Agent Trust Exploitation [2]). A policy that checks
+`to` but not `body` leaks through the body, and it cannot read intent in free text. So constrain the *channel* (who
+can receive, how many bytes, which fields are free text) rather than hoping to classify the content, and render
+approval prompts from the structured call, never from model-written text.
 
 ### Constrained tools and secure-by-design agent patterns
 
@@ -357,9 +362,13 @@ with appropriate human-machine interface tools, that they can be effectively ove
   "Approve?";
 - **Override and stop** controls that actually halt the agent (a kill switch that the orchestrator honors,
   [SYSDESIGN-25](25-agentic-systems.md));
-- **Designing against automation bias:** show confidence and sources, sample cases for review, and measure
-  how often reviewers simply click "approve" (an approval rate near 100% with sub-second dwell time means the
-  gate is theater);
+- **Designing against automation bias:** Art. 14(4)(b) requires that oversight persons are enabled "to remain
+  aware of the possible tendency of automatically relying or over-relying on the output" of the system
+  ("automation bias") [4]. Show confidence and sources, sample cases for review, and measure how often reviewers
+  simply click "approve". As this course's own heuristic (not a standard), an approval rate near 100% with
+  sub-second dwell time means the gate is theater. One vendor measurement points the same way: Anthropic reported
+  that users accept 93% of Claude Code's manual permission prompts, and built a classifier-mediated mode because of
+  that approval fatigue (2026-03-25, one product) [24];
 - **Escalation paths** and an incident process.
 
 ## Numbers that matter
@@ -451,24 +460,38 @@ A good tool policy is:
 - **default-deny**, with explicit allow rules per tool, per tenant and per role;
 - **argument-aware** ("`send_email` allowed if every recipient is in the user's organization" or
   "`export_csv` allowed if rows ≤ 100");
-- **context-aware** ("if the session has ingested content tagged *external*, write tools require approval");
+- **context-aware** ("if the session has ingested content tagged *external*, write tools and outbound-capable
+  tools require approval");
+- **classified by what leaves the system**, not by whether a tool mutates local state. A tool is
+  *outbound-capable* if its arguments can reach a destination the attacker can observe: email, a web fetch or a
+  search with a free-form query, a comment or pull request on a shared or public repository, a webhook. A "read"
+  tool of that kind is an exfiltration channel once the session is tainted (see the data exfiltration channels
+  above);
 - **versioned and logged** (the policy version and rule ID go into the audit log);
 - **tested** like code, with unit tests for allow/deny cases and replays of real sessions.
 
 ```mermaid
 stateDiagram-v2
   [*] --> Clean
+  Clean --> Clean: tool calls checked by argument-aware policy
   Clean --> Tainted: untrusted content enters context
-  Clean --> Clean: read tools allowed / write tools allowed (policy)
-  Tainted --> Tainted: read tools allowed
-  Tainted --> PendingApproval: write tool requested
-  PendingApproval --> Tainted: human approves (logged)
+  Tainted --> Tainted: local read tools only, no outbound destination
+  Tainted --> PendingApproval: write or outbound-capable tool requested
+  PendingApproval --> Tainted: human approves, call runs (logged)
   PendingApproval --> Tainted: human denies (logged)
   Tainted --> [*]: session ends (taint not carried over)
 ```
-*Diagram: a session starts clean, where policy may allow both read and write tools. When untrusted content
-enters the context it becomes tainted. In the tainted state reads are still allowed, but every write tool
-request goes to human approval, which is logged whether approved or denied. Taint ends with the session.*
+*Diagram: a session starts clean, where the argument-aware policy decides every tool call. When untrusted
+content enters the context the session becomes tainted. In the tainted state only local read tools that cannot
+reach an outside destination run without a human. Every write tool and every outbound-capable tool, including
+search or fetch tools labelled "read", goes to human approval, which is logged whether approved or denied. Taint
+ends with the session.*
+
+This is **session taint**: once untrusted content enters the context, every later action is treated as influenced
+by it, because in a normal agent loop the model recombines everything in its context and the runtime cannot tell
+which output came from which input. It is cheap and coarse. **Value taint**, as in CaMeL [6], tags each value with
+its origin and blocks untrusted values from sensitive arguments. It is precise, but needs an interpreter that
+handles data outside the model.
 
 ### Red-teaming and evaluation as a pipeline
 
@@ -570,9 +593,11 @@ artifacts overlap heavily.
 *(as of 2026-11)*
 
 - **Agent-specific threat models.** The OWASP Agentic Top 10 (December 2025) [2] treats identity, inter-agent
-  communication and cascading failures as first-class risks. Expect agent identities (workload identity per
-  agent, [SYSDESIGN-18](../02-modern-requirements/18-security-by-design.md)) and signed inter-agent messages to
-  become standard.
+  communication and cascading failures as first-class risks. Agent identity builds on workload identity per agent
+  and on OAuth token exchange ([SYSDESIGN-18](../02-modern-requirements/18-security-by-design.md)). The next
+  standards are still IETF working-group drafts as of 2026-11: the Identity Assertion JWT Authorization Grant
+  ("Cross-App Access", draft -06, October 2026) and Transaction Tokens (draft -11, August 2026), which carries user
+  and workload identity through a call chain [25][26].
 - **Provable-by-construction agents.** CaMeL [6] and the six design patterns [7] mark a shift from "detect
   bad text" to "make bad actions impossible". The open problem is utility. The 77% vs 84% AgentDojo gap [6] is
   the current price.
@@ -592,7 +617,7 @@ artifacts overlap heavily.
 
 | Failure | How it shows up | Detect (SLI) | Mitigate |
 |---|---|---|---|
-| Indirect injection succeeds | Unexpected tool call or recipient | Policy denials/approvals per session; anomaly on tool-argument destinations | Taint-aware policy; approval for writes; isolate the source document |
+| Indirect injection succeeds | Unexpected tool call or recipient | Policy denials/approvals per session; anomaly on tool-argument destinations | Taint-aware policy; approval for writes and outbound-capable calls; isolate the source document |
 | Exfiltration via rendered output | Requests to unknown domains from clients | Image/link proxy logs; CSP violation reports | No auto-loading of images; link allow-list |
 | Jailbreak wave | Spike in output-classifier blocks | Block rate by tenant/prompt cluster | Update classifiers; rate-limit; add regression cases |
 | Guardrail outage | Requests fail, or pass unchecked | Guardrail error rate; fail-open counters | **Fail closed** for tools; fail open with logging for low-risk chat, decided per policy |
@@ -640,7 +665,7 @@ injection in a RAG assistant?", "What does the EU AI Act mean for your design?" 
 **Five-line model answer ("secure a tool-using RAG assistant"):**
 1. Threat model: untrusted documents are attacker-controlled input. Tools are the blast radius.
 2. Least-privilege, typed tools with user-scoped credentials, behind a default-deny policy engine. Writes in
-   tainted sessions need approval.
+   tainted sessions need approval, and so do outbound-capable calls (search, fetch, webhooks).
 3. Plan-then-execute or dual-LLM patterns where data value is high. Classifiers are a telemetry layer.
 4. Output rendering without auto-loading images or arbitrary links. PII redaction before model, logs and
    training.
@@ -752,3 +777,11 @@ document as an extension.
     of Practice on Transparency of AI-generated Content" page (final code published 10 June 2026).
     https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai and
     https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content (accessed 2026-11)
+24. Anthropic, "How we built Claude Code auto mode: a safer way to skip permissions," 2026-03-25 (vendor
+    engineering post; "users accept 93% of them anyway").
+    https://www.anthropic.com/engineering/claude-code-auto-mode (accessed 2026-11-20)
+25. IETF OAuth WG, "Identity Assertion JWT Authorization Grant," draft-ietf-oauth-identity-assertion-authz-grant-06,
+    October 2026 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/
+    (accessed 2026-11-20)
+26. IETF OAuth WG, "Transaction Tokens," draft-ietf-oauth-transaction-tokens-11, August 2026 (Internet-Draft).
+    https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/ (accessed 2026-11-20)

@@ -88,3 +88,13 @@ rationale on the publish path would take 1–3 s, which is why it emits a label 
 - "How do you know it works?" "What if the provider goes down?" "What if the context doubles?"
 **Visual:** red-flag list beside follow-up list. Icons: `ops-warning`.
 **Speaker notes:** Prepare a one-line answer to each follow-up before the interview.
+
+## Slide 13 — Worked answer D: account-actions support agent
+- Route by intent: how-to stays on answer A's RAG path; account intents go to the agent (≈ 50× the cost per conversation)
+- 150 k conversations/day: ≈ 1,900 concurrent chats, ≈ 78 model calls/s, ≈ $0.10 per conversation, ≈ $0.17 per resolved one
+- Tokens are not the money: ten points of containment are worth $0.32 against $0.10 for doubling tokens; wrong actions × 10 cost less than doubling tokens on average; exposure ≈ $750 k/day
+- Model proposes, broker and policy engine decide: identity levels, subject binding, caps, fail closed, and a rate breaker against the same time-of-week baseline (3× the daily average, ≈ 1,900 an hour, would trip at every normal peak)
+- Final-state replay eval with pass^k (0.95⁸ ≈ 0.66), ≈ 900-task gate blocking below about −2.1 points (catches ≈ 81 % of 3-point drops, blocks ≈ 2.5 % of neutral changes), autonomy ladder per intent
+**Visual:** answer D's sketch with the broker and policy engine boxed as "deterministic", and the second loop (log → eval → registry) drawn dashed. Icons: `domain-chat`, `ai-agent`, `arch-policy-engine`, `domain-payment`, `ops-human-approval`.
+**Speaker notes:** All numbers are labelled assumptions, the same per-conversation ones as C15. The strongest sentence
+in the answer is that a model outage cannot fail over to humans, because that needs about 2.5 times the staff.

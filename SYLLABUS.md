@@ -16,7 +16,7 @@ Status values: `DRAFT` (written, under review) · `SOURCES_CHECKED` (every sourc
 You will be able to:
 
 - Explain the requirement loop (Requirement → Numbers → Design → Deep dive → Break it → Operate → Interview angle) and apply it to a small feature
-- Choose a learning path (learner, practitioner, interview candidate) and the unit order that goes with it
+- Choose a learning path (learner, practitioner, interview candidate, agentic systems) and the unit order that goes with it
 - Interpret the [Core], [Deep] and [Frontier] markers and the lab test-status labels
 - Describe the running example, Lumen, and which stage of its growth each part of the course covers
 - Summarise, with sources, six ways system design changed between 2016 and 2026
@@ -88,6 +88,7 @@ You will be able to:
 - Choose indexes for a query and explain what each index costs on writes
 - Diagnose isolation anomalies (dirty read, lost update, read skew, write skew, phantoms) and choose an isolation level or a locking strategy that prevents them
 - Design a storage decision for a multi-workload product and defend when one engine (Postgres) is enough and when it is not
+- Explain two-phase commit, why a coordinator crash blocks participants, how commit over consensus (Spanner, CockroachDB, Percolator) or deterministic ordering (Calvin) avoids it, and choose between a distributed transaction, a saga and try-confirm/cancel
 
 ### 06 — Replication & consistency
 
@@ -187,6 +188,7 @@ You will be able to:
 - Design an OpenTelemetry pipeline (SDK, Collector, backends) including head and tail sampling
 - Derive multi-window, multi-burn-rate alert thresholds from an SLO and an error budget
 - Compare observability architectures on cost, and evaluate AI-assisted operations claims critically
+- Run an incident with defined roles and severities, size an on-call rotation, write an error-budget policy and a blameless postmortem with trackable action items, troubleshoot by hypothesis and bisection, and plan a game day
 
 ### 13 — Data at scale: object storage, lakehouse, batch vs stream, search
 
@@ -218,6 +220,7 @@ You will be able to:
 - Design a GitOps delivery flow with rolling and canary releases
 - Compare containers, serverless functions and WebAssembly components on cold start, density and isolation
 - Design an internal developer platform and a multi-tenancy model for a shared Kubernetes fleet
+- Plan a change to a live system safely: canary analysis against a control, feature flags, config rollouts, an expand/contract schema migration, and a rollback-or-roll-forward decision
 
 ### 15 — Multi-region & edge
 
@@ -272,6 +275,7 @@ You will be able to:
 - Design workload identity with SPIFFE/SPIRE and mutual TLS, and estimate the cost of short-lived credentials.
 - Compare multi-tenant isolation levels (namespace, sandboxed runtime, microVM, dedicated cluster) by blast radius and cost.
 - Design a software supply chain with SBOMs, SLSA build provenance and Sigstore signatures, and explain what each would and would not have caught in the xz-utils backdoor (CVE-2024-3094).
+- Design an agent delegation chain with RFC 8693 token exchange and nested `act` claims, attenuating audience, scope and lifetime at each hop, and write the audit record that links the human, the agent chain and the action.
 - Run a STRIDE threat model on a data-flow diagram and turn the EU Cyber Resilience Act's reporting deadlines into system requirements.
 
 ### 19 — Privacy, compliance & data sovereignty
@@ -363,16 +367,16 @@ You will be able to:
 ### 25 — Agentic systems
 
 *Requirement:* Run multi-step research-and-analysis tasks for 10,000 daily users: tasks up to 30 minutes, every tool call least-privileged and audited, risky actions approved by a human, a hard cost cap per task, and no duplicated side effects after a worker crash  
-*Time:* 3.5h reading + 2h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/25-agentic-systems.md) · [slides](slides/25-agentic-systems.md) · [exercises](exercises/25-agentic-systems.md) · [lab](labs/25-agentic-systems/)
+*Time:* 3h reading + 2h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/25-agentic-systems.md) · [slides](slides/25-agentic-systems.md) · [exercises](exercises/25-agentic-systems.md) · [lab](labs/25-agentic-systems/)
 
 You will be able to:
 
 - Explain the agent loop (ReAct-style reason/act/observe) and why its cost grows super-linearly with the number of steps
-- Compare orchestration patterns (single agent, router, supervisor/hierarchical, graph/state machine) and choose one for a requirement
+- Design tool interfaces that stay small in context, keep the prompt cache stable, validate arguments and are safe to retry
 - Describe MCP and A2A as of 2026-11: what each standardises, transports, and governance
-- Design state, memory and checkpointing so a long-running agent survives crashes without repeating side effects
+- Design intent records, idempotency keys and checkpoints so a crashed agent resumes without repeating side effects
 - Design a sandbox and permission model for tool execution, including human approval gates and budgets
-- Evaluate and observe agents: task success, pass^k reliability, trajectories, and traces
+- Estimate tokens, cost, latency, sandbox concurrency and checkpoint volume for an agent workload
 
 ### 26 — LLM gateways & LLMOps
 
@@ -415,6 +419,78 @@ You will be able to:
 - Design PII redaction, content provenance and model supply-chain controls, and state their limits
 - Translate EU AI Act obligations (Articles 12, 14, 50, 53) and NIST AI RMF functions into system requirements
 - Design tamper-evident audit logging with retention that fits both the AI Act and GDPR
+
+### 29 — Agent architectures & orchestration
+
+*Requirement:* Ship five Lumen agent features (contract Q&A, invoice reconciliation, vendor research briefs, code migration, ticket triage), choosing for each a fixed workflow, one agent or a team of agents, so that a vendor brief finishes in under 2 minutes at under $0.50 per task, triage answers in under 2 s, and reconciliation is auditable step by step  
+*Time:* 3h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/29-agent-architectures-orchestration.md) · [slides](slides/29-agent-architectures-orchestration.md) · [exercises](exercises/29-agent-architectures-orchestration.md)
+
+You will be able to:
+
+- Apply a decision test (predictability of steps, cost of error, latency, budget, shared writes) to choose a workflow, a single agent or a multi-agent design
+- Compare the canonical workflow patterns (chaining, routing, parallelisation, orchestrator-workers, evaluator-optimiser) and multi-agent patterns (supervisor, handoff, hierarchical, graph, blackboard)
+- Estimate the token, cost, latency and reliability of a single-agent versus an orchestrator-workers design, with and without prompt caching and parallel calls
+- Explain when multi-agent pays off and what it costs, using published cost, token and error-amplification data
+- Diagnose multi-agent failure modes: error compounding, context loss at handoffs, coordination loops, conflicting writes and premature termination
+- Choose an agent framework as of 2026-11 and define a portability boundary that limits lock-in
+
+### 30 — Context engineering & agent memory
+
+*Requirement:* A contract-review agent makes about 150 tool calls over 200 contract pages in a 200k-token window, for under $5 per task; it must remember each customer's preferences across sessions, never leak memory between 2,000 tenants, show where every remembered fact came from, and erase a person's memories from every tier within the GDPR one-month deadline  
+*Time:* 3.5h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/30-context-engineering-memory.md) · [slides](slides/30-context-engineering-memory.md) · [exercises](exercises/30-context-engineering-memory.md)
+
+You will be able to:
+
+- Budget a context window across instructions, tool schemas, skills, memory, history, retrieved data and output, and estimate the cost of re-sending history with and without prompt caching
+- Explain the evidence for long-context degradation and diagnose which context failure mode a symptom points to
+- Choose between tool-output limits, just-in-time retrieval, tool-result clearing, compaction, structured notes and sub-agent digests, and state the information loss and cache effect of each
+- Compare retrieval-as-memory, fine-tuning and long context for giving an agent knowledge
+- Design storage, write path, read path and consolidation for working, session, semantic, episodic and procedural memory, including skills packages
+- Design memory provenance, poisoning defences, TTLs, per-tenant isolation and GDPR Art. 17 erasure across every memory tier
+
+### 31 — Securing agentic systems
+
+*Requirement:* Let 2,000 tenants connect agents to about 300 first- and third-party MCP tools and skills, with no cross-tenant data access, no outbound action driven by untrusted content without a deterministic control or a human, every tool call attributable, and one operator action that stops a misbehaving agent everywhere within 60 seconds  
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/31-securing-agentic-systems.md) · [slides](slides/31-securing-agentic-systems.md) · [exercises](exercises/31-securing-agentic-systems.md)
+
+You will be able to:
+
+- Analyze an agent workflow with the lethal trifecta and Meta's Agents Rule of Two, and decide which property to remove, constrain or supervise
+- Design tool trust tiers and capability scoping that the runtime enforces, not the prompt
+- Explain tool poisoning, shadowing, rug pulls and typosquatting in the MCP and skills supply chain, and design admission, pinning and re-approval controls
+- Apply the MCP security best practices on confused deputies, token passthrough, SSRF and local server installs to a gateway design
+- Design a containment architecture (sandbox tier, egress control, secrets brokering) and state each layer's documented limits
+- Compare plan-then-execute, dual LLM and CaMeL by what they guarantee, what they leave open and what they cost
+- Design detection, a kill switch and a red-team program for agents using MITRE ATLAS and the OWASP Agentic Top 10
+
+### 32 — Observing & evaluating agents
+
+*Requirement:* For 30,000 agent tasks a day, let an engineer go from 'task success dropped' to the guilty step in under 30 minutes, block any prompt, model, tool or harness change that lowers task success by 3 points or more before it reaches all users, keep every failed and every unusually expensive run for 30 days, and never write raw prompts or tool results into the trace store  
+*Time:* 3h reading (lab planned, not yet built) · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/32-observing-evaluating-agents.md) · [slides](slides/32-observing-evaluating-agents.md) · [exercises](exercises/32-observing-evaluating-agents.md)
+
+You will be able to:
+
+- Explain why agent observability differs from service observability: non-determinism, long multi-step traces, cost per run, and failures that are semantic rather than exceptions
+- Design the span tree of an agent run with the OpenTelemetry GenAI conventions (invoke_agent, plan, chat, execute_tool, MCP propagation), including token and cost attribution and a content-capture policy
+- Choose a sampling and retention policy that keeps failed, expensive and long runs within a telemetry budget
+- Diagnose loops, tool errors and context blow-ups from traces
+- Design a layered evaluation (component, trajectory, end-to-end) with programmatic, model-based and human graders, and compute pass@k and pass^k
+- Size an offline eval suite and a CI regression gate with stated statistical power, and define production SLOs for agents (task success, escalation rate, cost per resolved task)
+
+### 33 — Agent platform runtime: queues, tenancy, fairness, rollout
+
+*Requirement:* Run 240,000 agent runs a day for 2,000 tenants, triggered by chat, API, schedules and events: interactive runs start their first step within 2 s at p95 even while one tenant submits 20,000 runs at once, no run is lost and no side effect is duplicated across crashes and deploys, every run and tenant has a hard cost cap, and a new agent version can be canaried and rolled back without breaking runs in flight  
+*Time:* 3.5h reading (lab planned, not yet built) · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/33-agent-platform-runtime.md) · [slides](slides/33-agent-platform-runtime.md) · [exercises](exercises/33-agent-platform-runtime.md)
+
+You will be able to:
+
+- Model an agent run as a unit of work with a trigger, a version pin, a budget, a deadline and an explicit state machine
+- Design run queues and worker pools whose admission is driven by shared LLM capacity (tokens per minute), with backpressure from the provider back to the submitter
+- Compare multi-tenant fairness mechanisms (per-tenant caps, token buckets, weighted fair queuing, deficit round robin, shuffle sharding) and choose the unit fairness is measured in
+- Design budgets, timeouts, retries and idempotency keys so that runs are cost-capped and side effects happen exactly once, including after long pauses
+- Explain the limits of durable execution engines (payload, history, pending operations) and design around them with references and Continue-As-New
+- Plan the rollout of agent, prompt, tool and model versions while runs are in flight (pinning, draining, canary, shadow, rollback)
+- Estimate capacity from runs per day to concurrent runs, tokens per second, provider limits, sandboxes and cost, and set SLOs for the platform
 
 ## Part IV — Case studies
 
@@ -602,6 +678,45 @@ You will be able to:
 - Design idempotent checkout and payment integration with reservation expiry and reconciliation
 - Plan bot defences, pre-scaling, degradation and multi-region placement, and explain failover risks to the zero-oversell invariant
 
+### C15 — Customer-support agent platform
+
+*Requirement:* Design a multi-tenant SaaS platform on which 3,000 businesses run AI support agents over chat and email in 12 languages: the agents answer from each business's help content, look up orders and issue refunds within per-business limits on behalf of the verified end customer, hand off to human agents, and report cost per resolved conversation — for 400,000 conversations per day.  
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C15-support-agent-platform.md) · [slides](slides/C15-support-agent-platform.md) · [exercises](exercises/C15-support-agent-platform.md)
+
+You will be able to:
+
+- Estimate conversation concurrency, model calls, tokens and cost per conversation, and show why containment and handoff quality dominate the average economics while wrong actions dominate the tail
+- Design end-user authorisation for agent tool calls: identity levels, subject binding, delegated tokens and a deterministic policy engine at the tool boundary
+- Design refund limits, cumulative caps, approvals and a spend circuit breaker from an exposure calculation
+- Design escalation triggers and a handoff payload, and size the human queue for normal load and for a model outage
+- Plan evaluation and rollout: final-state grading, pass^k, shadow to supervised autonomy per intent, per-tenant versioning and online guardrail metrics
+
+### C16 — Deep-research multi-agent system
+
+*Requirement:* Design a service that turns a research question into a cited report using a planner agent, parallel researcher sub-agents with web search and internal-document access, and a citation-verification pass — 50,000 reports per day, typically under 10 minutes (p95 under 15), with a hard cost cap of $5 per report.  
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C16-deep-research-agents.md) · [slides](slides/C16-deep-research-agents.md) · [exercises](exercises/C16-deep-research-agents.md)
+
+You will be able to:
+
+- Estimate tokens, cost, wall time and concurrency of a multi-agent run bottom-up, and compare the result with published multipliers without conflating them
+- Decide when an orchestrator-worker design pays off versus a single agent, using published evidence on both sides
+- Design hierarchical budgets, effort scaling, straggler handling and resumable long runs with references instead of content in the durable history
+- Design citation verification against stored source snapshots and a rubric-based evaluation that reports quality per dollar
+- Separate trust zones so that no agent context, including one that writes briefs for others, combines untrusted web content, private data and an outbound channel
+
+### C17 — Enterprise workflow-automation agent
+
+*Requirement:* Design an agent platform that runs procure-to-pay and IT-service workflows across ERP, CRM, ticketing and email for 500 enterprises: it plans multi-step changes, waits days for human approvals, executes side effects exactly once across SaaS APIs that may lack idempotency, enforces segregation of duties and delegated permissions, keeps a complete audit trail, and survives crashes and daily deploys — 20,000 runs per day, 40,000 in flight.  
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C17-workflow-automation-agent.md) · [slides](slides/C17-workflow-automation-agent.md) · [exercises](exercises/C17-workflow-automation-agent.md)
+
+You will be able to:
+
+- Size in-flight workflows, side-effect volume, partial-failure rates and target-system throughput for multi-day agent runs with Little's law
+- Design plan, approve, execute: a typed plan validated by policy, an approval bound to the plan hash, and a deterministic executor on a durable workflow engine within its documented limits
+- Design exactly-once effects across SaaS APIs with and without idempotency keys: intent records, lookup before retry, unknown outcomes, sagas and reconciliation
+- Design delegated identity, segregation of duties, approver delegation and an audit trail that outlives the workflow engine's retention
+- Plan versioning and recovery for runs that live longer than the deploy interval
+
 ## Part V — Interview track
 
 ### I01 — The interview playbook: CLARIFY → QUANTIFY → SKETCH → DEEPEN → STRESS → WRAP
@@ -617,6 +732,7 @@ You will be able to:
 - State trade-offs in a falsifiable form (choice, reason, cost, switching trigger)
 - Calibrate depth and scope to the level being interviewed for, from junior to principal
 - Diagnose your own mock interviews against a step-by-step checklist
+- Adapt each step of the framework to agentic prompts: autonomy and blast radius, tokens and cost per task, the trust boundary, evaluation, safety and durability
 
 ### I02 — Numbers & cheat sheets: latency, throughput, storage, capacity, cost & GPU numbers
 
@@ -631,7 +747,7 @@ You will be able to:
 - Compute the downtime budget for any availability target and the availability of composed components
 - Estimate LLM weight memory, KV-cache size per token, GPU count and cost per million tokens from datasheet numbers
 
-### I03 — Question bank & rubrics: 77 questions by category and level, what good looks like, red flags
+### I03 — Question bank & rubrics: 90 questions by category and level, what good looks like, red flags
 
 *Requirement:* Practice any system design prompt you might be asked in 2026, know which unit of this course prepares you for it, and score your answer the way an interviewer would.  
 *Time:* Reference unit — 1h to read the rubric; 45–60 min per practice question · *Status:* `SOURCES_CHECKED` · [lesson](course/05-interview/I03-question-bank-rubrics.md) · [slides](slides/I03-question-bank-rubrics.md) · [exercises](exercises/I03-question-bank-rubrics.md)
@@ -642,6 +758,7 @@ You will be able to:
 - Score a design answer against a six-dimension rubric with level-specific anchors
 - Recognize the ten most common red flags and the ten strongest signals in system design interviews
 - Plan a 4- or 8-week preparation schedule tied to course units and timed mocks
+- Prepare for agentic prompts with the expected numbers, red flags and follow-up probes of each agentic question
 
 ### I04 — ML/LLM system design interviews: how they differ, question bank, worked answers
 
@@ -655,3 +772,4 @@ You will be able to:
 - Define a metric ladder from business outcome to model metric to system SLI for any ML/LLM product
 - Design an offline and online evaluation plan, including LLM-as-judge with calibration
 - Estimate GPU count, latency budget and cost per request for an LLM or recommendation workload
+- Answer an agentic prompt with tokens and cost per conversation, an exposure line, a trust boundary, final-state evaluation with pass^k and an autonomy ladder

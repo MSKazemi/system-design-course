@@ -182,3 +182,55 @@ Would: a metrics or event log store that batches writes every few hundred ms and
 from a local cache. Would not: interactive OLTP with single-row commits that must return in 5 ms (each commit would wait
 for an object write).
 </details>
+
+## 11. [Deep] The in-doubt shard
+
+Lumen moves 1,000 credits from org 7 (shard A) to org 19 (shard B) with two-phase commit across two PostgreSQL
+primaries; the coordinator is the billing service. Both shards vote yes. Describe what each shard can do if the
+coordinator crashes (a) before it writes its decision and (b) right after writing COMMIT but before sending it. What
+does an operator see in PostgreSQL, what is held, and how must it be resolved? How do Spanner and CockroachDB avoid
+the problem?
+
+<details><summary>Answer</summary>
+
+In both cases each shard has voted yes, so it holds a prepared transaction: its state is on disk and it "continues to
+hold whatever locks it held" [29]. It may not abort on its own (the other shard might already have committed) or
+commit on its own (it cannot know the other's vote) [26]: it is **blocked** [24]. (a) No decision exists yet; when the
+coordinator recovers with no commit record, it can safely abort, so the transfer simply did not happen. (b) The decision is COMMIT in the coordinator's log; the shards must eventually commit, and no one may roll
+back. The operator sees rows in `pg_prepared_xacts` that do not go away, lock waits on org 7 and org 19, and vacuum
+unable to clean up behind them (in the extreme, wraparound protection) [29]. Resolution: read the coordinator's
+decision log and run `COMMIT PREPARED` or `ROLLBACK PREPARED` with that outcome on every shard; guessing breaks
+atomicity. Spanner and CockroachDB remove the single point of failure by making the coordinator's decision and each
+participant's prepared state consensus-replicated (Paxos groups [12]; a Raft-replicated transaction record with
+heartbeats and status recovery [28]), so a new leader finishes the protocol; Paxos Commit is the general form [23].
+Acceptable alternative: avoid the cross-shard transaction entirely by co-locating related orgs on one shard.
+</details>
+
+## 12. [Interview] Distributed transaction, outbox or saga?
+
+For each case choose a local transaction, the database's distributed transaction, a transactional outbox, a saga, or
+try-confirm/cancel (TCC),
+and give one sentence of justification and one cost: (a) the credit transfer above, but billing now runs on a
+CockroachDB cluster with org 7 and org 19 in different ranges; (b) charge the customer's card at an external payment
+provider, then mark the invoice paid in Postgres; (c) whenever an invoice row commits, publish `InvoicePaid` to the
+event bus; (d) a nightly job touches 200 participant groups (assume one per range) in one transaction on a
+Spanner-like system; (e) an enterprise booking holds 50 GPU-hours from Lumen's capacity service and 50 seats from a
+partner's licensing service, and both must be granted or neither. Use the Spanner paper's measurements for (d).
+
+<details><summary>Answer</summary>
+
+(a) **Distributed transaction**: one system owns both participants and replicates its coordinator; cost: at least one
+extra consensus round per commit (parallel commits reduce the commit to one round [28]) and retries on contention.
+(b) **Saga**: the payment provider is not a participant you can prepare and hold; record intent, call the provider
+with an idempotency key, then confirm or compensate (refund) ([SYSDESIGN-08](../course/01-foundations/08-async-event-driven.md));
+cost: visible intermediate states and compensation logic. (c) **Transactional outbox**: insert the event in the same
+local transaction, relay it afterwards; cost: at-least-once delivery, so consumers deduplicate. (d) Possible but
+expensive: Spanner measured mean 2PC latency of 150.5 ms and a 99th percentile of 320.3 ms at 200 participants,
+against 42.7 ms / 93.7 ms at 50 (2012 hardware, 3 zones) [12]; a wide transaction also holds locks on every range for
+that long. Better: batch the job into per-range (or per-few-range) transactions that are individually idempotent and
+restartable. (e) **TCC**: each service reserves on *try* with a timeout and cancels by itself if no confirm arrives, so
+a crashed workflow leaves nothing held [32]; cost: reservations are visible (no isolation), confirm and cancel must be
+idempotent, and a confirm that arrives after a timeout needs reconciliation [32]. A saga is an acceptable alternative
+if granting and then revoking is tolerable; XA does not fit, because a partner's web service is not a resource manager your transaction manager can drive. Acceptable
+alternative for (a): redesign the shard key so both orgs are co-located and the transaction is local.
+</details>

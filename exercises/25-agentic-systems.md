@@ -15,23 +15,27 @@ Total = `N·base + Δ·N(N−1)/2`.
 
 Biggest levers: (1) **shrink Δ**: truncate or summarise tool outputs and compress old steps into a running summary;
 (2) **cut N**: better tools (one call instead of five), a planner step, or sub-agents with fresh contexts that return
-short results. Prefix caching lowers the *price* of the base prompt but not its context-window cost.
+short results. Prefix caching lowers the *price* of the base prompt but not its context-window cost, and only while
+the prefix stays cached: provider caches charge a write premium and expire after a TTL (lesson, Cost and energy).
 </details>
 
-### 2. [Core] Pattern choice
+### 2. [Core] Tool lists and the prompt cache
 
-For each, pick an orchestration pattern and justify: (a) classify support tickets into 6 queues; (b) "research this
-company and write a 2-page brief"; (c) a monthly invoice-reconciliation process with an approval step.
+Lumen's agent has 40 tools. A teammate proposes loading only the 5 most relevant tool definitions at every step to
+save tokens. What does this do to provider prompt caching, and what would you do instead?
 
 <details><summary>Answer</summary>
 
-(a) **Router**, or even a plain classifier call. There is no multi-step reasoning, and latency and cost should be
-minimal.
-(b) **Single agent with tools**, or a **supervisor** with parallel research workers if breadth matters. It is
-open-ended and benefits from adaptivity. Cap steps and cost.
-(c) **Graph / state machine (or workflow with LLM steps)**. The process shape is known, and it needs checkpoints,
-an explicit approval node, audit and retries per node. An open-ended agent adds risk without benefit.
-General rule: use the least agentic design that meets the requirement.
+Tool definitions are the first part of the cached prefix (tools, then system, then messages). Changing the tool list
+between steps invalidates the whole cache on Anthropic's API and breaks the prefix match on OpenAI's, so every step
+re-pays the full prefix and the "saving" can cost more than it saves.
+
+Keep the prefix byte-stable instead: (1) choose one fixed tool list per task *type* at task start; (2) keep every
+definition and restrict which tools may be called (OpenAI's `allowed_tools` or `tool_choice`); or (3) use provider
+tool search, which appends discovered definitions to the conversation rather than the prefix (Anthropic's
+`defer_loading`). Whichever you pick, measure the cached-token share before and after the change. Fewer,
+better-described tools are still the first fix: every schema costs tokens, and long lists make the model's choice
+harder. Context-window budgeting in depth is in SYSDESIGN-30.
 </details>
 
 ### 3. [Deep] Crash between effect and checkpoint
@@ -60,13 +64,16 @@ What changed in the MCP 2026-07-28 revision that matters to a platform team runn
 - **Stateless core:** no `initialize`/`initialized` handshake and no `Mcp-Session-Id`. Each request carries its
   protocol version and client info, so any replica can serve any request behind an ordinary load balancer, with no
   sticky sessions.
-- **Routing headers:** `Mcp-Method` and `Mcp-Name` on Streamable HTTP let gateways route and authorise per tool.
+- **Routing headers:** on Streamable HTTP every request carries `Mcp-Method`, and `tools/call`, `resources/read` and
+  `prompts/get` also carry `Mcp-Name`, so gateways can route and authorise per tool. A header that disagrees with the
+  body is rejected (400, `HeaderMismatch`).
 - **`server/discover`** for up-front capability and version discovery. Version errors are per request.
-- **Tasks** moved to an extension. Roots, Sampling and Logging are deprecated (≥12 months). The legacy HTTP+SSE
-  transport has been deprecated since 2025-03-26 (the release post says a year-long offramp, the spec registry
-  sets its own removal rule), so use Streamable HTTP.
-- **Auth hardening:** issuer (`iss`) validation, credentials bound to the issuer, and DCR deprecated in favour of
-  Client ID Metadata Documents.
+- **Tasks** moved to an extension. Roots, Sampling and Logging are deprecated: they keep working for at least twelve months, and the earliest removal
+  is the first revision released on or after 2027-07-28. The legacy HTTP+SSE
+  transport has been deprecated since 2025-03-26, so use Streamable HTTP.
+- **Auth hardening:** authorization servers should return `iss` (RFC 9207) and clients must check it against the
+  recorded issuer when present (mandatory `iss` is expected in a later revision), credentials are bound to the
+  issuer, and DCR is deprecated in favour of Client ID Metadata Documents.
 State a tool needs across calls must be explicit (a handle passed back by the model).
 </details>
 
@@ -104,6 +111,12 @@ tmpfs, CPU, memory, PID and wall-clock limits, non-root, no credentials or metad
 per task, warm pools *per tenant* (never shared), per-tenant concurrency caps, image provenance, and logs of
 syscall denials and OOM kills. Size it: lesson numbers give ~9 starts/s at peak and ~270 concurrent sandboxes at
 512 MiB.
+
+State the limits too. Neither layer covers host hardware flaws: Firecracker's production guide says it cannot
+mitigate host hardware vulnerabilities and recommends disabling SMT where tenants must be separated, the jailer
+and the default seccomp filters, and gVisor says it does not in general protect against hardware side channels.
+Do not size the fleet from Firecracker's ≤ 125 ms and ≤ 5 MiB figures: they hold for a minimal guest, not for a
+multi-GiB build sandbox.
 </details>
 
 ### 7. [Interview] Runaway cost
@@ -137,25 +150,31 @@ communication). An injected instruction can make it exfiltrate the invoices.
 
 Break a leg:
 1. **Remove external communication** for tasks that ingest untrusted content, or require **human approval showing
-   the exact recipient and body**. Taint-track arguments derived from untrusted content and force approval when they
-   reach a sink.
+   the exact recipient and body**. Taint the session: once the task has read untrusted content, every
+   external-communication call needs approval (a plain loop cannot tell which argument came from the web page).
 2. **Privilege separation** (CaMeL-style): a planner that sees only the trusted user request generates the plan.
    A quarantined model processes the web page but cannot call tools, and capability tracking blocks untrusted values
    from flowing to `send_email`.
 Also: egress allow-lists in sandboxes and tools. Prompt-level warnings are not a control.
 </details>
 
-### 9. [Core] Evaluating agents
+### 9. [Core] Risk tiers by audience
 
-Why is a single run per task an unreliable evaluation for agents, and what should you report instead?
+Classify these Lumen agent actions into allow, allow-with-audit or require-approval, for a task that has already
+read a supplier's web page: (a) search the contracts folder; (b) save a private draft report; (c) post a comment on
+a shared ticket; (d) send an email to a supplier; (e) fetch a web page at a URL the model composed.
 
 <details><summary>Answer</summary>
 
-Agents are stochastic and long-horizon: small per-step variance compounds (0.98¹⁵ ≈ 0.74). One run per task
-conflates luck with capability and hides inconsistency. Report success rate over k trials and **pass^k**
-(τ-bench: the probability that all k trials succeed, a consistency measure), plus cost and steps per *successful*
-task, tool error rates, and safety metrics (attack success on injection suites like AgentDojo). Grade with
-deterministic checks where possible (tests pass, final DB state), as SWE-bench and τ-bench do.
+(a) **Allow**: read-only. (b) **Allow with audit**: a write only the requester can see. (c) **Require approval** (or
+confine it to a private destination): a comment others can read is a disclosure channel even though it can be
+deleted, because a leak cannot be undone, and the task has read untrusted content. The 2025 GitHub MCP attack used
+exactly this channel: an injected public issue made an agent copy private-repository data into a public pull request.
+(d) **Require approval**: irreversible and external. The approval shows the exact recipient and body, not the
+model's summary. (e) **Require approval** (or restrict to an allow-listed set of domains): it is called a read, but a
+URL or query the model writes can carry data to whoever runs the server, so classify by what leaves the system.
+Tiering by reversibility alone would wrongly auto-allow (c), and tiering by tool name would auto-allow (e). Approval budgets and fatigue at volume
+are in SYSDESIGN-31.
 </details>
 
 ### 10. [Lab] Read the trace

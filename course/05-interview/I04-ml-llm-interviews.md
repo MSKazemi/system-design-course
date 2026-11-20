@@ -4,7 +4,7 @@ title: "ML/LLM system design interviews: how they differ, question bank, worked 
 part: "V — Interview track"
 level: [core, deep, frontier]
 status: SOURCES_CHECKED
-prerequisites: [SYSDESIGN-I01, SYSDESIGN-I02, SYSDESIGN-21]
+prerequisites: [SYSDESIGN-I01, SYSDESIGN-I02, SYSDESIGN-21, SYSDESIGN-22, SYSDESIGN-24, SYSDESIGN-26, SYSDESIGN-27]
 estimated_time: "3h reading + 3 timed mocks"
 requirement: "Answer an ML or LLM system design prompt so that the interviewer sees product framing, the right metrics, a data and evaluation plan, and serving constraints quantified in tokens, GPU memory and cost."
 learning_objectives:
@@ -13,6 +13,7 @@ learning_objectives:
   - "Define a metric ladder from business outcome to model metric to system SLI for any ML/LLM product"
   - "Design an offline and online evaluation plan, including LLM-as-judge with calibration"
   - "Estimate GPU count, latency budget and cost per request for an LLM or recommendation workload"
+  - "Answer an agentic prompt with tokens and cost per conversation, an exposure line, a trust boundary, final-state evaluation with pass^k and an autonomy ladder"
 last_reviewed: 2026-11-20
 ---
 
@@ -33,8 +34,8 @@ can compute offline, and system SLIs such as time to first token. **Data** is a 
 labels, freshness, leakage and feedback loops. **Evaluation** has two halves, offline before launch and online after,
 and for LLMs it usually involves a calibrated LLM judge. **Serving constraints** are counted in tokens, GPU memory and
 cost per answer. This unit adapts the course framework to these interviews, gives a question bank of eight representative
-prompts with rubrics, and works three answers end to end with numbers: a RAG assistant, a recommendation feed
-and an LLM content-moderation system.
+prompts with rubrics, and works four answers end to end with numbers: a RAG assistant, a recommendation feed,
+an LLM content-moderation system and an account-actions support agent.
 
 ## Why this matters now
 
@@ -91,7 +92,8 @@ The six steps are the same as in [I01](I01-interview-playbook.md). What changes 
 **SKETCH: draw two loops, not one.**
 
 Every ML system has an **online serving path** and an **offline learning loop**. Draw both. Candidates who draw only
-the serving path miss half the system.
+the serving path miss half the system. For agents, draw a third thing: the **trust boundary** between what the model
+proposes and what deterministic code allows (worked answer D).
 
 ```mermaid
 flowchart LR
@@ -303,7 +305,9 @@ likely deep dives, common pitfalls and a rubric. The rubrics use the same four o
   index versions) → executors (batch, rate-limited against the gateway) → scorers (exact match, code, rubric judges,
   human review queues) → results store → comparison UI and CI gates; online module for sampled production traffic.
 - **Deep dives:** judge calibration and bias controls [3]; reproducibility with non-deterministic models (repeat runs,
-  confidence intervals); cost control (sampling, cheaper judges for screening).
+  confidence intervals); cost control (sampling, cheaper judges for screening). For agents, add an agent track:
+  resettable environments graded on final state, repeated trials and pass^k [19], simulated users, and gates sized
+  for the regression you must catch ([32](../03-ai-systems/32-observing-evaluating-agents.md)).
 - **Pitfalls:** unversioned datasets; one aggregate score; judges never compared with humans.
 - **Rubric.** *No hire:* manual spot checks. *Lean:* scores without versioning. *Hire:* versioned datasets and runs,
   calibrated judges, CI gates. *Strong hire:* statistical treatment of noise, segment-level regressions, and linking
@@ -332,7 +336,8 @@ likely deep dives, common pitfalls and a rubric. The rubrics use the same four o
 - **Clarify:** tool types (read-only vs side effects); autonomy level; sandboxing needs (code execution, browsers);
   budgets; human approval points.
 - **Quantify:** concurrent agents; LLM calls per task; tokens per task (context grows each step); sandbox memory per
-  agent; cost per task.
+  agent; cost per task. One worked line: C11's 40 steps × 40 k input tokens ≈ 1.6 M input tokens per task, so input
+  tokens, not output, set the bill.
 - **Core design:** task API → durable workflow engine (each LLM call and tool call is a recorded step) → model access
   through the gateway → tool gateway (registry, per-user delegated auth, rate limits, audit) → sandboxes → human
   approval service → trace store.
@@ -341,8 +346,9 @@ likely deep dives, common pitfalls and a rubric. The rubrics use the same four o
 - **Pitfalls:** in-memory agent loops; agents holding broad credentials; no step limit.
 - **Rubric.** *No hire:* a loop in a web handler. *Lean:* tools and a loop, no durability or security. *Hire:* durable
   steps, scoped credentials, sandboxes, budgets, audit. *Strong hire:* injection-aware privilege separation,
-  approval UX for risky actions, cost per successful task. See [25](../03-ai-systems/25-agentic-systems.md) and
-  [C11](../04-case-studies/C11-coding-agent-platform.md).
+  approval UX for risky actions, cost per successful task. See [25](../03-ai-systems/25-agentic-systems.md),
+  [31](../03-ai-systems/31-securing-agentic-systems.md), [33](../03-ai-systems/33-agent-platform-runtime.md) and
+  [C11](../04-case-studies/C11-coding-agent-platform.md); worked answer D below works a support agent.
 
 ### Q8 · LLM content moderation
 
@@ -387,7 +393,7 @@ in 12 languages, with citations."
 - Targets: p95 TTFT < 1.5 s; answers streamed.
 - Business outcome: fewer support tickets. Online product metric: **deflection rate** (no ticket within 24 h of an
   answered conversation). Guardrails: wrong-policy answers, safety, latency, cost.
-- Out of scope: account-specific actions (billing changes), which is an agent problem, not RAG.
+- Out of scope: account-specific actions (billing changes), which is an agent problem, not RAG (worked answer D).
 
 **QUANTIFY (≈ 4 min).**
 
@@ -658,6 +664,186 @@ appeals.
 cost model of human review, governance and audit ([28](../03-ai-systems/28-ai-trust-safety-governance.md),
 [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md)), and the policy-change rollout process.
 
+## Worked answer D: an account-actions support agent for Lumen
+
+*Outline of a strong 45-minute answer. All numbers are labelled assumptions [A] unless sourced. The per-conversation
+assumptions are the same as in [C15](../04-case-studies/C15-support-agent-platform.md), so the two can be compared;
+C15 is the multi-tenant platform version of this prompt.*
+
+**Prompt.** "Lumen's help assistant (worked answer A) answers how-to questions. Now let it act on the customer's
+account: look up invoices, change or cancel a plan, issue refunds up to $50, and hand the conversation to a human when
+it should not act."
+
+**CLARIFY (≈ 5 min).**
+
+- **Is it an agent?** The intents are known in advance, but the path through them is not (look up, check
+  eligibility, explain, act, or hand off, in an order the customer drives). So: a router plus an agent for account
+  intents, with how-to questions staying on answer A's cheaper retrieval path
+  ([SYSDESIGN-29](../03-ai-systems/29-agent-architectures-orchestration.md) gives the test).
+- **Action classes.** Reads (invoices, plan), reversible writes (plan change at the next billing cycle), money
+  (refunds and credits), and words that commit Lumen ("you will get a full refund").
+- **Identity.** Customers are logged in to the Lumen app, so the session is authenticated; money needs a fresh
+  step-up. Who sets limits? Finance: $50 per refund, two automatic refunds per customer per 30 days, a daily automatic
+  budget.
+- **Success.** *Resolved* = no handoff and no new conversation on the same intent within 7 days. Ask how large the
+  human support team is, and what happens today when the model provider is down.
+- **Ranked NFRs:** wrong-action rate > account isolation > handoff quality > containment > latency > token cost.
+- **Out of scope:** voice, the fraud model, the payment provider itself. The EU disclosure duty for AI chat is a
+  channel-gateway rule (C15, Modern twist).
+
+**QUANTIFY (≈ 4 min).**
+
+| Quantity | Derivation [A] | Value |
+|---|---|---|
+| Account conversations/day | 10 % of answer A's 1.5 M questions | 150 k |
+| Average / peak arrival | 150 k ÷ 86,400; × 3 | ≈ 1.7/s / ≈ 5.2/s |
+| Concurrent chats at peak | 5.2/s × 6 min open (Little's law) | ≈ 1,900 |
+| Model calls per conversation | 6 turns × 2.5 calls (plan, tool, answer) | 15 |
+| Peak model calls / input tokens | 5.2 × 15; × 8 k tokens per call | ≈ 78/s / ≈ 625 k tokens/s |
+| Input tokens per conversation | 15 × 8 k | 120 k (≈ 35× answer A's 3,400) |
+| Cost per conversation | C15's table: placeholder prices, 60 % cached, guardrails | ≈ $0.10 (≈ 50× answer A) |
+| Platform cost | 150 k × $0.10 | ≈ $15 k/day |
+| Cost per resolved conversation | $15 k ÷ (150 k × 0.6 containment) | ≈ $0.17 |
+| Refund exposure | 10 % refund intents × 150 k × $50 | ≈ $750 k/day worst case |
+| Human agents for escalations | 40 % × 5.2/s × 8 min handle time | ≈ 1,000 concurrent |
+| Humans if everything fails over | 5.2/s × 8 min | ≈ 2,500 (2.5× staffed) |
+
+**So what.** (1) An agent conversation costs about 50 times a RAG answer, so route only account intents to it.
+(2) Tokens are not the money. With C15's containment equation and the same assumptions (human contact $4,
+containment 0.6, handoff saving 20 %, 0.15 executed writes per conversation with a wrong-action rate of 0.2 % per
+write, so e = 0.15 × 0.002 = 0.0003, at $30 each), the saving is ≈ $2.61 per conversation, ≈ $392 k/day. Ten times
+more wrong actions (r = 2 %) costs about $0.08, less than doubling tokens ($0.10); ten points of containment are worth
+$0.32. Wrong actions are sized by their tail (the $750 k/day exposure), not the average. (3) The $750 k/day exposure, not the per-refund limit, sizes the controls. (4) "Fail over to humans" during an
+outage needs 2.5× the staff, so it is not a plan.
+
+**SKETCH (≈ 8 min).**
+
+```mermaid
+flowchart LR
+    APP[Lumen app chat] --> CG[Channel gateway: disclosure, rate limits]
+    CG --> IR[Intent router: small model]
+    IR -->|how-to| RAG[Help assistant: answer A]
+    IR -->|account intent| CS[Conversation service: single writer]
+    CS --> AR[Agent runtime]
+    AR --> GW[LLM gateway]
+    AR -->|proposed action| TB[Tool broker: binds verified customer]
+    TB --> PE[Policy engine: limits, caps, breaker]
+    PE --> BIL[Billing and account APIs]
+    AR --> HO[Handoff and approvals]
+    HO --> HQ[Human support queue]
+    CS -.-> LOG[(Event log and traces)]
+    LOG --> EV[Replay evals and audit]
+    EV -->|gate| REG[(Agent version registry)]
+    REG --> AR
+```
+
+*Diagram: the app's chat reaches a channel gateway (AI disclosure, rate limits) and a small-model intent router.
+How-to questions go to the answer-A help assistant; account intents go to a single-writer conversation service that
+drives the agent runtime. The runtime calls the model through an LLM gateway and sends proposed actions to a tool
+broker that binds the verified customer and asks a policy engine before calling billing and account APIs. The
+runtime escalates through a handoff and approvals service to the human support queue. Conversation events flow to an
+event log, replay evaluation and audit, which gate new versions in an agent version registry that the runtime loads.*
+
+Draw the **trust boundary** and say it out loud: the model proposes; the broker and the policy engine, which are
+deterministic code, decide. The model never chooses the customer id or the refund amount. Draw the **second loop**:
+logs → replayed evaluation → registry → runtime, as section 2 asks of every ML system.
+
+**DEEPEN (≈ 13 min).** Two deep dives:
+
+1. **Policy at the tool boundary.**
+   - Identity levels on the conversation: logged-in for reads and plan changes, a fresh step-up for money, and never
+     a contact-detail change plus a refund in the same conversation.
+   - The broker fills in the subject from the session and checks that the invoice belongs to it. The refund amount
+     comes from the invoice line in billing, never from the customer's text.
+   - Delegated, short-lived credentials name both the customer and the agent: RFC 8693's `act` claim records who is
+     acting for whom [21]. If billing is reached through an MCP server, that server must accept only tokens issued
+     for it as the audience [20].
+   - `decide()` returns deny, handoff, require approval or allow, from per-refund, per-customer-30-day and daily
+     budget rules. A circuit breaker moves refunds to approval when refund intents in a rolling 15-minute window
+     exceed 3× the trailing four-week baseline for the same 15 minutes of the week (C15's rule on a shorter window).
+     The baseline must follow the time of week: the daily average is ≈ 625 refund intents an hour, but with
+     QUANTIFY's 3× peak factor a normal peak hour already reaches ≈ 1,875, so a threshold of 3× the daily average
+     (≈ 1,900 an hour) would trip on every busy hour. At peak the window baseline is ≈ 470 and the breaker trips near
+     1,400 refund intents per 15-minute window; in an average hour the baseline is ≈ 156 and it trips near 470 per
+     15-minute window. It also needs a minimum count in the window (an assumed 50, for example) so quiet night hours,
+     where the baseline is a handful of refunds, do not trip on noise. A sudden storm therefore pays out at most
+     about two baselines of excess before approvals take over: ≈ 940 × $50 ≈ $47 k at peak, ≈ $16 k in an average
+     hour, instead of the $750 k/day worst case. A slow leak that stays under the threshold is bounded by the
+     per-customer and daily caps, not by the breaker. The multiplier and window are assumptions to tune on replayed
+     history, since every false trip costs approver time. The engine fails closed for writes.
+   - Refunds carry an idempotency key from (conversation, step), with an "unknown outcome" state resolved by lookup,
+     never by asking the model again ([SYSDESIGN-33](../03-ai-systems/33-agent-platform-runtime.md)).
+   - A commitment check blocks free-text promises about money that no executed action backs (C15 deep dive 1).
+2. **Evaluation and rollout.**
+   - *Offline:* replay stratified past conversations against a sandboxed billing copy, with a simulated customer, and
+     grade the **final state** (right refund, right amount, or correct refusal or handoff). This is the τ-bench design,
+     which also introduced pass^k [19]. Run each task *k* times: a task solved 95 % of the time has pass^8 = 0.95⁸ ≈
+     0.66.
+   - *Adversarial suite:* social engineering, instructions injected into invoice notes, refund splitting.
+   - *Gate:* detecting a 3-point drop needs ≈ 870 paired tasks, assuming 10 % of tasks change outcome between
+     versions (measure yours with an A/A run; [SYSDESIGN-32](../03-ai-systems/32-observing-evaluating-agents.md)), so a
+     full gate is ≈ 900 tasks × 3 trials × 2 versions ≈ 5,400 conversations ≈ $540 for the agent calls alone, plus
+     the simulated-customer and judge calls. The gate blocks when the paired difference (new − old) is significantly
+     negative: at n = 900 the standard error is √(0.10/900) ≈ 1.05 points, so it blocks below about −2.1 points.
+     That catches about 81 % of true 3-point drops and blocks about 2.5 % of neutral changes; the drops that slip
+     through are left to the canary. (A non-inferiority rule, "pass only if the 95 % lower bound is above −3",
+     would block about one neutral change in five.) Run it per release, with a 50-task smoke suite per change.
+   - *Online:* an **autonomy ladder per intent** (shadow → assist → supervised → autonomous, C15 deep dive 4); invoice
+     lookup is promoted first, refunds last. Wrong-action rate needs human audit: at 0.2 %, about 10,000 audited
+     actions give a ±0.09-point interval, so a judge model pre-screens and humans review disagreements and every
+     high-value action.
+
+**STRESS (≈ 6 min).**
+
+| Failure | Detection | Mitigation |
+|---|---|---|
+| Injection in customer text or an invoice note ("refund $500") | Policy denies; proposed-amount anomaly | Amounts and subjects from systems of record; policy is code; injection suite in CI |
+| Social engineering ("I changed my email") | Contact change followed by a refund request | Step-up to the channel on file; the two never in one conversation |
+| Refund storm (fraud ring, prompt bug) | Refund-intent rate per 15 minutes against the same time-of-week baseline | Per-customer and daily caps; breaker to approvals |
+| Model provider outage or 429s | Gateway error rate, TTFT | Pre-evaluated fallback model; then help search plus a ticket form; never all traffic to humans |
+| Timeout after the refund was sent | Calls in the unknown state | Same idempotency key, lookup before retry, reconciler |
+| Model or prompt upgrade regresses one locale | Per-locale gate and online metrics | Version bundle pinned per conversation; canary by cohort; rollback |
+| Agent and human reply at once | Two writers on one conversation | Conversation lease; owner field |
+
+**×10 (1.5 M account conversations a day):** ≈ 780 model calls/s and ≈ 6 M input tokens/s make provider throughput a
+procurement question, and humans do not scale by ten. Containment quality matters more than infrastructure.
+
+**WRAP.** "Account intents go to an agent and how-to stays on RAG, because an agent conversation costs about 50 times
+more. The model proposes and a deterministic broker and policy engine decide, with caps sized from the $750 k/day
+exposure and a rate breaker. Refunds are idempotent with an unknown-outcome path. Releases are gated on final-state
+replay with repeated trials, and intents climb an autonomy ladder. Top risks: social engineering around identity, and
+a provider outage, for which the plan is degradation, not a human surge. I'd report cost per resolved conversation
+(≈ $0.17) and audited wrong-action rate per intent."
+
+**Level differences.** Mid: an LLM loop with billing tools, a refund limit in code, a "transfer to human" path, logs.
+Senior: verified identity and subject binding in the broker, per-customer and daily caps, idempotent refunds,
+rule-based escalation with a summary, a replayed offline eval, a staged rollout. Staff: the containment equation and
+exposure drive the priorities; routing by intent as the main cost lever; breaker and fail-closed policy; a degradation
+plan sized against human capacity; pass^k with a statistically sized gate and audit sample sizes; the autonomy ladder
+as the governance process.
+
+**Rubric for answer D.** *No hire:* the model holds a billing API key and chooses the customer and the amount; no
+handoff design. *Lean:* tools with a per-refund limit enforced in code, but identity taken from the chat, no
+cumulative caps, and evaluation by reading a few transcripts. *Hire:* trust boundary drawn; identity levels and
+subject binding at the broker; per-refund, per-customer and daily caps in a deterministic policy engine that fails
+closed; idempotent refunds with unknown-outcome handling; rule-based escalation with a handoff summary; cost per
+conversation and per resolved conversation quantified; final-state replay eval with repeated trials; staged rollout.
+*Strong hire:* the containment equation and the exposure line set the priorities; a spend-rate breaker; commitment
+checks on free text; degradation sized against human capacity; pass^k with a gate sized for the regression that
+matters and an audit sample size; an autonomy ladder per intent; intent routing that keeps how-to traffic on the cheap
+path.
+
+**Variant: "Design a deep-research agent".** The same framework, different numbers. CLARIFY whether the user waits,
+what a report is worth and the hard cost cap. QUANTIFY bottom-up: [C16](../04-case-studies/C16-deep-research-agents.md)
+reaches ≈ 2.5 M input tokens per deep report, ≈ $4 on a strong model and ≈ $2 with tiered models under a $5 cap, and
+latency is the critical path through parallel workers, not the sum
+([SYSDESIGN-29](../03-ai-systems/29-agent-architectures-orchestration.md) Numbers 3). SKETCH a lead, bounded
+workers with isolated contexts, an artefact store, and a citation verifier with a clean context. DEEPEN on when
+multi-agent pays: in chapter 29's example caching shrinks its cost advantage from about 3.3× to about 1.1–1.3×, so it
+is chosen for latency and context limits. STRESS with an injected web page, a straggler worker, and a lead that over-spawns:
+Anthropic reports early agents "spawning 50 subagents for simple queries" [22]. WRAP with quality per dollar as the
+release metric.
+
 ## Numbers that matter
 
 | Number | Value | Where it comes from |
@@ -704,8 +890,9 @@ As of 2026-11:
 - **Disaggregated prefill/decode and KV-aware routing** are production topics, covered in
   [22](../03-ai-systems/22-serving-llms-at-scale.md). Mention them when prefill and decode needs differ a lot, as in
   worked answer A.
-- **Agents shift evaluation from answers to trajectories.** Task success, steps, tool errors and cost per successful
-  task are the metrics ([25](../03-ai-systems/25-agentic-systems.md)).
+- **Agents shift evaluation from answers to trajectories and end states.** Task success graded on the final state,
+  pass^k over repeated trials, steps, tool errors and cost per successful task are the metrics
+  ([32](../03-ai-systems/32-observing-evaluating-agents.md), worked answer D).
 
 ## Failure modes and operations
 
@@ -757,6 +944,8 @@ you roll out a new model safely?" "What happens when the context doubles?" "What
 3. What three biases of LLM judges does Zheng et al. examine, and how do you control them?
 4. In worked answer A, why is prefill rather than decode the larger GPU term?
 5. In worked answer C, what is the dominant cost, and which parameter controls it?
+6. In worked answer D, why do containment and handoff quality matter more to the average economics than the token
+   bill, and what sizes the controls on wrong actions?
 
 Full set with answers: [exercises/I04-ml-llm-interviews.md](../../exercises/I04-ml-llm-interviews.md).
 
@@ -778,6 +967,9 @@ No lab for this unit. For hands-on grounding, use [labs/21-llm-inference-anatomy
 - This course: [21](../03-ai-systems/21-llm-inference-anatomy.md)–[28](../03-ai-systems/28-ai-trust-safety-governance.md);
   cases [C09](../04-case-studies/C09-llm-chat-service.md), [C10](../04-case-studies/C10-enterprise-rag-assistant.md),
   [C11](../04-case-studies/C11-coding-agent-platform.md), [C12](../04-case-studies/C12-realtime-fraud-recsys.md).
+- Agentic: chapters [29](../03-ai-systems/29-agent-architectures-orchestration.md)–[33](../03-ai-systems/33-agent-platform-runtime.md)
+  and cases [C15](../04-case-studies/C15-support-agent-platform.md), [C16](../04-case-studies/C16-deep-research-agents.md),
+  [C17](../04-case-studies/C17-workflow-automation-agent.md), the material behind worked answer D.
 
 ## References
 
@@ -814,3 +1006,11 @@ No lab for this unit. For hands-on grounding, use [labs/21-llm-inference-anatomy
     arXiv:2210.17323 (preprint). https://arxiv.org/abs/2210.17323
 18. J. Lin et al., *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*, arXiv:2306.00978
     (preprint). https://arxiv.org/abs/2306.00978
+19. S. Yao, N. Shinn, P. Razavi, K. Narasimhan, *τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World
+    Domains*, arXiv:2406.12045, 2024 (preprint; final-state grading, pass^k). https://arxiv.org/abs/2406.12045 (accessed 2026-11-20)
+20. Model Context Protocol, *Specification 2026-07-28: Authorization* (servers validate the token audience and must not
+    accept or transit other tokens). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization (accessed 2026-11-20)
+21. M. Jones et al., *OAuth 2.0 Token Exchange*, RFC 8693, January 2020, §4.1 (`act` claim).
+    https://www.rfc-editor.org/rfc/rfc8693.html (accessed 2026-11-20)
+22. Anthropic Engineering, *How we built our multi-agent research system*, 2025-06-13.
+    https://www.anthropic.com/engineering/multi-agent-research-system (accessed 2026-11-20)

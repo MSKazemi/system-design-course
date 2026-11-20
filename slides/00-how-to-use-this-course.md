@@ -63,24 +63,26 @@ of date, so it carries versions and dates.
 
 - A fictional AI knowledge and chat product (`example.com`)
 - Upload documents, search, ask, get answers with citations, later agents
-- Grows from one server to a global, GPU-backed, multi-tenant service
+- Grows from one server to a global, GPU-backed, multi-tenant service, then an agent platform
 - All numbers are labelled assumptions
 
-**Visual:** Lumen's growth as five stages on a timeline, from one server to multi-region GPUs; icons `arch-server`, `arch-servers-cluster`, `arch-region`, `domain-ai`, `domain-chat`.
+**Visual:** Lumen's growth as six stages on a timeline, from one server to multi-region GPUs and an agent platform; icons `arch-server`, `arch-servers-cluster`, `arch-region`, `domain-ai`, `domain-chat`.
 
 **Speaker notes:** Lumen is a teaching device, not a real company. Real systems are cited from published sources
 when used as examples.
 
-## Slide 7 — Three paths
+## Slide 7 — Four paths
 
-- Learner: everything in order, every lab (≈ 140 h)
-- Practitioner: 01, 11–12, Part II, all of Part III, AI cases (≈ 77 h)
-- Interview candidate: I01, 01, I02, high-frequency topics, cases, AI round (≈ 65 h)
+- Learner: all 34 chapters and 17 cases in order, then I01, every lab (≈ 169 h)
+- Practitioner: 01, 11–12, Part II, all of Part III including agentic 29–33, AI and agentic cases (≈ 107 h)
+- Interview candidate: 01, I01, I02, high-frequency topics, cases, the AI round, then the agentic round (29, 31, 32, 33 at [Core] depth, C15) (≈ 104 h)
+- Agentic systems: the shortest route to 29–33 and C15–C17, foundations at [Core] depth (≈ 91 h)
+- All four paths respect every unit's prerequisites
 
-**Visual:** Three coloured routes over the course map, each also labelled with text (A, B, C), not colour alone; icons `arch-user`, `arch-users`.
+**Visual:** Four coloured routes over the course map, each also labelled with text (A, B, C, D), not colour alone; icons `arch-user`, `arch-users`.
 
-**Speaker notes:** The estimates in the lesson come from per-unit time assumptions. Halve them for a Core-only
-pass.
+**Speaker notes:** The hours are sums of each unit's own time estimate from its front matter, with [Core]-depth
+units at half their reading time. Halve them again for a Core-only pass.
 
 ## Slide 8 — Shift 1–2: LLM inference and GPUs
 

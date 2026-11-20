@@ -74,17 +74,20 @@ snapshots before deletion via a finalizer.
 **Speaker notes:** Defaults: 0.1 tolerance and a 300 s scale-down stabilisation window. CPU is the wrong signal for
 queue consumers and LLM servers.
 
-## Slide 7 — Releasing safely
+## Slide 7 — Releasing and changing a live system safely
 
-- Rolling: maxSurge / maxUnavailable
-- Blue-green: switch at once, 2× capacity
-- Canary: small %, compare SLOs, auto-rollback
-- Gateway API weighted backendRefs make % splits a field
+- "Roughly 70% of outages are due to changes in a live system" (SRE book); rolling (`maxSurge`/`maxUnavailable`), blue-green (2× capacity), canary (small %, weighted `backendRefs`)
+- Canary vs a concurrent control, on SLIs; a 10-minute 5% canary (about 60,000 requests) catches 0.1% → 0.2%, not 0.1% → 0.12%
+- Flags separate deploy from release; config pushes go through the same pipeline
+- Expand → migrate → contract; readers before writers; rollback gets narrower at each step, the drop is final
+- Default to rollback; freezes when the error budget is spent
 
-**Visual:** Traffic bars for rolling, blue-green and canary. Icons: `ops-deploy`, `ops-ci-cd`, `pattern-failover`.
+**Visual:** Left: traffic bars for rolling, blue-green and canary. Right: seven-step expand/contract ladder with the rollback arrow shortening after "write new only" and a red line before "drop column"; side panel: canary vs control error bars. Icons: `ops-deploy`, `ops-ci-cd`, `devops-argo`, `devops-flux`, `sql-postgresql`, `ops-human-approval`.
 
-**Speaker notes:** Canary detection power depends on sample size; a 5% canary for 10 minutes at 2,000 req/s sees
-about 60,000 requests — enough for big regressions, not small ones.
+**Speaker notes:** Kubernetes reports a stalled rollout but takes no rollback action; Argo Rollouts and Flagger add
+metric analysis and automated promotion or rollback. Once v4 stops writing the old column, rolling back to code that
+reads it needs a reverse backfill, so keep dual-writing through the bake if you want that option. CREATE INDEX
+CONCURRENTLY, NOT VALID constraints and a short lock_timeout keep PostgreSQL migrations from blocking traffic.
 
 ## Slide 8 — GitOps
 

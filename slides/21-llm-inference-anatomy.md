@@ -41,7 +41,19 @@ does this with vLLM's /tokenize endpoint.
 **Speaker notes:** This asymmetry was characterised in Splitwise and is the basis of DistServe's separate TTFT and TPOT
 SLOs. If you remember one thing from this chapter, remember which phase is limited by what.
 
-## Slide 4 — Roofline in one picture
+## Slide 4 — A GPU in ten minutes
+
+- Streaming multiprocessors (SMs) run kernels in parallel; H100 SXM5 has 132
+- Tensor cores do matrix multiply-accumulate; datasheet BF16 1,979 TFLOPS is with sparsity, ≈ 989.5 dense
+- HBM holds weights, KV cache and activations: 80 GB, 3.35 TB/s on H100 SXM
+- Links are slower tiers: NVLink 900 GB/s GPU-to-GPU, PCIe Gen5 128 GB/s to the host, then the network
+
+**Visual:** one GPU package: a grid of SM tiles (each with tensor-core squares) beside HBM stacks, with three arrows out labelled NVLink, PCIe, network, each with its bandwidth. Icons: `arch-gpu`, `arch-memory`, `arch-network`.
+
+**Speaker notes:** Only two numbers matter for most of this chapter: tensor-core FLOP/s and HBM bytes/s, plus HBM
+capacity. Their ratio is the ridge point on the next slide. Chapter 23 covers interconnects and clusters in depth.
+
+## Slide 5 — Roofline in one picture
 
 - Arithmetic intensity = FLOPs ÷ bytes moved
 - Ridge point = peak FLOP/s ÷ bandwidth; H100 BF16 ≈ 295 FLOP/byte
@@ -53,7 +65,7 @@ SLOs. If you remember one thing from this chapter, remember which phase is limit
 **Speaker notes:** Derive the ridge from the datasheet: 989.5 dense TFLOPS over 3.35 TB/s. Then note the sparsity
 footnote — vendor peaks marked "with sparsity" must be halved for dense work.
 
-## Slide 5 — Attention decode never gets compute-bound
+## Slide 6 — Attention decode never gets compute-bound
 
 - Each sequence reads its own K and V: no sharing across the batch
 - Intensity ≈ query heads ÷ KV heads (GQA group size)
@@ -65,7 +77,7 @@ footnote — vendor peaks marked "with sparsity" must be halved for dense work.
 **Speaker notes:** This is the quantitative reason KV-cache size reductions — GQA, MQA, FP8 KV — matter so much for
 serving, and why the next chapter is about managing the KV cache.
 
-## Slide 6 — The KV cache formula
+## Slide 7 — The KV cache formula
 
 - KV bytes per token = layers × 2 × KV heads × head dim × bytes
 - Qwen3-8B (36 × 2 × 8 × 128 × 2 B) = 144 KiB per token
@@ -77,7 +89,7 @@ serving, and why the next chapter is about managing the KV cache.
 **Speaker notes:** All values come from the official config.json. Multiply by concurrent sequences to get the server's
 KV footprint — this is what usually runs out first.
 
-## Slide 7 — Weights at BF16, FP8, INT4
+## Slide 8 — Weights at BF16, FP8, INT4
 
 - Qwen3-8B: 16.4 GB BF16 → 8.2 GB FP8 → ≈ 4.2 GB INT4 (with group scales)
 - Fewer weight bytes = faster decode at small batch
@@ -89,7 +101,7 @@ KV footprint — this is what usually runs out first.
 **Speaker notes:** INT4 weight-only schemes such as AWQ and GPTQ usually dequantise before multiplying, so they help
 memory and decode more than prefill.
 
-## Slide 8 — Batching is the cost lever
+## Slide 9 — Batching is the cost lever
 
 - One decode step reads all weights once, whatever the batch size
 - B = 1 → 128: aggregate tokens/s ≈ 39× higher; each user only ≈ 3× slower (bandwidth model)
@@ -101,7 +113,7 @@ memory and decode more than prefill.
 **Speaker notes:** These are roofline estimates with a 70 % bandwidth-efficiency assumption, not benchmarks. The shape is
 what matters; the lab shows the same shape on a CPU.
 
-## Slide 9 — Answering Lumen
+## Slide 10 — Answering Lumen
 
 - KV budget on an H100 ≈ 53.6 GB → ≈ 363k tokens → ≈ 177 concurrent 2k-token chats
 - Decode stays above 20 tokens/s per user well past that batch
@@ -113,7 +125,7 @@ what matters; the lab shows the same shape on a CPU.
 **Speaker notes:** The answer is a range with its binding constraint named, plus the load test you would run to confirm.
 That is the interview-quality answer.
 
-## Slide 10 — Metrics: TTFT, TPOT, ITL, goodput
+## Slide 11 — Metrics: TTFT, TPOT, ITL, goodput
 
 - TTFT = queue + tokenise + prefill; TPOT = (E2E − TTFT) ÷ (n − 1)
 - ITL = individual gaps; p99 ITL catches stream freezes
@@ -126,7 +138,7 @@ That is the interview-quality answer.
 stream. Throughput without SLOs is a vanity metric. Caveat: vLLM's server TPOT histogram records one-token requests as
 zero while `vllm bench serve` excludes them, so the two TPOT numbers differ.
 
-## Slide 11 — Why p99 matters for LLM products
+## Slide 12 — Why p99 matters for LLM products
 
 - Agents chain calls: 10 calls → 0.99¹⁰ ≈ 90 % chance all under p99
 - TTFT includes queueing, which explodes near saturation
@@ -138,7 +150,7 @@ zero while `vllm bench serve` excludes them, so the two TPOT numbers differ.
 **Speaker notes:** Connect to the queueing material in chapter 01. LLM products fan out sequentially, which makes tails
 add up as well as compound.
 
-## Slide 12 — Streaming with SSE
+## Slide 13 — Streaming with SSE
 
 - `text/event-stream`: `data: {...}` events, final `data: [DONE]`
 - `stream_options.include_usage` gives exact token counts in the last chunk
@@ -150,7 +162,7 @@ add up as well as compound.
 **Speaker notes:** Many "the model is slow" tickets are buffering proxies. Disable buffering for event streams and set
 timeouts above your longest allowed generation.
 
-## Slide 13 — Interview angle
+## Slide 14 — Interview angle
 
 - CLARIFY: architecture, precision, lengths, SLOs as TTFT/TPOT percentiles
 - QUANTIFY: weights, KV per token, KV budget, step time from bandwidth, prefill from FLOPs

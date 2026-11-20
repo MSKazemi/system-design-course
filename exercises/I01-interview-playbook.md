@@ -147,3 +147,48 @@ as numbered steps (`1 client → API (HTTPS)`, `2 API → queue (async)`, …), 
 narrating. Having practiced a text fallback beforehand turns this into a non-event, and handling it calmly is itself a
 communication signal.
 </details>
+
+## 10. [Interview] Clarify an agentic prompt
+
+The prompt is "Design an agent that books business travel for Lumen employees." You have five minutes. Which four
+questions do you ask first, and what does each answer change?
+
+<details><summary>Answer</summary>
+
+Use the agentic CLARIFY questions from §17, each with its "because":
+
+1. *What may it do without a human: search only, hold a booking, or pay?* This sets the autonomy level per action
+   class. Paying is money and usually irreversible, so it needs policy limits or an approval.
+2. *What is the worst single action and the worst day?* A wrong non-refundable flight is the worst action. The worst
+   day is volume × limit (for example 2,000 bookings × a $1,500 cap). That sizes per-trip, per-employee and daily caps
+   and a rate breaker.
+3. *What untrusted content does it read?* Supplier web pages and emails are untrusted. If the same session also holds
+   employee data and can pay or send email, it has all three Rule-of-Two properties, so one of them must be removed or
+   gated.
+4. *Does the employee wait, and how is success measured?* An interactive chat streams a short turn. A "book my trip"
+   request runs in the background and may wait hours for a manager's approval. Success might be "booked within policy,
+   no change within 48 h".
+
+Then rank: wrong-action rate and policy compliance above latency. Good alternatives include "who approves, and what
+if they don't answer?" and "is a fixed workflow enough?" (for a single known route it often is).
+</details>
+
+## 11. [Core] Tokens per task, not requests
+
+An agent has a 4,000-token base prompt and adds 1,000 tokens per step. Compare 20-step and 40-step tasks: total input
+tokens, input cost at an illustrative $1 per million, and end-to-end success at a 0.98 per-step rate. What do you say
+next in the interview?
+
+<details><summary>Answer</summary>
+
+Input = N·B + Δ·N(N−1)/2.
+
+- 20 steps: 20 × 4,000 + 1,000 × 190 = **270,000 tokens**, ≈ $0.27. Success 0.98²⁰ ≈ **0.67**.
+- 40 steps: 40 × 4,000 + 1,000 × 780 = **940,000 tokens**, ≈ $0.94. Success 0.98⁴⁰ ≈ **0.45**.
+
+Twice the steps costs ≈ 3.5× the input, and success falls from about two in three to fewer than one in two. The "so
+what": cap steps and tokens in the runtime, compact or isolate context (sub-agents) for long tasks, cache the stable
+prefix (watching the cache lifetime), and report cost per *successful* task: $0.27 / 0.67 ≈ $0.40 versus $0.94 / 0.45
+≈ $2.09, more than five times worse. Verification steps or retries of independent sub-tasks are the levers on the
+success rate (chapter 29, Numbers 7).
+</details>

@@ -69,7 +69,8 @@ Break the trifecta where a workflow doesn't need all three legs.
 
 **Visual:** Guardrail flowchart from the lesson. Icons: arch-api-gateway, arch-firewall, security-authorization, arch-user.
 **Speaker notes:** Llama Guard and NeMo Guardrails are classifier and rail layers. They reduce how often the
-policy engine has to say no, but they do not replace it.
+policy engine has to say no, but they do not replace it. The engine is a boundary only for what it can inspect:
+constrain the channel, and render approval prompts from the structured call, not from model-written text.
 
 ## Slide 8 — Secure-by-design agent patterns
 - Action-selector, plan-then-execute, LLM map-reduce

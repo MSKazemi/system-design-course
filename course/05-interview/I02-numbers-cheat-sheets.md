@@ -4,7 +4,7 @@ title: "Numbers & cheat sheets: latency, throughput, storage, capacity, cost & G
 part: "V — Interview track"
 level: [core, deep, frontier]
 status: SOURCES_CHECKED
-prerequisites: [SYSDESIGN-01]
+prerequisites: [SYSDESIGN-01, SYSDESIGN-21]
 estimated_time: "1.5h reading + 1h drills"
 requirement: "Produce a defensible order-of-magnitude estimate for any design prompt in under four minutes, using constants you can source and assumptions you label."
 learning_objectives:
@@ -270,6 +270,10 @@ out loud, and use the formulas.
 | General-purpose vCPU | ≈ $0.02–0.05 per vCPU-hour on demand | [A] |
 | Data-center GPU (H100-class), on demand | ≈ $3–7 per GPU-hour at list price; committed or smaller-provider rates can be lower | [S 33][S 34] as of 2026-11-20: Lambda H100 SXM $4.69–4.89, H100 PCIe $3.79 per GPU-hour; CoreWeave 8 × H100 node $49.24/h ≈ $6.16 per GPU-hour. Wide variance; the formula matters more |
 | SMS message | ≈ $0.005–0.10 per message, by country | [A] often the largest line item of a notification system |
+
+For **agent** prompts, cost per task is not one call: tokens grow with every step because the history is re-sent.
+The step-by-step formula (N·B + Δ·N(N−1)/2 for N steps) and how caching changes it are in
+[I01 §17](I01-interview-playbook.md#17-when-the-prompt-is-agentic).
 
 [D] **Formulas that interviewers like:**
 

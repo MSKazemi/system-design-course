@@ -152,3 +152,18 @@ Answer as a **range with the binding constraint named** ("≈ 100–150 concurre
 below ≈ 80 % utilisation; confirm with a load test"), and convert concurrent streams to daily users via think time
 and Little's law.
 </details>
+
+## 11. [Core] GPU vocabulary
+
+A colleague says: "Decode is slow because our tensor cores are too slow. Let's move from H100 to H200." Using the
+terms SM, tensor core, HBM and NVLink, say what limits small-batch decode, and whether the H200 helps.
+
+<details><summary>Answer</summary>
+
+Small-batch decode is limited by **HBM bandwidth**, not by the tensor cores in the SMs: each step reads every weight
+from HBM once and does only ≈ *B* FLOPs per byte, far below the H100's BF16 ridge point of ≈ 295. The tensor cores
+mostly wait. The H200 has the same tensor-core throughput as the H100 but 4.8 TB/s of HBM against 3.35 TB/s (43 % more)
+and 141 GB against 80 GB, so it **does** help, for the bandwidth reason, not the compute reason. NVLink only matters
+if the model is split across GPUs with tensor parallelism. An acceptable alternative answer: shrink the bytes instead
+(FP8 or INT4 weights, FP8 KV cache), which helps on either GPU.
+</details>

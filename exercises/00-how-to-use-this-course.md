@@ -54,9 +54,10 @@ production experience.
 drive inference capacity. Then go straight to inference anatomy, serving, GPUs and gateways. 11 and 12 are
 probably already familiar and can be used as reference.
 
-(c) **Path C**: I01 → 01 → I02 → 03 → 04. Method, then numbers, then high-frequency topics. Staff level means
-adding 12, 15, 16 and 18 before mock interviews, because operations, geography, cost and security are where staff
-answers stand apart. With four weeks, read [Core] plus [Deep] for 03–08, and do cases C01, C02, C06, C07, C09.
+(c) **Path C**: 01 → I01 → I02 §§1–9 → 02 (Core) → 03. Numbers, then method, then high-frequency topics. Staff
+level means reading the [Deep] sections of 11, 12, 15, 16 and 18 before mock interviews, because operations,
+geography, cost and security are where staff answers stand apart. With four weeks, read [Core] plus [Deep] for
+03–11 and do cases C01, C02, C06, C07: every prerequisite of those four cases is in 01–11.
 </details>
 
 ### 4. [Core] Markers
@@ -163,4 +164,25 @@ milliseconds or more); the queueing curve (latency explodes as utilisation appro
 (L = λW); the CAP trade-off under partitions; the fact that components fail, often together. Many "new" ideas
 are old ones applied to new constraints. PagedAttention is virtual memory. KV-aware routing is affinity routing
 with a new key.
+</details>
+
+### 10. [Core] Why Path D does not start at 29
+
+A colleague must design a customer-support agent that can issue refunds. They plan to read only chapters 29–33
+and case C15. Using the prerequisites in each unit's front matter, say what that plan misses, and why Path D is
+still much shorter than Path A.
+
+<details><summary>Answer</summary>
+
+The plan skips what the agentic units assume. 29 needs 25 and 26. 31 needs 18 and 28. 32 needs 12. 33 needs 08
+and 14. C15 also needs 24, the RAG case C10 (which needs the chat case C09) and the payments case C06. Following
+those links back reaches 21, 22, 24, 25, 26 and 28, and through them every foundation chapter from 01 to 15 plus
+18 and 19. The case the colleague would most regret skipping is C06: idempotency keys and exactly-once effects are
+what stop a retried agent step from refunding a customer twice.
+
+Path D reads exactly that prerequisite closure (plus C16, C17 and their extra prerequisites 30, C08 and C11), but
+it reads most classical chapters at [Core] depth. Only 00, 01, 08, 10, 18, the AI chapters other than 22, and the
+agentic chapters are read in full. It also leaves out 16, 17, 20, 23 and 27, which no unit in the route needs. That is why it comes
+to about 91 hours against about 169 for Path A. An acceptable alternative for this one deliverable is to drop 30,
+C08, C11, C16 and C17 from Path D: only C16 and C17 need them.
 </details>

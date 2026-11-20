@@ -14,6 +14,7 @@ learning_objectives:
   - "Design an OpenTelemetry pipeline (SDK, Collector, backends) including head and tail sampling"
   - "Derive multi-window, multi-burn-rate alert thresholds from an SLO and an error budget"
   - "Compare observability architectures on cost, and evaluate AI-assisted operations claims critically"
+  - "Run an incident with defined roles and severities, size an on-call rotation, write an error-budget policy and a blameless postmortem with trackable action items, troubleshoot by hypothesis and bisection, and plan a game day"
 last_reviewed: 2026-11-20
 ---
 
@@ -36,7 +37,8 @@ expensive at volume. **Traces** follow one request through many services so you 
 **Profiles** show which *lines of code* burn CPU or memory. The craft is to emit each signal where it is cheapest
 and most useful, link them with shared identifiers (trace IDs, resource attributes), alert only on what users feel
 (SLOs and error-budget burn rate), and keep the bill under control by sampling and by refusing unbounded label
-values. OpenTelemetry has become the vendor-neutral way to produce and ship all of this.
+values. OpenTelemetry has become the vendor-neutral way to produce and ship all of this, and the chapter ends with
+the human side: who is paged, how they run the incident, and what changes afterwards.
 
 ## Why this matters now
 
@@ -376,14 +378,21 @@ verbosity for one service for 15 minutes without a deploy. Redact personal data 
 ## Frontier [Frontier]
 
 **GenAI telemetry (as of 2026-11).** OpenTelemetry's GenAI semantic conventions define spans for inference,
-embeddings, tool execution and agent invocation, and metrics such as `gen_ai.client.operation.duration`,
-`gen_ai.server.time_to_first_token`, `gen_ai.server.time_per_output_token` and token counters such as
-`gen_ai.client.inference.usage.input_tokens` / `.output_tokens`, keyed by attributes like `gen_ai.operation.name`,
+embeddings, tool execution and agent invocation, each with its own duration metric. On the client side, model calls
+are measured with `gen_ai.client.inference.duration`, streaming latency with `gen_ai.client.inference.time_to_first_chunk`
+(also recorded per call as the span attribute `gen_ai.response.time_to_first_chunk`), tools with
+`gen_ai.execute_tool.duration` and agents with `gen_ai.invoke_agent.duration` (in-process) or
+`gen_ai.client.invoke_agent.duration` (remote). The generic `gen_ai.client.operation.duration` still exists, but the
+conventions say it SHOULD NOT be reported for inference, embeddings, tool or agent operations. Model servers report
+`gen_ai.server.time_to_first_token` and `gen_ai.server.time_per_output_token`. Token counters are
+`gen_ai.client.inference.usage.input_tokens` / `.output_tokens` (plus `.cache_read.input_tokens`,
+`.cache_write.input_tokens` and `.reasoning.output_tokens`), keyed by attributes like `gen_ai.operation.name`,
 `gen_ai.provider.name` and `gen_ai.request.model` [6]. Every one of these is marked **Development**; the conventions
-were moved out of the core semantic-conventions repository (core v1.45.0, released 2026-11-02) into
-`open-telemetry/semantic-conventions-genai`, which had no tagged release when checked [6][26]. Names have already
-changed once (older instrumentations emit `gen_ai.client.token.usage`), so pin instrumentation versions and expect
-dashboards to need migration. Prompt and completion content are **opt-in** attributes for good reason: they can
+were deprecated in the core semantic-conventions repository in v1.42.0 (June 2026) and moved to
+`open-telemetry/semantic-conventions-genai`, which still had no tagged release when checked on 2026-11-20 (core is at
+v1.45.0, released 2026-11-02) [6][26]. Names have already changed (older instrumentations emit
+`gen_ai.client.token.usage`, and inference used to be reported on `gen_ai.client.operation.duration`), so pin
+instrumentation versions and expect dashboards to need migration. Prompt and completion content are **opt-in** attributes for good reason: they can
 contain personal data and secrets. SYSDESIGN-26 builds an LLM gateway that uses these conventions.
 
 **Profiles as a fourth OTel signal.** The Profiles signal entered public Alpha in 2026 with an OTLP profiles
@@ -419,6 +428,178 @@ suggestions, time saved, harm from wrong ones).
 cluster and its Prometheus share one Kubernetes node pool, a node-pool failure blinds you exactly when you need to
 see. Run at least a minimal external probe (black-box check from another region or provider) that pages when the
 *monitoring* goes silent.
+
+## Incident response, on-call and postmortems [Core]
+
+Everything above ends in a page. The requirement says a human is woken "within minutes"; it does not yet say who that
+human is, what they do in the first ten minutes, how often they may be woken, or what the organisation does
+afterwards so the same page never fires twice. That is the human half of observability, and Google's SRE books are
+the most complete public account of it [31]–[38].
+
+### From page to incident
+
+A page is not automatically an incident. The SRE book recommends clear conditions for *declaring* one: an event is
+an incident if a second team must be involved, if the outage is visible to customers, or if the issue is unsolved
+"even after an hour's concentrated analysis" [32]. The Workbook adds "declare incidents early and often", reporting
+that "managed incidents are resolved faster" in Google's experience [37]. Declaring is cheap; an undeclared incident
+with three engineers silently changing production in parallel is expensive.
+
+**Severity** decides how many people are pulled in and who is told. There is no universal scale; PagerDuty's public
+incident-response guide is a reasonable template [39]:
+
+| Level | Meaning (paraphrased from [39]) | Response |
+|---|---|---|
+| SEV-1 | critical, warrants public notification and executive liaison | major-incident process, page an incident commander, public notice |
+| SEV-2 | critical issue affecting many customers' ability to use the product | major-incident process, page an incident commander |
+| SEV-3 | stability or minor customer impact needing immediate owner attention | high-urgency page to the owning team, full process if the commander decides |
+| SEV-4 | minor, needs action, no customer impact | low-urgency page to the service team, outside the major-incident process |
+| SEV-5 | cosmetic | ticket, no page |
+
+The guide's rule for doubt is worth adopting verbatim: if you are unsure, "treat it as the higher one", and argue
+about the level in the postmortem, not during the incident [39]. For Lumen, tie severity to the SLO so it is not a
+matter of mood (a policy choice, not a standard): the fast-burn page (burn rate 14.4 or more on the answer API) opens
+at least SEV-2; the slow-burn page opens SEV-3; the 3-day ticket rule never opens an incident.
+
+### Roles and the first ten minutes
+
+The SRE book's incident structure separates four jobs [32]. The **incident commander** "holds the high-level state
+about the incident", assigns roles and keeps the **living incident document** (timeline, hypotheses, actions taken),
+which "can be messy, but must be functional". **Operations** is "the only group modifying the system during an
+incident". **Communication** is "the public face of the incident response task force". **Planning** "supports Ops by dealing
+with longer-term issues" so that Ops can stay on mitigation [32]. The
+Workbook's version names an Incident Commander, an Operations Lead and a Communications Lead, gives the Communications Lead the job of periodic updates to responders and stakeholders, and frames
+the goal as the "3Cs": coordinate the response, communicate, and maintain control [37]. On a small team one person holds several
+roles at first; the point is that someone *explicitly* holds each one, and that command is handed over out loud
+("You're now the incident commander, okay?") [32].
+
+```mermaid
+flowchart LR
+  P[Burn-rate page] --> T{Triage:<br/>user impact?}
+  T -->|no| TK[Ticket, no incident]
+  T -->|yes| D[Declare incident<br/>set severity]
+  D --> R[Assign IC, Ops, Comms<br/>open incident doc]
+  R --> M[Mitigate first:<br/>rollback, flag off, shed load]
+  M --> S{SLI back<br/>within SLO?}
+  S -->|no| M
+  S -->|yes| C[Resolve, hand over]
+  C --> PM[Blameless postmortem]
+  PM --> AI[Action items:<br/>owner, priority, bug]
+  AI --> F[Track to closure]
+```
+
+*Diagram: a burn-rate page is triaged; with user impact an incident is declared with a severity, roles are assigned and
+an incident document opened; responders mitigate until the SLI recovers, then resolve, write a blameless postmortem
+and track its action items to closure.*
+
+The priority order is the SRE book's: "Stop the bleeding, restore service, and preserve the evidence for
+root-causing" [32]; the Workbook's training advice is to "encourage a mitigation-first response" [37]. In practice the
+first mitigation for Lumen is almost always one of a short list of pre-built controls: roll back the last deploy or
+config change (see [SYSDESIGN-14](../02-modern-requirements/14-cloud-native-platforms.md#changing-a-live-system-safely-core)),
+turn a feature flag off, shift traffic away from a bad zone, or apply the overload playbook of
+[SYSDESIGN-11](11-reliability-engineering.md). The debugging path at the top of this chapter (burn rate → exemplar →
+trace → logs → profile) is how you find the cause; you do not need the cause to roll back.
+
+### Paging policy and on-call load
+
+The alerting section decided the symptom pages: the two burn-rate rules. Add cause-based pages only as a narrow
+exception, for failures that will hurt users before any SLI moves (a disk that fills in two hours, an expiring
+certificate). Everything else is a ticket or a dashboard. The SRE book adds *how fast* and *how often*. Typical response targets are
+"5 minutes for user-facing or otherwise highly time-critical services" and 30 minutes for less time-sensitive ones
+[31]. Google caps SRE operational work at 50% of time and on-call at no more than 25% of it; with a primary and a
+secondary on week-long shifts, that makes eight engineers the minimum single-site rotation (six per site for two
+sites) [31]. Because one incident takes about six hours on average once root-cause analysis, remediation, postmortem
+and fixes are counted, the book concludes the maximum is two incidents per 12-hour shift [31].
+
+Apply it to Lumen: the answer team has five engineers. Two on-call slots per week shared by five people is 40% of
+everyone's weeks, well above the 25% cap. The honest options are a shared rotation with the retrieval team, a smaller
+paging surface, or a follow-the-sun split, not "be more resilient". Watch two numbers per shift: **incidents** (more
+than about two per 12-hour shift means overload [31]; the book counts an incident as a group of related alerts with one
+cause, not each page) and the **share of pages that needed action** (low-value pages cause the fatigue that makes "serious alerts... treated with less attention than necessary"
+[31]). Repetitive manual operational work is **toil**, "manual, repetitive, automatable, tactical, devoid of enduring
+value", and the SRE goal is to keep it below 50% of each engineer's time [34]; incidents that recur are the most
+expensive toil there is.
+
+### The error-budget policy: what the SLO is for
+
+An SLO without consequences is a dashboard. The Workbook's chapter on implementing SLOs says you need "a policy
+outlining what to do when your service runs out of budget", agreed in advance by the people who must act on it, and
+lists preconditions: stakeholders approved the SLO, the owning team agrees it is achievable, the organisation "has
+committed to using the error budget for decision making and prioritizing", and there is a process to refine it [35].
+Its example actions when budget runs out range from prioritising reliability bugs to a production freeze [35]. The
+SLO document itself records the objectives, the SLI implementations, the approval, and the next review date; review
+monthly at first and quarterly or less once the SLO is stable [35].
+
+The Workbook's Appendix B example policy is short enough to adopt as a starting point [36]:
+
+- **SLO miss:** if the service has exceeded its budget for the preceding four weeks, halt all changes and releases
+  "other than P0 issues or security fixes" until it is back within SLO.
+- **Outage:** a single incident that consumes more than 20% of the four-week budget requires a postmortem with at
+  least one P0 action item; a class of outage that consumes more than 20% in a quarter gets a P0 item in the next
+  quarter's plan.
+- **Escalation:** disagreements about the calculation or the action go to a named executive (the CTO in the example).
+- **Non-goal:** it is "not intended to serve as a punishment for missing SLOs" [36].
+
+Translated to Lumen's 30-day, 99.5% SLO (the arithmetic is ours; the example uses four weeks): the budget is about
+259,000 failed requests, so the 20% outage trigger is about 51,800 failed requests. A total outage burns at 200×, so
+it crosses that line after 0.2 × 3.6 h ≈ **43 minutes**; the fast-burn page (about 4 minutes into such an outage)
+gives the team roughly 39 minutes to mitigate before a P0 postmortem becomes mandatory. That is the connection the
+requirement asked for: alert thresholds, severity and policy are all derived from one number.
+
+### Blameless postmortems that change something
+
+A postmortem is "truly blameless" when it focuses on "the contributing causes of the incident without indicting any
+individual or team" [33]. People who expect blame hide information, and the system keeps the flaw. Write one when a
+pre-agreed trigger fires; the SRE book's list is user-visible downtime or degradation beyond a threshold, data loss of
+any kind, on-call intervention such as a rollback or rerouting, resolution time above a threshold, or a monitoring
+failure that meant a human found the problem first [33]. A useful skeleton: impact in SLO-budget terms; timeline from
+the incident document; trigger and contributing causes (for metastable failures, the trigger *and* the sustaining
+effect, [SYSDESIGN-11](11-reliability-engineering.md)); **detection** (how long from the start to the page, compared
+with what the burn-rate arithmetic predicts); what went well and what went badly; action items.
+
+Action items are where most postmortems fail. The Workbook's checklist: each item has "both an owner and a tracking
+number", a priority, and "a verifiable end state" [38]. The Workbook flags vague items such as "Improve paging and
+alerting" [38]; for Lumen, "Improve monitoring" is not an action item, "Page when the retrieval error ratio exceeds
+the fast-burn threshold" is. Prefer a single owner with collaborators, and include
+*prevent* items as well as *mitigate* items [38]. Items are filed in the normal bug tracker so their closure can be
+monitored, and incentives should reward implementing the plan, not only writing the document [38]. Review matters
+too: "An unreviewed postmortem might as well never have existed" [33]. Track two numbers per quarter: the share of P0
+and P1 action items closed by their due date, and the number of incidents whose causes repeat an earlier postmortem.
+
+### Troubleshooting method and game days
+
+Mitigation does not need the cause; the postmortem does. The SRE book frames troubleshooting as "an application of the
+hypothetico-deductive method": from the observations and a model of the system, "iteratively hypothesize potential
+causes for the failure and try to test those hypotheses" [40]. Its loop runs problem report, triage ("Stopping the
+bleeding should be your first priority"), examine, diagnose, test and treat [40]. Three habits from that chapter fit
+Lumen's telemetry. Start with what changed: "Recent changes to a system can be a productive place to start", which is
+why every deploy, flag flip and prompt version should be an annotation on the burn-rate graph [40]. Divide the system:
+walk the request path, or for a large system use **bisection**, which "splits the system in half" and checks which
+half misbehaves; a trace waterfall does much of that split for a single request [40]. And distrust coincidence: "correlation is not
+causation", and "when you hear hoofbeats, think of horses not zebras" [40]. Record every hypothesis you ruled out in
+the incident document; the chapter argues that "Negative results should not be ignored or discounted" [40].
+
+Practise before the page. Google SRE teams practise regular **disaster role playing** ("Wheel of Misfortune"), at
+best a weekly ritual: a game master announces a page from a prepared scenario (a previous outage, or a hypothetical
+breakage of a new or soon-to-be-launched feature), and the primary and secondary on-call say what they would do to
+mitigate and investigate [41]. At company scale, the annual **DiRT** exercise combines "theoretical and practical
+drills to perform multiday testing of infrastructure systems and individual services" [31]; in it, SREs "inflict
+actual outages" to check that systems react as expected and to find unexpected weaknesses [42]. A first Lumen game day
+needs no new tooling: in staging, seed one fault (the lab's error injection), run the incident process above with
+named roles, measure time to page against the burn-rate prediction and time to mitigate, and file the gaps as action
+items with owners, exactly like a postmortem. Move to production drills only once rollback and the kill switches have
+been exercised in staging.
+
+### Agent-era note: when the change was a prompt
+
+In LLM and agent products a large share of risky changes never touch a binary: a prompt edit, a new tool description,
+a provider silently updating the model behind an unpinned alias, a re-built retrieval index. These incidents often
+show up as *quality* drops (more refusals, wrong answers, more escalations) rather than 5xx errors, so the SLIs that
+page must include evaluation signals as well as availability, and the incident timeline must record the full version
+tuple (model snapshot, prompt version, gateway config, index version). The mitigation-first rule still applies:
+flip the alias or route weights back before investigating, then add the failing cases to the regression set
+([SYSDESIGN-26](../03-ai-systems/26-llm-gateways-llmops.md#drift-and-model-regression-incident-response),
+[SYSDESIGN-32](../03-ai-systems/32-observing-evaluating-agents.md#10-regression-gates-in-cicd-for-agents-and-prompts)).
+Treat an AI assistant's incident summary as a hypothesis with evidence links, as the Frontier section argues.
 
 ## Cost and energy
 
@@ -457,7 +638,9 @@ working?"), or as a full design: "design a metrics/monitoring system" (see C13 f
 **Red flags:** alerting on CPU instead of user-visible symptoms; averaging percentiles; "log everything"; user IDs
 as metric labels; no plan for monitoring the monitoring; claiming 100% trace capture is free.
 
-**Likely follow-ups:** "Why two windows?" (precision + fast reset). "How do you alert on latency?" (latency SLI from
+**Likely follow-ups:** "How do you decide what pages and who is paged?" (the burn-rate rules, severity tied to the
+SLO, a rotation sized against the 25% cap). "What makes a postmortem useful?" (trigger and sustaining cause, owned and
+tracked action items with a verifiable end state). "Why two windows?" (precision + fast reset). "How do you alert on latency?" (latency SLI from
 a histogram bucket at the threshold, same burn-rate rules). "How do you debug one slow tenant?" (traces/wide events
 with a tenant attribute; never a metric label if tenants are unbounded).
 
@@ -480,8 +663,9 @@ with a tenant attribute; never a metric label if tenants are unbounded).
    1-hour-window alert at that rate fires?
 3. Why does tail sampling require all spans of a trace to reach the same collector, and what component makes that
    happen in OpenTelemetry?
-4. Name one question each signal (metrics, logs, traces, profiles) answers best.
-5. Which OpenTelemetry signals are stable and which are not, as of 2026-11?
+4. Which OpenTelemetry signals are stable and which are not, as of 2026-11?
+5. Lumen's answer team has five engineers on a week-long primary/secondary rotation. What share of their weeks is
+   on-call, and what does the SRE book's 25% cap imply?
 
 Full set with answers: [exercises/12-observability.md](../../exercises/12-observability.md).
 
@@ -505,6 +689,8 @@ minutes.
 - Brendan Gregg, "The USE Method" [17] and Tom Wilkie's RED talk [16] — two checklists you can apply tomorrow.
 - Majors, Fong-Jones, Miranda, *Observability Engineering* [23] — the case for wide structured events.
 - OpenTelemetry GenAI semantic conventions repository [6] — follow it if you operate LLM services.
+- Google SRE book ch. 14–15 [32][33] and Workbook ch. 9–10 and Appendix B [36]–[38] — incident roles, postmortems and
+  an error-budget policy you can copy.
 
 ## References
 
@@ -513,7 +699,7 @@ minutes.
 [3] OpenTelemetry, "OpenTelemetry eBPF Instrumentation reaches v1.0.0," blog, 2026, https://opentelemetry.io/blog/2026/obi-v1-release/ ; release v1.0.0 (2026-10-30), https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/releases (accessed 2026-11).
 [4] N. Grcevski (Grafana Labs), "Introducing OpenTelemetry eBPF Instrumentation: Why we donated Grafana Beyla to OpenTelemetry," dateline 2025-05-08, https://grafana.com/blog/opentelemetry-ebpf-instrumentation-beyla-donation/ (accessed 2026-11).
 [5] OpenTelemetry, "Elastic Contributes its Continuous Profiling Agent to OpenTelemetry," blog, 2024, https://opentelemetry.io/blog/2024/elastic-contributes-continuous-profiling-agent/ (accessed 2026-11).
-[6] OpenTelemetry, GenAI semantic conventions (docs/gen-ai/: gen-ai-spans.md, gen-ai-metrics.md, gen-ai-token-metrics.md; all "Status: Development"), https://github.com/open-telemetry/semantic-conventions-genai (main branch, accessed 2026-11).
+[6] OpenTelemetry, GenAI semantic conventions (docs/gen-ai/: gen-ai-spans.md, gen-ai-metrics.md, client-inference.md, execute-tool.md, client-invoke-agent.md, gen-ai-token-metrics.md; all "Status: Development"), https://github.com/open-telemetry/semantic-conventions-genai (main branch, no tagged release, accessed 2026-11-20).
 [7] Prometheus, "Metric and label naming," https://prometheus.io/docs/practices/naming/ (accessed 2026-11).
 [8] OpenTelemetry, "Metrics Data Model" (temporality, exponential histograms, exemplars), https://opentelemetry.io/docs/specs/otel/metrics/data-model/ (accessed 2026-11).
 [9] OpenTelemetry, "Logs" specification overview (Logs Bridge API, trace context in log records), https://opentelemetry.io/docs/specs/otel/logs/ (accessed 2026-11).
@@ -533,8 +719,20 @@ minutes.
 [23] C. Majors, L. Fong-Jones, G. Miranda, *Observability Engineering*, 1st ed., O'Reilly, 2022, https://www.oreilly.com/library/view/observability-engineering/9781492076438/ ; a 2nd edition appeared in 2026 (https://www.oreilly.com/library/view/observability-engineering-2nd/9781098179915/). Publisher pages return HTTP 403 to scripts: unverified as of 2026-11 beyond search listings; the lesson only cites the book's general thesis.
 [24] Prometheus, CHANGELOG — 3.8.0 (2025-11-28) "Native histograms are now a stable, but optional feature"; 3.9.0 (2026-01-06) feature flag made a no-op, https://github.com/prometheus/prometheus/blob/main/CHANGELOG.md (accessed 2026-11).
 [25] eBPF.io, "What is eBPF?", https://ebpf.io/what-is-ebpf/ (accessed 2026-11).
-[26] OpenTelemetry, semantic-conventions releases (v1.45.0, 2026-11-02), https://github.com/open-telemetry/semantic-conventions/releases (accessed 2026-11).
+[26] OpenTelemetry, semantic-conventions releases (v1.42.0, 2026-06-12: all `gen_ai.*` conventions deprecated and moved to the GenAI repository; v1.45.0, 2026-11-02), https://github.com/open-telemetry/semantic-conventions/releases (accessed 2026-11-20).
 [27] T. Ahmed et al., "Recommending Root-Cause and Mitigation Steps for Cloud Incidents using Large Language Models," ICSE 2023, arXiv:2301.03797, https://arxiv.org/abs/2301.03797 (accessed 2026-11).
 [28] grafana/docker-otel-lgtm, v0.41.0 (2026-11-13), https://github.com/grafana/docker-otel-lgtm (accessed 2026-11).
 [29] Prometheus, "Using Prometheus as your OpenTelemetry backend" (`--web.enable-otlp-receiver`), https://prometheus.io/docs/guides/opentelemetry/ (accessed 2026-11).
 [30] Prometheus, "Histograms and summaries" (quantiles cannot be aggregated; histogram buckets can be summed across instances), https://prometheus.io/docs/practices/histograms/ (accessed 2026-11).
+[31] A. Spadaccini, "Being On-Call," ch. 11 in B. Beyer et al. (eds.), *Site Reliability Engineering*, O'Reilly/Google, 2016, https://sre.google/sre-book/being-on-call/ (accessed 2026-11).
+[32] A. Stribblehill, "Managing Incidents," ch. 14 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/managing-incidents/ (accessed 2026-11).
+[33] J. Lunney, S. Lueder, "Postmortem Culture: Learning from Failure," ch. 15 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/postmortem-culture/ (accessed 2026-11).
+[34] V. Rau, "Eliminating Toil," ch. 5 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/eliminating-toil/ (accessed 2026-11).
+[35] S. Thurgood, D. Ferguson, with A. Hidalgo, B. Beyer, "Implementing SLOs," ch. 2 in *The Site Reliability Workbook*, O'Reilly/Google, 2018, https://sre.google/workbook/implementing-slos/ (accessed 2026-11).
+[36] S. Thurgood, "Example Error Budget Policy," Appendix B in *The Site Reliability Workbook*, 2018, https://sre.google/workbook/error-budget-policy/ (accessed 2026-11).
+[37] J. Mace, J. Oertel, S. Thorne, A. Chakrabarti, with J. Ma, J. Yang, "Incident Response," ch. 9 in *The Site Reliability Workbook*, 2018, https://sre.google/workbook/incident-response/ (accessed 2026-11).
+[38] D. Rogers, M. Suriar, S. Lueder, P. Deo, D. Sudhakar, with G. O'Connor, D. Rensin, "Postmortem Culture: Learning from Failure," ch. 10 in *The Site Reliability Workbook*, 2018, https://sre.google/workbook/postmortem-culture/ (accessed 2026-11).
+[39] PagerDuty, Incident Response Guide, "Severity Levels," https://docs.pagerduty.com/ops-guides/incident-response-guide/severity-levels (accessed 2026-11).
+[40] C. Jones, "Effective Troubleshooting," ch. 12 in B. Beyer et al. (eds.), *Site Reliability Engineering*, O'Reilly/Google, 2016 (sidebar "Negative Results Are Magic" by R. Bosetti), https://sre.google/sre-book/effective-troubleshooting/ (accessed 2026-11-20).
+[41] A. Widdowson, "Accelerating SREs to On-Call and Beyond," ch. 28 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/accelerating-sre-on-call/ (accessed 2026-11-20).
+[42] J. Petoff, "Lessons Learned from Other Industries," ch. 33 in *Site Reliability Engineering*, 2016 (DiRT; cites K. Krishnan, "Weathering the Unexpected," CACM 55(11), 2012), https://sre.google/sre-book/lessons-learned/ (accessed 2026-11-20).

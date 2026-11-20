@@ -134,11 +134,14 @@ use, state their stability as of 2026-11, and list two risks.
 
 <details><summary>Answer</summary>
 
-Examples: span attributes `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`; metrics
-`gen_ai.client.operation.duration`, `gen_ai.server.time_to_first_token`, `gen_ai.client.inference.usage.input_tokens`
-/ `output_tokens`. As of 2026-11 they are all **Development** status, defined in the separate
-`semantic-conventions-genai` repository, which had no tagged release when checked. Risks: (1) **names change** —
-older instrumentations emit `gen_ai.client.token.usage`; pin versions and plan dashboard migrations; (2) **privacy and
+Examples: span attributes `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`,
+`gen_ai.response.time_to_first_chunk`; client metrics `gen_ai.client.inference.duration`,
+`gen_ai.client.inference.time_to_first_chunk`, `gen_ai.client.inference.usage.input_tokens` / `.output_tokens`; on a
+self-hosted model server, `gen_ai.server.time_to_first_token`. Do not use `gen_ai.client.operation.duration` for model
+calls: the conventions say it SHOULD NOT be reported for inference. As of 2026-11 they are all **Development** status,
+defined in the separate `semantic-conventions-genai` repository, which had no tagged release when checked. Risks:
+(1) **names change** — older instrumentations emit `gen_ai.client.token.usage` and reported inference on
+`gen_ai.client.operation.duration`; pin versions and plan dashboard migrations; (2) **privacy and
 cost** — prompt and completion content are opt-in attributes for a reason (personal data, secrets, large payloads);
 keep them off by default and redact at the collector. A third acceptable risk: per-model label cardinality if
 fine-tuned model names are unbounded.
@@ -158,4 +161,53 @@ up to one rule-evaluation and metric-export interval (5 s each in the lab); the 
 about 3 min 47 s. (c) The 25-second window falls below
 7.2% within roughly **10–30 seconds** (about 10 s in the recorded test run), so the alert resolves even though the 5-minute window is still above the
 threshold — the reset-time benefit of the short window. Your measured times will vary by a few export intervals.
+</details>
+
+### 11. [Core] Size the rotation and the policy
+
+Lumen's answer team (five engineers) runs week-long primary/secondary on-call for the answer API (99.5% over 30
+days, 20 req/s). (a) What fraction of each engineer's weeks is on-call, and how does that compare with the SRE book's
+cap? (b) Adopting the Workbook's example error-budget policy, how many failed requests trigger the "single incident"
+postmortem rule, and how long does a total outage take to reach it? (c) The fast-burn page fires about 4 minutes into
+a total outage. How long does the team have to mitigate before the P0 postmortem is mandatory?
+
+<details><summary>Answer</summary>
+
+(a) Two people are on call every week out of five, so each engineer is on call 2/5 = **40%** of weeks. The SRE book
+caps on-call at 25% of an SRE's time and derives a minimum single-site rotation of **eight** for primary/secondary
+week-long shifts [31]. Options: share a rotation with a sibling team, cut the paging surface, or split across time
+zones. (b) Budget = 0.005 × 20 × 86,400 × 30 ≈ 259,000 failed requests; 20% ≈ **51,800** [36]. A total outage is
+burn rate 200, which exhausts the budget in 3.6 h, so 20% goes in 0.2 × 3.6 h ≈ **43 minutes**. (c) About 43 − 4 =
+**39 minutes**. Note the example policy uses a four-week window, Lumen's SLO uses 30 days; state which one the policy
+applies to. Acceptable variation: a team may set its own trigger percentage, as long as it is written down in advance.
+</details>
+
+### 12. [Interview] Fix the postmortem
+
+A draft postmortem for a 50-minute answer-API outage (caused by a config push) lists these action items: "Be more
+careful with config", "Improve monitoring", "Bob to add tests". The timeline shows the first page 22 minutes after
+errors began. (a) Rewrite the action items so they meet the Workbook's criteria. (b) What does the 22-minute detection
+time tell you, given this chapter's alert rules? (c) Name two things in the draft that make it not blameless.
+(d) Plan a one-hour game day that would have exercised this failure before it reached users, and say which
+troubleshooting habit the responders should have applied first.
+
+<details><summary>Answer</summary>
+
+(a) Each item needs one owner, a tracking number, a priority and a verifiable end state, with both *prevent* and
+*mitigate* items [38]. Examples: "P0, owner: platform on-call lead, BUG-1234: config pushes to the answer API go through
+schema validation and a one-zone canary stage before global rollout (done when a malformed config is rejected in CI)";
+"P1, owner: answer team, BUG-1235: add a kill switch that restores the last-known-good config in under one minute
+(done when exercised in a game day)"; "P1, BUG-1236: alert on the canary zone's burn rate." (b) A total or near-total
+outage should page in about 4 minutes with the 14.4×/1 h + 5 min rule; 22 minutes suggests a partial outage (for
+example about 10% errors pages in ~43 minutes), a rule that was missing or broken, or a monitoring failure, which is
+itself a postmortem trigger [33]. Investigate detection as a separate finding. (c) Naming an individual as the fix
+("Bob to add tests") and blaming carefulness rather than the system that allowed an unvalidated global push [33][38].
+(d) In staging, seed the same fault (push a malformed config, or use the lab's error injection), run the incident
+process with a named incident commander, Ops and Comms, and measure time to page against the burn-rate prediction
+(about 4 minutes for a total outage) and time to mitigate with the kill switch; file every gap as an owned action item,
+as in a postmortem. Google's "Wheel of Misfortune" role-plays past or hypothetical outages in the same spirit [41], and its
+annual DiRT drills test infrastructure and services for several days [31]. The first habit is "what touched it last":
+a config push minutes before the errors is the first hypothesis to test, and a rollback tests it [40].
+Acceptable alternative for (a): any wording with owner, tracking id, priority and a checkable end state; for (d), a
+tabletop exercise without injected faults is an acceptable first step.
 </details>

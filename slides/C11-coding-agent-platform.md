@@ -25,7 +25,7 @@
 ## Slide 4 — QUANTIFY tokens and cost
 - 40 steps × ≈ 40 k input tokens → ≈ 1.6 M input tokens per task
 - Context grows each step → input grows roughly quadratically
-- Assumed prices → ≈ $1.50 per task; tokens over 95 %, sandbox ≈ 2 %
+- Assumed prices → ≈ $1.50 per task (≈ $1.70 with a cache-write premium); tokens over 95 %, sandbox ≈ 2 %
 **Visual:** stacked area chart of context per step. Icons: `ops-cost`.
 **Speaker notes:** A loop of 400 steps instead of 40 costs about 80× more input if context grows without bound, about 40× with a 200 k-token window cap (assumption).
 
@@ -39,9 +39,11 @@
 ## Slide 6 — Isolation choice
 - Containers: shared kernel — not for hostile multi-tenant code
 - gVisor: user-space kernel; syscall overhead and compatibility limits
-- Firecracker: < 5 MB overhead, < 125 ms boot, 150 microVMs/s/host (NSDI 2020)
+- Firecracker: < 5 MB overhead, < 125 ms boot, 150 microVMs/s/host (NSDI 2020, minimal guest only)
+- Neither covers host hardware flaws: jailer, seccomp, SMT off for tenant separation
 **Visual:** three stacks showing where the kernel boundary sits. Icons: `arch-containers`, `security-lock`, `arch-server`.
-**Speaker notes:** Default to microVMs; keep defence in depth inside the guest.
+**Speaker notes:** Default to microVMs; keep defence in depth inside the guest. The boot figures are for a minimal
+guest, not a 4 GiB build sandbox, and both projects document what they do not isolate.
 
 ## Slide 7 — Fast start
 - Boot is fast; environment is slow (clone, install, build)
@@ -65,11 +67,13 @@
 **Speaker notes:** A token in the sandbox environment is one prompt injection away from leaking.
 
 ## Slide 10 — Approvals
-- Risk classes: read, local write, reversible external, risky, irreversible
+- Risk classes: read, local write, external visible only to the requester, external readable by others, risky, irreversible
 - Approval bound to the exact command/diff hash
-- Workflow sleeps durably; sandbox snapshotted and released
+- Workflow sleeps durably; sandbox held ≈ 2 min, then snapshotted and released (holding 2 h ≈ $0.20 per pause; the ≈ $0.28 cache re-write is due either way)
+- Approval is scarce: users accept 93 % of manual prompts (Anthropic, one vendor's measurement); track approval rate as an SLI
 **Visual:** risk ladder with gates on the top two. Icons: `security-authorization`, `ops-check`.
-**Speaker notes:** The model asking politely is not a control; the gate is.
+**Speaker notes:** The model asking politely is not a control; the gate is. A deletable comment still leaks what it
+said, so writes others can read need approval once the task has read untrusted content.
 
 ## Slide 11 — Durable sessions
 - Each LLM/tool call is a recorded activity; replay from event history
@@ -87,15 +91,15 @@
 
 ## Slide 13 — Observe, evaluate, share fairly
 - One trace per task; spans per LLM/tool call; OTel GenAI conventions still Development
-- SWE-bench: 2,294 instances, 12 repos; Verified: 500 human-screened
+- SWE-bench: 2,294 instances, 12 repos; Verified (500): OpenAI found flawed tests in at least 59.4 % of 138 hard problems and stopped reporting it; Epoch AI rates it "Flawed"
 - Per-org quotas, weighted fair queueing, interactive ahead of background
 **Visual:** trace waterfall + fairness queues. Icons: `ops-tracing`, `observability-opentelemetry`, `pattern-rate-limiter`.
 **Speaker notes:** Internal consented task suites gate releases; public benchmarks may be contaminated.
 
 ## Slide 14 — WRAP
 - Junior: queue, workers, loop, PR, timeouts
-- Senior: microVMs, egress control, durable replay, budgets, approvals, quotas
-- Staff: injection-driven threat model, quadratic cost, fairness classes, eval gates, snapshot economics
+- Senior: microVMs, egress control, durable replay, budgets, approvals bound to the exact action, quotas
+- Staff: injection-driven threat model, quadratic cost with cache TTL, engine limits, fairness classes, eval gates, snapshot economics
 - Red flags: shared-kernel containers, token in env, open internet, no budget
 **Visual:** level ladder. Icons: `ops-check`.
 **Speaker notes:** Close with cost per task and the three controls that bound it.

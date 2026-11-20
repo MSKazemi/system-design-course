@@ -14,6 +14,7 @@ learning_objectives:
   - "State trade-offs in a falsifiable form (choice, reason, cost, switching trigger)"
   - "Calibrate depth and scope to the level being interviewed for, from junior to principal"
   - "Diagnose your own mock interviews against a step-by-step checklist"
+  - "Adapt each step of the framework to agentic prompts: autonomy and blast radius, tokens and cost per task, the trust boundary, evaluation, safety and durability"
 last_reviewed: 2026-11-20
 ---
 
@@ -541,6 +542,127 @@ Most design interviews now happen over video. The framework is the same, but the
 | The arguer | Defends a choice after the interviewer shows its flaw | Acknowledge, update, move on |
 | The happy path | Never discusses what breaks | Reserve STRESS time; ask yourself "what if this is down?" for every arrow |
 
+### 17. When the prompt is agentic
+
+"Design a support agent that can issue refunds." An agentic prompt is a systems prompt with a non-deterministic
+planner in the middle of it. The six steps still apply, in the same order; what changes is the artifact each step
+must produce. Weak agentic answers tend to fail in one way (course observation): the candidate spends the hour on the
+loop and the model, and never draws the line between what the model *proposes* and what the system *allows*.
+
+**Before CLARIFY: is it an agent at all?** Ask whether the steps can be written down in advance. If they can, a fixed
+workflow with model calls at some steps is cheaper, faster and easier to audit than an agent. Chapter 29 gives the
+decision test ([SYSDESIGN-29](../03-ai-systems/29-agent-architectures-orchestration.md)). An opening such as "most of
+this is a workflow; only the triage step needs an agent" is a strong signal at senior level and above.
+
+**CLARIFY: autonomy level and blast radius.** Add the questions a classical prompt never needs:
+
+| Question | Why it changes the design |
+|---|---|
+| "What may the agent do without a human: read, reversible write, a write other people can see, an irreversible action or money?" | Sets the autonomy level per action class, and where approvals sit |
+| "What is the worst single action, and what is the worst day?" | The per-action limit and the cumulative exposure (volume × limit) set the caps and the circuit breaker |
+| "Who approves, how fast, and what happens if nobody answers?" | Durable waits with expiry, and the human capacity the design silently depends on |
+| "What untrusted content does it read: web pages, email, tickets, tool output?" | Whether one session holds private data, untrusted input and an outbound channel at the same time |
+| "Does a user wait, and how long does a task run?" | A streamed turn of seconds or a background run whose state lives for days |
+| "How do we know a task succeeded, and when do we know it?" | The evaluation target, and how late the online success metric becomes final |
+
+Then rank **wrong-action rate** and **isolation** near the top: a slow answer annoys one user, a wrong action
+repeated ten thousand times costs real money ([C15](../04-case-studies/C15-support-agent-platform.md) shows the numbers).
+
+**QUANTIFY: steps, tokens, wall time.** Count the work in steps, not requests.
+
+- **Tokens per task grow with the square of the steps.** Every model call re-sends the history. With a base prompt
+  *B* and Δ new tokens per step, *N* steps read N·B + Δ·N(N−1)/2 input tokens. At B = 3,000 and Δ = 1,500 (the
+  assumptions of [SYSDESIGN-32](../03-ai-systems/32-observing-evaluating-agents.md)), 15 steps read 202,500 tokens and
+  100 steps about 7.7 M: 6.7× the steps for 38× the input. Say "quadratic" before the interviewer does.
+- **Cost per task, then per successful task.** At chapter 32's illustrative prices that 15-step task costs about
+  $0.22 uncached and $0.066 with prompt caching. Divide by the success rate. Caches expire: as of 2026-11, one
+  provider's default cache lifetime is 5 minutes and a 5-minute cache write costs 1.25× the base input price [11]
+  (read multipliers vary by model), so an approval pause longer than the lifetime re-pays the whole prefix.
+- **Wall time and concurrency.** Apply Little's law to wall time, including tool latency and human waits, not model
+  time. A step of 0.5 s to first token, 6 s of decoding and 2 s of tool time is 8.5 s, so 40 serial steps take about
+  six minutes ([SYSDESIGN-29](../03-ai-systems/29-agent-architectures-orchestration.md)). A two-day approval wait
+  turns 20,000 runs a day into about 40,000 runs in flight, which is state, not compute
+  ([C17](../04-case-studies/C17-workflow-automation-agent.md)).
+- **Reliability compounds.** A 0.98 per-step success rate gives 0.98¹⁵ ≈ 0.74 over 15 steps. Say what verification or
+  retry you add.
+- **The binding capacity is often someone else's limit.** With a hosted model, the provider's tokens-per-minute
+  quota, often output tokens, binds before your CPUs do
+  ([SYSDESIGN-33](../03-ai-systems/33-agent-platform-runtime.md)). Spend QUANTIFY on GPU memory only if you serve the
+  model yourself.
+
+**SKETCH: loop, tools, memory, guardrails, and the trust boundary.**
+
+```mermaid
+flowchart LR
+    U[User or trigger] --> RUN[Run API and run store]
+    RUN --> RT[Agent runtime: the loop]
+    RT -->|prompt| GW[LLM gateway]
+    RT --> MEM[(Session and long-term memory)]
+    RT -->|proposed tool call| TB[Tool broker]
+    subgraph DET[Runtime decides: deterministic code]
+        TB --> PE[Policy engine and budgets]
+        PE --> AP[Approvals]
+        PE --> CB[Credential broker and egress proxy]
+    end
+    CB --> T[Tools and business systems]
+    RT -. spans .-> TR[(Traces and evals)]
+```
+
+*Diagram: a user or trigger creates a run in a run store. The agent runtime calls the model through an LLM gateway,
+reads and writes memory, and sends proposed tool calls to a tool broker. Inside a box labelled "runtime decides", the
+broker consults a policy engine with budgets, which can require an approval, and a credential broker and egress proxy
+that reach the tools. The runtime emits spans to a trace and eval store.*
+
+Name the five parts as you draw them: the **run** and its state, the **loop**, the **tools** behind one broker,
+**memory** with its write policy, and the **guardrails**. Then draw the boundary: the model proposes, the runtime
+decides. Credentials never enter the model's context. The broker fills in *who* the call is for from the
+verified session, never from model output.
+
+**DEEPEN: evaluation, safety, durability.** Pick the two that your numbers or your worst action point to.
+
+- **Evaluation.** Grade the final state of a resettable environment, run each task several times, and report
+  pass^k, a reliability metric introduced with the τ-bench benchmark [7]: the chance that all *k* trials succeed.
+  Size the release gate statistically. Chapter 32 shows a 200-task suite has a 95 % interval of about ±4.9 points,
+  and catching a 3-point drop needs roughly 870 paired tasks (assuming 10 % of tasks change outcome between
+  versions; measure yours with an A/A run).
+- **Safety.** Meta's "Rule of Two" says an agent should satisfy no more than two of three properties in a session:
+  processing untrustworthy input, accessing sensitive systems or private data, and changing state or communicating
+  externally [8]. Meta presents it as a design constraint until prompt injection can be reliably detected and
+  refused, not as a permanent law. It is closely related to Willison's "lethal trifecta" of private data, untrusted content and
+  external communication [9]. Then scope capabilities, keep tokens audience-bound
+  (the MCP authorization spec requires servers to validate that tokens were issued for them and forbids them to
+  accept or pass on any other token [10]), allowlist egress, and bind approvals to the exact action
+  ([SYSDESIGN-31](../03-ai-systems/31-securing-agentic-systems.md)).
+- **Durability.** Write an intent record before each side effect and a result after it. Derive idempotency keys from
+  (run, step), keep an explicit "unknown outcome" state, and never ask the model again after a crash. Workflow
+  engines have history limits (Temporal: 51,200 events or 50 MB per execution [12]), so store references to large
+  contexts, not the contexts themselves.
+
+Other good deep dives: context and memory ([SYSDESIGN-30](../03-ai-systems/30-context-engineering-memory.md)),
+fairness and quotas across tenants (33), single versus multi-agent (29).
+
+**STRESS: five standard attacks.** Walk them in order, each with its detection signal: (1) an instruction injected
+into a tool result or document; (2) a runaway loop of 100+ steps; (3) a crash after a side effect but before the
+result is stored; (4) a provider outage or a storm of 429 responses; (5) a model, prompt or tool-description change
+that silently lowers task success. Add the human side: what happens when the approval or handoff queue is full?
+"Fail over to humans" is not a plan if the humans do not exist, as C15 shows with a 2.5× staffing gap.
+
+**WRAP: cost, SLOs, eval plan, autonomy ladder.** End with cost per *successful* task, two or three SLOs (time to
+first step, task success rate, audited wrong-action rate), the eval gate and canary, and the **autonomy ladder**:
+shadow, assist, supervised, autonomous, per intent, with the metric that promotes an intent one rung.
+
+**Level expectations for agentic prompts** (course synthesis, like §14):
+
+| Level | Hire looks like |
+|---|---|
+| Mid | A working loop with tools, a step cap, retries and logs; asks what the agent may do |
+| Senior | Ranks wrong-action rate first; tokens per task quantified; trust boundary drawn; policy, budgets and durability in the runtime; an offline eval on real tasks |
+| Staff | Exposure and cost per successful task drive the design; questions whether it needs an agent; Rule-of-Two analysis; statistically sized gates with pass^k; autonomy ladder; degradation sized against human capacity |
+| Principal | Platform view across many agents: shared runtime, governance, ownership of tools and evals, and which agents not to build |
+
+**Time.** The 45-minute budgets in §3 still hold. QUANTIFY stays near four minutes but must contain tokens per task
+and the exposure line. The usual place to lose time is SKETCH, drawing framework internals instead of the boundary.
+
 ## Worked mock interview: a notification service for Lumen
 
 This is a fully narrated 45-minute mock. **I** is the interviewer and **C** is the candidate. Timestamps are
@@ -911,6 +1033,8 @@ Reading a framework does not make you fluent in it. Fluency comes from timed rep
 - [ ] STRESS: failure table with detection; one hot spot; ×10 bottleneck; SLO with a number; cost line
 - [ ] WRAP: decisions with trade-offs; top risks; next steps; under 2 minutes
 - [ ] Throughout: followed redirects; no bluffed facts; four-part trade-off sentences
+- [ ] Agentic prompts: asked whether it needs an agent; named the worst action and the exposure; drew the trust boundary
+- [ ] Agentic prompts: tokens and cost per task from steps, not requests; stated an eval gate and the autonomy ladder
 
 ## Frontier [Frontier]
 
@@ -959,6 +1083,9 @@ This unit *is* the interview angle. A short version of the whole playbook:
 5. **STRESS**: failure table with detection, hot spot, ×10, SLOs, cost (≈ 6 min).
 6. **WRAP**: decisions, risks, next (≈ 1–2 min).
 
+For agent prompts, apply the shifts in [§17](#17-when-the-prompt-is-agentic): autonomy and worst action in CLARIFY,
+steps and tokens per task in QUANTIFY, the trust boundary in SKETCH, and the autonomy ladder in WRAP.
+
 ## Common mistakes
 
 - Treating the framework as a script instead of a default route.
@@ -978,6 +1105,7 @@ This unit *is* the interview angle. A short version of the whole playbook:
 3. What are the three moves of "bound, reason, commit"?
 4. Name two differences between a senior-level and a staff-level answer to the same prompt.
 5. In the mock, why did the candidate fail open on the dedup store for high-priority notifications?
+6. For an agent prompt, why does input-token cost per task grow faster than the number of steps?
 
 The full set, with answers, is in [exercises/I01-interview-playbook.md](../../exercises/I01-interview-playbook.md).
 
@@ -1015,3 +1143,17 @@ rubric in [I03](I03-question-bank-rubrics.md).
    used for perspective). https://hackernoon.com/the-system-design-interview-gap-what-prep-doesnt-teach (accessed 2026-11)
 6. A. A. Balkan, *My review of the System Design book*, 2021-04-29 (opinion; used for perspective).
    https://ahmet.im/blog/system-design-book-review/ (accessed 2026-11)
+7. S. Yao, N. Shinn, P. Razavi, K. Narasimhan, *τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World
+   Domains*, arXiv:2406.12045, 2024 (preprint; proposes the pass^k metric). https://arxiv.org/abs/2406.12045 (accessed 2026-11-20)
+8. Meta AI, *Agents Rule of Two: A Practical Approach to AI Agent Security*, 2025-10-31 (applies "until robustness
+   research allows us to reliably detect and refuse prompt injection").
+   https://ai.meta.com/blog/practical-ai-agent-security/ (accessed 2026-11-20)
+9. S. Willison, *The lethal trifecta for AI agents: private data, untrusted content, and external communication*,
+   2025-06-16 (blog). https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/ (accessed 2026-11-20)
+10. Model Context Protocol, *Specification 2026-07-28: Authorization* (token audience validation; servers must not
+    accept or transit other tokens). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization (accessed 2026-11-20)
+11. Anthropic, Claude docs, *Prompt caching* (5-minute default lifetime refreshed on use; 5-minute cache writes 1.25×,
+    1-hour writes 2×, reads 0.1× base input price, with per-model exceptions).
+    https://platform.claude.com/docs/en/build-with-claude/prompt-caching (accessed 2026-11-20)
+12. Temporal documentation, *Workflow Execution limits* (Event History limited to 51,200 events or 50 MB).
+    https://docs.temporal.io/workflow-execution/limits (accessed 2026-11-20)

@@ -108,3 +108,14 @@ treat it as a contract.
 **Visual:** the mock's sketch diagram, two priority lanes highlighted by label. Icons: `domain-notification`, `domain-sms`, `domain-email`, `arch-queue`.
 **Speaker notes:** Every number in the mock is a labelled assumption chosen during the interview. The point is how each
 one turned into a decision.
+
+## Slide 14 — When the prompt is agentic
+- First ask: does it need an agent, or is most of it a workflow?
+- CLARIFY autonomy and blast radius: action classes, worst action, worst day (volume × limit), untrusted inputs
+- QUANTIFY steps, not requests: input tokens grow as N·B + Δ·N(N−1)/2; 15 steps ≈ 202,500 tokens, 100 steps ≈ 7.7 M
+- SKETCH loop, tools, memory, guardrails, and the trust boundary: the model proposes, the runtime decides
+- DEEPEN evals (final state, pass^k), safety (Rule of Two), durability; STRESS injection, runaway loop, crash after a side effect, provider outage; WRAP with the autonomy ladder
+**Visual:** the §17 diagram with the "runtime decides" box highlighted by a labelled border, beside a step-by-step strip of the six framework steps with one agentic cue under each. Icons: `ai-agent`, `ai-tool`, `arch-policy-engine`, `ops-human-approval`, `security-prompt-injection`.
+**Speaker notes:** The framework does not change; what each step produces does. The most common miss is spending the
+hour on the loop and the model and never drawing where deterministic code takes over. Reliability compounds too:
+0.98 per step is about 0.74 over 15 steps.

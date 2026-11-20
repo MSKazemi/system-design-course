@@ -90,6 +90,36 @@ next token. You do not need the training mathematics; you need three facts:
   waste, so they are stored: that store is the **KV cache**.
 - Each new token depends on the previous one. Within one request, decode steps are **strictly sequential**.
 
+### A GPU in ten minutes
+
+This chapter uses a handful of GPU terms. Here they are, with the NVIDIA H100 SXM as the example. Chapter
+23 ([SYSDESIGN-23](23-gpu-infrastructure.md)) covers accelerators, interconnects and clusters in depth.
+
+- **Streaming multiprocessors (SMs).** A GPU is many identical processors, called SMs, working in parallel. The H100
+  SXM5 has 132 SMs [33].
+- **Tensor cores.** Each SM contains specialised units for matrix multiply-accumulate. NVIDIA calls them "specialized
+  high-performance compute cores for matrix multiply and accumulate (MMA) math operations". The H100 has four
+  fourth-generation tensor cores per SM [33]. Almost all of an LLM's FLOPs run on them. The datasheet's "BF16 Tensor
+  Core" figure, 1,979 TFLOPS, is quoted **with sparsity** [23]. Dense LLM inference does not use that sparsity
+  feature, so plan with half: ≈ 989.5 TFLOPS.
+- **HBM (high-bandwidth memory).** DRAM stacked in the same package as the GPU die. It holds the weights, the KV cache
+  and activations. The H100 SXM has 80 GB of HBM3 in five stacks [33], with 3.35 TB/s of bandwidth [23]. In this
+  chapter, "memory-bound" means "limited by HBM bytes per second".
+- **On-chip memory.** Each SM has 256 KB of combined shared memory and L1 cache, and the chip shares a 50 MB L2 cache
+  [33]. This memory is far faster than HBM but more than a thousand times smaller (50 MB against 80 GB). Fast
+  kernels reuse data while it is on chip, so that they read each byte from HBM as few times as possible
+  (FlashAttention is the best-known example, see 23).
+- **Links out of the GPU.** There are three tiers, each much slower than HBM:
+  - **NVLink** connects GPUs to each other: 900 GB/s total per H100, over 18 fourth-generation links [33][23].
+  - **PCIe Gen5** connects the GPU to the host CPU: 128 GB/s total, 64 GB/s in each direction [33].
+  - **The network** connects servers, through network cards on PCIe (see 23).
+
+  Splitting one model across GPUs (*tensor parallelism*) exchanges data on every layer, so it stays on NVLink
+  (22 uses it; 23 shows why).
+
+Two numbers from this list drive most of the chapter: **FLOP/s** (tensor cores) and **bytes/s** (HBM). Their ratio,
+the ridge point, is §4. Capacity is a third number: **GB of HBM**, shared by weights and KV cache (§5).
+
 ### 3. Prefill and decode
 
 ```mermaid
@@ -590,3 +620,4 @@ the lab's test record for the full numbers and caveats.
 30. A. Agrawal et al., *SARATHI: Efficient LLM Inference by Piggybacking Decodes with Chunked Prefills*, 2023. arXiv:2308.16369 (preprint). https://arxiv.org/abs/2308.16369
 31. vLLM project, *Speculative Decoding*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/ (accessed 2026-11)
 32. vLLM project, *Release v0.34.0* (2026-11-16): default block size 64, extensible KV cache on by default, `gpu_memory_utilization` defaults to 1.0 when unset. https://github.com/vllm-project/vllm/releases/tag/v0.34.0 (accessed 2026-11)
+33. NVIDIA, *NVIDIA Hopper Architecture In-Depth* (NVIDIA Technical Blog; H100 SXM5: 132 SMs, four fourth-generation Tensor Cores per SM, 256 KB combined shared memory/L1 per SM, 50 MB L2, 80 GB HBM3 in five stacks, fourth-generation NVLink 900 GB/s over 18 links, PCIe Gen5 128 GB/s total). https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/ (accessed 2026-11)

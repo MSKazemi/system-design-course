@@ -3,7 +3,7 @@
 Every source cited by the lessons, grouped by unit. Generated automatically from each lesson's
 `## References` section; do not edit by hand. Citation numbers match the numbers used inside each lesson.
 
-**1039 distinct URLs** across **1149 references** in **47 units**. Source status per unit: `SOURCES_CHECKED` = every source was opened and checked against the claim it supports; `DRAFT` = written but sources not fully verified yet. Fast-moving facts carry an “as of 2026-11” marker in the lesson text. Nothing here is legal advice.
+**1247 distinct URLs** across **1426 references** in **55 units**. Source status per unit: `SOURCES_CHECKED` = every source was opened and checked against the claim it supports; `DRAFT` = written but sources not fully verified yet. Fast-moving facts carry an “as of 2026-11” marker in the lesson text. Nothing here is legal advice.
 
 ## Most widely used sources
 
@@ -11,51 +11,51 @@ Cited by three or more units.
 
 | Source | Units |
 |---|---|
+| <https://platform.claude.com/docs/en/build-with-claude/prompt-caching> | 25, 29, 30, 33, C11, C15, C16, C17, I01, I03 |
+| <https://eur-lex.europa.eu/eli/reg/2026/1744/oj> | 19, 28, C09, C10, C12, C15, C17, I03 |
+| <https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization> | 18, 25, C11, C15, C17, I01, I03, I04 |
+| <https://docs.temporal.io/workflow-execution/limits> | 25, 33, C11, C16, C17, I01, I03 |
+| <https://eur-lex.europa.eu/eli/reg/2024/1689/oj> | 19, 28, C09, C10, C12, C15, C17 |
 | <https://www.nvidia.com/en-us/data-center/h100/> | 00, 21, 22, 23, C09, I02, I04 |
+| <https://arxiv.org/abs/2406.12045> | 25, 32, C15, I01, I03, I04 |
 | <https://arxiv.org/abs/2407.21783> | 21, 23, 27, C09, C13, I02 |
+| <https://docs.stripe.com/api/idempotent_requests> | 08, 10, 33, C06, C14, C17 |
 | <https://eur-lex.europa.eu/eli/reg/2016/679/oj> | 19, C05, C06, C09, C10, C12 |
-| <https://eur-lex.europa.eu/eli/reg/2026/1744/oj> | 19, 28, C09, C10, C12, I03 |
 | <https://arxiv.org/abs/2309.06180> | 00, 21, 22, C09, I04 |
-| <https://eur-lex.europa.eu/eli/reg/2024/1689/oj> | 19, 28, C09, C10, C12 |
+| <https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/> | 10, 33, C01, C06, C14 |
+| <https://github.com/open-telemetry/semantic-conventions-genai> | 12, 25, 26, 32, C11 |
 | <https://github.com/vllm-project/vllm/releases/tag/v0.34.0> | 00, 21, 22, 23, I02 |
+| <https://modelcontextprotocol.io/specification/2026-07-28> | 25, 31, C10, C11, I03 |
 | <https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf> | 06, 07, 09, C07, I03 |
+| <https://www.anthropic.com/research/multi-agent-research-system> | 29, 30, 32, 33, C16 |
 | <https://www.usenix.org/conference/osdi12/technical-sessions/presentation/corbett> | 05, 06, 07, 09, 15 |
+| <https://ai.meta.com/blog/practical-ai-agent-security/> | 31, C16, I01, I03 |
 | <https://arxiv.org/abs/1910.02054> | 23, 27, I02, I04 |
-| <https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/> | 10, C01, C06, C14 |
-| <https://docs.stripe.com/api/idempotent_requests> | 08, 10, C06, C14 |
+| <https://doi.org/10.1287/opre.9.3.383> | 01, 33, I02, I03 |
+| <https://epoch.ai/benchmarks/swe-bench-verified/review> | 25, 32, C11, I03 |
 | <https://gateway-api-inference-extension.sigs.k8s.io/> | 03, 14, 26, C09 |
-| <https://github.com/open-telemetry/semantic-conventions-genai> | 12, 25, 26, C11 |
-| <https://modelcontextprotocol.io/specification/2026-07-28> | 25, C10, C11, I03 |
+| <https://platform.claude.com/docs/en/api/rate-limits> | 11, 33, C15, C16 |
 | <https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/> | 27, C02, C12, I04 |
-| <https://www.usenix.org/conference/nsdi20/presentation/agache> | 14, 18, 25, C11 |
-| <https://www.usenix.org/conference/osdi22/presentation/yu> | 21, 22, C09, I04 |
-| <https://arxiv.org/abs/1603.09320> | 24, C10, I04 |
-| <https://arxiv.org/abs/2106.09685> | 27, I02, I04 |
-| <https://arxiv.org/abs/2210.17323> | 21, 22, I04 |
-| <https://arxiv.org/abs/2302.12173> | 25, 28, C10 |
-| <https://arxiv.org/abs/2306.00978> | 21, 22, I04 |
-| <https://arxiv.org/abs/2312.06674> | 28, C09, I04 |
-| <https://developers.google.com/machine-learning/guides/rules-of-ml> | 27, C12, I04 |
 
 ## Most-cited hosts
 
 | Host | Distinct URLs |
 |---|---|
-| arxiv.org | 84 |
-| github.com | 82 |
-| rfc-editor.org | 54 |
-| doi.org | 44 |
-| docs.aws.amazon.com | 32 |
-| kubernetes.io | 24 |
-| usenix.org | 23 |
-| aws.amazon.com | 22 |
+| arxiv.org | 114 |
+| github.com | 107 |
+| rfc-editor.org | 59 |
+| doi.org | 52 |
+| docs.aws.amazon.com | 33 |
+| kubernetes.io | 25 |
+| usenix.org | 25 |
+| aws.amazon.com | 23 |
+| sre.google | 21 |
+| docs.temporal.io | 20 |
 | docs.vllm.ai | 20 |
-| eur-lex.europa.eu | 16 |
-| web.archive.org | 14 |
-| nvidia.com | 12 |
-| opentelemetry.io | 12 |
-| huggingface.co | 11 |
-| cncf.io | 10 |
+| eur-lex.europa.eu | 17 |
+| postgresql.org | 16 |
+| anthropic.com | 15 |
+| web.archive.org | 15 |
 
 ## Part 0 — Orientation
 
@@ -228,6 +228,17 @@ Lesson: [`course/01-foundations/05-choosing-storage.md`](course/01-foundations/0
 20. SlateDB project. https://slatedb.io/
 21. PingCAP, TiDB documentation, "TiDB Storage" (Regions, Raft, Percolator) and "TiDB Transaction Isolation Levels." https://docs.pingcap.com/tidb/stable/tidb-storage/ and https://docs.pingcap.com/tidb/stable/transaction-isolation-levels/
 22. Yugabyte, YugabyteDB documentation, "DocDB sharding layer," "Replication in DocDB" and "Transaction isolation levels." https://docs.yugabyte.com/stable/architecture/docdb-sharding/, https://docs.yugabyte.com/stable/architecture/docdb-replication/replication/ and https://docs.yugabyte.com/stable/architecture/transactions/isolation-levels/
+23. J. Gray, L. Lamport, "Consensus on Transaction Commit," ACM Transactions on Database Systems 31(1):133–160, 2006; preprint MSR-TR-2003-96, arXiv:cs/0408036. https://doi.org/10.1145/1132863.1132867 and https://arxiv.org/abs/cs/0408036
+24. D. Skeen, "Nonblocking Commit Protocols," SIGMOD 1981, pp. 133–142. https://doi.org/10.1145/582318.582339 ; scanned copy https://web.eecs.umich.edu/~manosk/assets/papers/Ske81.pdf
+25. I. Keidar, D. Dolev, "Increasing the Resilience of Distributed and Replicated Database Systems," Journal of Computer and System Sciences 57(3):309–324, 1998. https://doi.org/10.1006/jcss.1998.1566 ; abstract https://people.csail.mit.edu/idish/Abstracts/jcss.html
+26. MIT 6.5840 (Distributed Systems), "Lecture 11: Distributed Transactions," lecture notes, Spring 2026. https://pdos.csail.mit.edu/6.824/notes/l-2pc.txt
+27. D. Peng, F. Dabek, "Large-scale Incremental Processing Using Distributed Transactions and Notifications," OSDI 2010. https://www.usenix.org/legacy/event/osdi10/tech/full_papers/Peng.pdf
+28. Cockroach Labs, CockroachDB documentation, "Transaction Layer" (write intents, transaction records, parallel commits, HLC timestamps; docs v26.4 as of 2026-11). https://docs.cockroachlabs.com/docs/stable/architecture/transaction-layer
+29. PostgreSQL 18 documentation, "PREPARE TRANSACTION." https://www.postgresql.org/docs/18/sql-prepare-transaction.html
+30. X/Open Company Ltd., "Distributed Transaction Processing: The XA Specification," X/Open CAE Specification XO/CAE/91/300, December 1991 (now The Open Group, document C193, catalogued at https://publications.opengroup.org/c193, accessed 2026-11-20). https://pubs.opengroup.org/onlinepubs/009680699/toc.pdf
+31. A. Thomson, T. Diamond, S.-C. Weng, K. Ren, P. Shao, D. J. Abadi, "Calvin: Fast Distributed Transactions for Partitioned Database Systems," SIGMOD 2012. https://doi.org/10.1145/2213836.2213838 ; author copy https://cs.yale.edu/homes/thomson/publications/calvin-sigmod12.pdf
+32. G. Pardon, C. Pautasso, "Atomic Distributed Transactions: a RESTful Design," WWW '14 Companion (5th International Workshop on Web APIs and RESTful Design), 2014. https://doi.org/10.1145/2567948.2579221 ; https://archives.iw3c2.org/www2014/proceedings/companion/p943.pdf
+33. PostgreSQL Global Development Group, "PostgreSQL 19 Released!" 2026-11-19. https://www.postgresql.org/about/news/postgresql-19-released-3449/
 
 ### 06 — Replication & consistency
 
@@ -439,7 +450,7 @@ Lesson: [`course/01-foundations/12-observability.md`](course/01-foundations/12-o
 3. OpenTelemetry, "OpenTelemetry eBPF Instrumentation reaches v1.0.0," blog, 2026, https://opentelemetry.io/blog/2026/obi-v1-release/ ; release v1.0.0 (2026-10-30), https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/releases
 4. N. Grcevski (Grafana Labs), "Introducing OpenTelemetry eBPF Instrumentation: Why we donated Grafana Beyla to OpenTelemetry," dateline 2025-05-08, https://grafana.com/blog/opentelemetry-ebpf-instrumentation-beyla-donation/
 5. OpenTelemetry, "Elastic Contributes its Continuous Profiling Agent to OpenTelemetry," blog, 2024, https://opentelemetry.io/blog/2024/elastic-contributes-continuous-profiling-agent/
-6. OpenTelemetry, GenAI semantic conventions (docs/gen-ai/: gen-ai-spans.md, gen-ai-metrics.md, gen-ai-token-metrics.md; all "Status: Development"), https://github.com/open-telemetry/semantic-conventions-genai (main branch, accessed 2026-11).
+6. OpenTelemetry, GenAI semantic conventions (docs/gen-ai/: gen-ai-spans.md, gen-ai-metrics.md, client-inference.md, execute-tool.md, client-invoke-agent.md, gen-ai-token-metrics.md; all "Status: Development"), https://github.com/open-telemetry/semantic-conventions-genai (main branch, no tagged release, accessed 2026-11-20).
 7. Prometheus, "Metric and label naming," https://prometheus.io/docs/practices/naming/
 8. OpenTelemetry, "Metrics Data Model" (temporality, exponential histograms, exemplars), https://opentelemetry.io/docs/specs/otel/metrics/data-model/
 9. OpenTelemetry, "Logs" specification overview (Logs Bridge API, trace context in log records), https://opentelemetry.io/docs/specs/otel/logs/
@@ -459,11 +470,23 @@ Lesson: [`course/01-foundations/12-observability.md`](course/01-foundations/12-o
 23. C. Majors, L. Fong-Jones, G. Miranda, *Observability Engineering*, 1st ed., O'Reilly, 2022, https://www.oreilly.com/library/view/observability-engineering/9781492076438/ ; a 2nd edition appeared in 2026 (https://www.oreilly.com/library/view/observability-engineering-2nd/9781098179915/). Publisher pages return HTTP 403 to scripts: unverified as of 2026-11 beyond search listings; the lesson only cites the book's general thesis.
 24. Prometheus, CHANGELOG — 3.8.0 (2025-11-28) "Native histograms are now a stable, but optional feature"; 3.9.0 (2026-01-06) feature flag made a no-op, https://github.com/prometheus/prometheus/blob/main/CHANGELOG.md
 25. eBPF.io, "What is eBPF?", https://ebpf.io/what-is-ebpf/
-26. OpenTelemetry, semantic-conventions releases (v1.45.0, 2026-11-02), https://github.com/open-telemetry/semantic-conventions/releases
+26. OpenTelemetry, semantic-conventions releases (v1.42.0, 2026-06-12: all `gen_ai.*` conventions deprecated and moved to the GenAI repository; v1.45.0, 2026-11-02), https://github.com/open-telemetry/semantic-conventions/releases
 27. T. Ahmed et al., "Recommending Root-Cause and Mitigation Steps for Cloud Incidents using Large Language Models," ICSE 2023, arXiv:2301.03797, https://arxiv.org/abs/2301.03797
 28. grafana/docker-otel-lgtm, v0.41.0 (2026-11-13), https://github.com/grafana/docker-otel-lgtm
 29. Prometheus, "Using Prometheus as your OpenTelemetry backend" (`--web.enable-otlp-receiver`), https://prometheus.io/docs/guides/opentelemetry/
 30. Prometheus, "Histograms and summaries" (quantiles cannot be aggregated; histogram buckets can be summed across instances), https://prometheus.io/docs/practices/histograms/
+31. A. Spadaccini, "Being On-Call," ch. 11 in B. Beyer et al. (eds.), *Site Reliability Engineering*, O'Reilly/Google, 2016, https://sre.google/sre-book/being-on-call/
+32. A. Stribblehill, "Managing Incidents," ch. 14 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/managing-incidents/
+33. J. Lunney, S. Lueder, "Postmortem Culture: Learning from Failure," ch. 15 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/postmortem-culture/
+34. V. Rau, "Eliminating Toil," ch. 5 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/eliminating-toil/
+35. S. Thurgood, D. Ferguson, with A. Hidalgo, B. Beyer, "Implementing SLOs," ch. 2 in *The Site Reliability Workbook*, O'Reilly/Google, 2018, https://sre.google/workbook/implementing-slos/
+36. S. Thurgood, "Example Error Budget Policy," Appendix B in *The Site Reliability Workbook*, 2018, https://sre.google/workbook/error-budget-policy/
+37. J. Mace, J. Oertel, S. Thorne, A. Chakrabarti, with J. Ma, J. Yang, "Incident Response," ch. 9 in *The Site Reliability Workbook*, 2018, https://sre.google/workbook/incident-response/
+38. D. Rogers, M. Suriar, S. Lueder, P. Deo, D. Sudhakar, with G. O'Connor, D. Rensin, "Postmortem Culture: Learning from Failure," ch. 10 in *The Site Reliability Workbook*, 2018, https://sre.google/workbook/postmortem-culture/
+39. PagerDuty, Incident Response Guide, "Severity Levels," https://docs.pagerduty.com/ops-guides/incident-response-guide/severity-levels
+40. C. Jones, "Effective Troubleshooting," ch. 12 in B. Beyer et al. (eds.), *Site Reliability Engineering*, O'Reilly/Google, 2016 (sidebar "Negative Results Are Magic" by R. Bosetti), https://sre.google/sre-book/effective-troubleshooting/
+41. A. Widdowson, "Accelerating SREs to On-Call and Beyond," ch. 28 in *Site Reliability Engineering*, 2016, https://sre.google/sre-book/accelerating-sre-on-call/
+42. J. Petoff, "Lessons Learned from Other Industries," ch. 33 in *Site Reliability Engineering*, 2016 (DiRT; cites K. Krishnan, "Weathering the Unexpected," CACM 55(11), 2012), https://sre.google/sre-book/lessons-learned/
 
 ### 13 — Data at scale: object storage, lakehouse, batch vs stream, search
 
@@ -544,6 +567,19 @@ Lesson: [`course/02-modern-requirements/14-cloud-native-platforms.md`](course/02
 31. CNCF TAG App Delivery, "Platform Engineering Maturity Model," https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/
 32. kind v0.33.0 release notes (default node image kindest/node:v1.37.0), 2026-08-26, https://github.com/kubernetes-sigs/kind/releases/tag/v0.33.0
 33. Kubernetes SIG Network, "Gateway API Inference Extension," https://gateway-api-inference-extension.sigs.k8s.io/
+34. B. Beyer et al. (eds.), *Site Reliability Engineering*, ch. 1 "Introduction" (change management: "roughly 70% of outages are due to changes in a live system"), O'Reilly/Google, 2016, https://sre.google/sre-book/introduction/
+35. A. Warner, Š. Davidovič, with A. Hidalgo, B. Beyer, K. Smith, M. Duftler, "Canarying Releases," ch. 16 in *The Site Reliability Workbook*, O'Reilly/Google, 2018, https://sre.google/workbook/canarying-releases/
+36. Argo Project, "Argo Rollouts — Kubernetes Progressive Delivery Controller," documentation, https://argoproj.github.io/argo-rollouts/ ; latest release v1.10.2, https://github.com/argoproj/argo-rollouts/releases
+37. Flux project, "Flagger" documentation (progressive delivery; CNCF graduated, part of the Flux family), https://docs.flagger.app/ ; latest release v1.45.0, https://github.com/fluxcd/flagger/releases
+38. C. Tang, T. Kooburat, P. Venkatachalam, A. Chander, Z. Wen, A. Narayanan, P. Dowell, R. Karl, "Holistic Configuration Management at Facebook," SOSP 2015, https://doi.org/10.1145/2815400.2815401 ; https://sigops.org/s/conferences/sosp/2015/current/2015-Monterey/printable/008-tang.pdf
+39. D. Sato, "ParallelChange," martinfowler.com bliki, 2014-05-13, https://martinfowler.com/bliki/ParallelChange.html
+40. J. Xu, "Online migrations at scale," Stripe engineering blog, 2017-02-02, https://stripe.com/blog/online-migrations
+41. PostgreSQL 18 documentation, "CREATE INDEX" (building indexes concurrently), https://www.postgresql.org/docs/18/sql-createindex.html
+42. PostgreSQL 18 documentation, "ALTER TABLE" (rewrites, lock levels, NOT VALID / VALIDATE CONSTRAINT), https://www.postgresql.org/docs/18/sql-altertable.html ; "13.3 Explicit Locking," https://www.postgresql.org/docs/18/explicit-locking.html ; "lock_timeout," https://www.postgresql.org/docs/18/runtime-config-client.html
+43. GitHub, "gh-ost: GitHub's online schema migrations for MySQL," repository README, https://github.com/github/gh-ost ; latest release v1.1.11, https://github.com/github/gh-ost/releases
+44. S. Pokkunuri, "Ensuring rollback safety during deployments," Amazon Builders' Library, 2019-12-05, https://builder.aws.com/content/3F04j2yRAAMBuPSPs50xwXZqg01/ensuring-rollback-safety-during-deployments (formerly https://aws.amazon.com/builders-library/ensuring-rollback-safety-during-deployments/)
+45. S. Thurgood, "Example Error Budget Policy," Appendix B in *The Site Reliability Workbook*, O'Reilly/Google, 2018, https://sre.google/workbook/error-budget-policy/
+46. PostgreSQL Global Development Group, "PostgreSQL 19 Released!" 2026-11-19, https://www.postgresql.org/about/news/postgresql-19-released-3449/
 
 ### 15 — Multi-region & edge
 
@@ -689,10 +725,22 @@ Lesson: [`course/02-modern-requirements/18-security-by-design.md`](course/02-mod
 34. Kubernetes documentation. *Verify Signed Kubernetes Artifacts*. https://kubernetes.io/docs/tasks/administer-cluster/verify-signed-artifacts/
 35. J. Richer (ed.). *OAuth 2.0 Token Introspection*, RFC 7662, October 2015. https://www.rfc-editor.org/rfc/rfc7662
 36. M. Jones et al. *OAuth 2.0 Token Exchange*, RFC 8693, January 2020. https://www.rfc-editor.org/rfc/rfc8693
-37. Model Context Protocol. *Specification 2025-06-18 — Authorization*. https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
+37. Model Context Protocol. *Specification 2026-07-28 — Authorization* (current protocol version per the versioning page). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
 38. Kubernetes documentation. *Pod Security Standards*. https://kubernetes.io/docs/concepts/security/pod-security-standards/
 39. ENISA. "The CRA Single Reporting Platform is launched". https://www.enisa.europa.eu/index.php/news/the-cra-single-reporting-platform-is-launched
 40. NIST. *FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard*, 13 August 2024. https://csrc.nist.gov/pubs/fips/203/final
+41. Model Context Protocol. *Security Best Practices* (revision 2026-07-28; "Token Passthrough"). https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices
+42. A. Parecki, K. McGuinness, B. Campbell. *Identity Assertion JWT Authorization Grant*, draft-ietf-oauth-identity-assertion-authz-grant-06, 31 October 2026 (IETF OAuth WG Internet-Draft; work in progress). https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/
+43. A. Tulshibagwale, G. Fletcher, P. Kasselman. *Transaction Tokens*, draft-ietf-oauth-transaction-tokens-11, 30 July 2026 (IETF OAuth WG Internet-Draft; datatracker last updated 2026-08-21; work in progress). https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/
+44. B. Campbell, J. Bradley, H. Tschofenig. *Resource Indicators for OAuth 2.0*, RFC 8707, February 2020. https://www.rfc-editor.org/rfc/rfc8707
+45. M. Jones, B. Campbell, C. Mortimore. *JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants*, RFC 7523, May 2015. https://www.rfc-editor.org/rfc/rfc7523
+46. A. Schwenkschuster et al. *OAuth Identity and Authorization Chaining Across Domains*, draft-ietf-oauth-identity-chaining-17, 19 July 2026 (IETF OAuth WG Internet-Draft, in the RFC Editor queue as of 2026-11; not yet an RFC). https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-chaining/
+47. J. Salowey, Y. Rosomakho, H. Tschofenig. *Workload Identity in a Multi System Environment (WIMSE) Architecture*, draft-ietf-wimse-arch-09, 17 November 2026 (IETF WIMSE WG Internet-Draft, intended Informational; §3.4.7 delegation and impersonation, §3.4.11 AI and ML-based intermediaries). https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/
+48. Model Context Protocol. *Specification 2026-07-28 — Authorization: Security Considerations* ("Access Token Privilege Restriction", "Token Theft"). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations
+49. Model Context Protocol. *Enterprise-Managed Authorization*, authorisation extension, stable version 2026-07-28 (cites ID-JAG revision -04). https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx
+50. T. Lodderstedt (ed.), S. Dronia, M. Scurtescu. *OAuth 2.0 Token Revocation*, RFC 7009, August 2013. https://www.rfc-editor.org/rfc/rfc7009
+51. OpenID Foundation. *OpenID Continuous Access Evaluation Profile 1.0*, 29 August 2025 (final specification; approval announced 16 September 2025 with Shared Signals Framework 1.0 and RISC 1.0). https://openid.net/specs/openid-caep-1_0-final.html ; announcement https://openid.net/press-release-openid-foundation-finalizes-global-standards-for-real-time-identity-security/
+52. SPIFFE project. *JWT-SVID specification* (`aud` and `exp` validation). https://github.com/spiffe/spiffe/blob/main/standards/JWT-SVID.md
 
 ### 19 — Privacy, compliance & data sovereignty
 
@@ -808,6 +856,7 @@ Lesson: [`course/03-ai-systems/21-llm-inference-anatomy.md`](course/03-ai-system
 30. A. Agrawal et al., *SARATHI: Efficient LLM Inference by Piggybacking Decodes with Chunked Prefills*, 2023. arXiv:2308.16369 (preprint). https://arxiv.org/abs/2308.16369
 31. vLLM project, *Speculative Decoding*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/
 32. vLLM project, *Release v0.34.0* (2026-11-16): default block size 64, extensible KV cache on by default, `gpu_memory_utilization` defaults to 1.0 when unset. https://github.com/vllm-project/vllm/releases/tag/v0.34.0
+33. NVIDIA, *NVIDIA Hopper Architecture In-Depth* (NVIDIA Technical Blog; H100 SXM5: 132 SMs, four fourth-generation Tensor Cores per SM, 256 KB combined shared memory/L1 per SM, 50 MB L2, 80 GB HBM3 in five stacks, fourth-generation NVLink 900 GB/s over 18 links, PCIe Gen5 128 GB/s total). https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/
 
 ### 22 — Serving LLMs at scale
 
@@ -955,7 +1004,7 @@ Lesson: [`course/03-ai-systems/25-agentic-systems.md`](course/03-ai-systems/25-a
 4. Model Context Protocol. Specification, revision 2026-07-28 (server features: tools, resources, prompts). https://modelcontextprotocol.io/specification/2026-07-28 ; https://modelcontextprotocol.io/specification/2026-07-28/server/tools
 5. MCP maintainers. "MCP 2026-07-28" release post (stateless core, Tasks extension, deprecations, authorization changes). https://blog.modelcontextprotocol.io/posts/2026-07-28/
 6. Linux Foundation. "Linux Foundation Announces the Formation of the Agentic AI Foundation" (press release, 9 Dec 2025). https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation
-7. A2A project. Releases v1.0.0 (2026-03-12), v1.0.1 (2026-05-28); tag v1.1.0-rc. https://github.com/a2aproject/A2A/releases
+7. A2A project. Releases v1.0.0 (2026-03-12), v1.0.1 (2026-05-28, latest); tag `v1.1.0-rc` (commit 2026-10-29, no published release). https://github.com/a2aproject/A2A/releases ; https://github.com/a2aproject/A2A/tags
 8. A2A project. Documentation and "Key concepts". https://a2a-protocol.org/latest/ ; https://a2a-protocol.org/latest/topics/key-concepts/ ; specification v1.0.0 (§3.6.1 version header; §§9–12 JSON-RPC, gRPC, HTTP+JSON/REST and custom bindings) https://a2a-protocol.org/latest/specification/
 9. OpenTelemetry. GenAI semantic conventions (agent spans, execute_tool, MCP, A2A), status Development. https://github.com/open-telemetry/semantic-conventions-genai
 10. LangChain. LangGraph "Persistence" and "Interrupts" docs (LangGraph 1.2.x). https://docs.langchain.com/oss/python/langgraph/persistence ; https://docs.langchain.com/oss/python/langgraph/interrupts
@@ -968,20 +1017,28 @@ Lesson: [`course/03-ai-systems/25-agentic-systems.md`](course/03-ai-systems/25-a
 17. Greshake, K. et al. "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection." AISec 2023. arXiv:2302.12173. https://arxiv.org/abs/2302.12173
 18. Debenedetti, E. et al. "Defeating Prompt Injections by Design" (CaMeL). arXiv:2503.18813 (2025). https://arxiv.org/abs/2503.18813
 19. Debenedetti, E. et al. "AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents." NeurIPS 2024 Datasets & Benchmarks. arXiv:2406.13352
-20. Anthropic. "Building effective agents" (engineering blog, Dec 2024; perspective). https://www.anthropic.com/research/building-effective-agents
-21. Packer, C. et al. "MemGPT: Towards LLMs as Operating Systems." arXiv:2310.08560 (2023). https://arxiv.org/abs/2310.08560
-22. Park, J. S. et al. "Generative Agents: Interactive Simulacra of Human Behavior." UIST 2023. arXiv:2304.03442
-23. OWASP GenAI Security Project. "LLM06:2025 Excessive Agency." https://genai.owasp.org/llmrisk/llm062025-excessive-agency/
-24. Firecracker project site (stated startup time, memory overhead, creation rate). https://firecracker-microvm.github.io/
-25. Willison, S. "The lethal trifecta for AI agents" (blog, 16 Jun 2025; perspective). https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
-26. Mialon, G. et al. "GAIA: a benchmark for General AI Assistants." arXiv:2311.12983 (2023). https://arxiv.org/abs/2311.12983
-27. Liu, X. et al. "AgentBench: Evaluating LLMs as Agents." ICLR 2024. arXiv:2308.03688
-28. Zhou, S. et al. "WebArena: A Realistic Web Environment for Building Autonomous Agents." arXiv:2307.13854 (2023). https://arxiv.org/abs/2307.13854
-29. Kong. "AI Gateway" documentation (LLM, MCP and A2A traffic). https://developer.konghq.com/ai-gateway/
-30. Agent Router (formerly Envoy AI Gateway), README, v1.3.0. https://github.com/theagentrouter/agent-router
-31. Linux Foundation. "A2A protocol surpasses 150 organizations…" (press release, Apr 2026). https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year
-32. Model Context Protocol. "Deprecated Features" registry, revision 2026-07-28 (HTTP+SSE deprecated in 2025-03-26). https://modelcontextprotocol.io/specification/2026-07-28/deprecated
-33. OWASP GenAI Security Project. "OWASP Top 10 for LLM Applications 2026" (LLM03:2026 Excessive Agency), 2026-08-04. https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
+20. Anthropic. "Building effective agents" (engineering blog, 19 Dec 2024; the page notes that much of the tooling landscape it describes has changed since December 2024; perspective). https://www.anthropic.com/engineering/building-effective-agents
+21. OWASP GenAI Security Project. "LLM06:2025 Excessive Agency." https://genai.owasp.org/llmrisk/llm062025-excessive-agency/
+22. Firecracker project. `SPECIFICATION.md` (≤ 125 ms to guest user space with a minimal kernel and root filesystem; VMM overhead ≤ 5 MiB for 1 vCPU and 128 MiB, workload-dependent). https://github.com/firecracker-microvm/firecracker/blob/main/SPECIFICATION.md
+23. Willison, S. "The lethal trifecta for AI agents" (blog, 16 Jun 2025; perspective). https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
+24. Kong. "AI Gateway" documentation (LLM, MCP and A2A traffic). https://developer.konghq.com/ai-gateway/
+25. Agent Router (formerly Envoy AI Gateway), README, v1.3.0. https://github.com/theagentrouter/agent-router
+26. Linux Foundation. "A2A protocol surpasses 150 organizations…" (press release, Apr 2026). https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year
+27. Model Context Protocol. "Deprecated Features" registry, revision 2026-07-28 (HTTP+SSE deprecated in 2025-03-26). https://modelcontextprotocol.io/specification/2026-07-28/deprecated
+28. OWASP GenAI Security Project. "OWASP Top 10 for LLM Applications 2026" (LLM03:2026 Excessive Agency), 2026-08-04. https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
+29. Epoch AI. "SWE-bench Verified" benchmark review (verdict "Flawed"; summarises OpenAI's 2026-02-23 audit "Why we no longer evaluate SWE-bench Verified"), 2026-09-03. https://epoch.ai/benchmarks/swe-bench-verified/review
+30. Anthropic. "Prompt caching" (TTL, write and read multipliers by model, invalidation, `inline-tools-2026-09-15` beta) and "Tool use with prompt caching" (`defer_loading`). https://platform.claude.com/docs/en/build-with-claude/prompt-caching ; https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-use-with-prompt-caching
+31. OpenAI. "Prompt caching" guide (retention, write multipliers for GPT-5.6+, tools in the cached prefix, `allowed_tools`, `additional_tools`). https://developers.openai.com/api/docs/guides/prompt-caching
+32. Model Context Protocol. Specification 2026-07-28, "Authorization" (optional, RFC 9728, RFC 9207 `iss` rules, CIMD, DCR deprecated). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
+33. Model Context Protocol. Specification 2026-07-28, "Streamable HTTP", Request Metadata (`Mcp-Method`, `Mcp-Name`, `HeaderMismatch`). https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http
+34. Temporal documentation, Temporal Cloud limits page (2 MB payload, 4 MB gRPC message, event history 51,200 events / 50 MB, external storage for large payloads) and Workflow Execution limits page. https://docs.temporal.io/cloud/limits ; https://docs.temporal.io/workflow-execution/limits
+35. Temporal documentation, Workflow Execution events page (execution terminated past 51,200 events; Continue-As-New). https://docs.temporal.io/workflow-execution/event
+36. Invariant Labs. "GitHub MCP Exploited: Accessing private repositories via MCP" (blog, 2025-05-26). https://invariantlabs.ai/blog/mcp-github-vulnerability
+37. gVisor documentation. "Security Model" (architecture guide). https://gvisor.dev/docs/architecture_guide/security/
+38. Firecracker project. "Production Host Setup Recommendations" (`docs/prod-host-setup.md`: hardware vulnerabilities, SMT, jailer, seccomp, metadata-service rule). https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md
+39. Docker documentation. "Docker Engine security" (namespaces, cgroups, capabilities). https://docs.docker.com/engine/security/
+40. Anthropic. "Tool use with Claude" (client tools run in your application, server tools on Anthropic's infrastructure). https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+41. Agentic AI Foundation. "Projects" (lists Agent2Agent, Agent Router "built on Envoy", AGENTS.md, goose, MCP and others). https://aaif.io/projects
 
 ### 26 — LLM gateways & LLMOps
 
@@ -1066,6 +1123,179 @@ Lesson: [`course/03-ai-systems/28-ai-trust-safety-governance.md`](course/03-ai-s
 21. NIST, "AI Risk Management Framework" (AI RMF 1.0, NIST AI 100-1, 2023-01-26). https://www.nist.gov/itl/ai-risk-management-framework
 22. NIST, "Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile," NIST AI 600-1, 2024-07-26. https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
 23. European Commission, "AI Act" policy page (guidelines on transparency obligations, 20 July 2026) and "Code of Practice on Transparency of AI-generated Content" page (final code published 10 June 2026). https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai and https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content
+24. Anthropic, "How we built Claude Code auto mode: a safer way to skip permissions," 2026-03-25 (vendor engineering post; "users accept 93% of them anyway"). https://www.anthropic.com/engineering/claude-code-auto-mode
+25. IETF OAuth WG, "Identity Assertion JWT Authorization Grant," draft-ietf-oauth-identity-assertion-authz-grant-06, October 2026 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/
+26. IETF OAuth WG, "Transaction Tokens," draft-ietf-oauth-transaction-tokens-11, August 2026 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/
+
+### 29 — Agent architectures & orchestration
+
+Lesson: [`course/03-ai-systems/29-agent-architectures-orchestration.md`](course/03-ai-systems/29-agent-architectures-orchestration.md) · source status: `SOURCES_CHECKED`
+
+1. Anthropic. "Building effective agents" (engineering blog, 2024-12-19; page notes the tooling landscape has changed since). https://www.anthropic.com/research/building-effective-agents
+2. Anthropic. "How we built our multi-agent research system" (engineering blog, 2025-06-13; 4×/15× tokens, +90.2% internal eval, 80% of BrowseComp variance, scaling rules, rainbow deployments, synchronous subagents). https://www.anthropic.com/research/multi-agent-research-system
+3. Yan, W. (Cognition). "Don't Build Multi-Agents" (blog, 2025-06-12; perspective). https://cognition.com/blog/dont-build-multi-agents
+4. Yan, W. (Cognition). "Multi-Agents: What's Actually Working" (blog, 2026-04-22; perspective). https://cognition.com/blog/multi-agents-working
+5. Kim, Y. et al. "Towards a Science of Scaling Agent Systems." arXiv:2512.08296 (preprint; v1 2025-12-09, v3 2026-04-08; v3 abstract: 260 configurations, +80.8% to −70.0%). https://arxiv.org/abs/2512.08296
+6. Google Research. "Towards a science of scaling agent systems: when and why agent systems work" (blog, 2026-01-28; 180 configurations, 17.2× vs 4.4× error amplification, +80.9% Finance-Agent, −39% to −70% PlanCraft). https://research.google/blog/towards-a-science-of-scaling-agent-systems-when-and-why-agent-systems-work/
+7. Cemri, M. et al. "Why Do Multi-Agent LLM Systems Fail?" arXiv:2503.13657 (preprint; v3 2025-10-26; MAST, 14 failure modes, 3 categories, 1,600+ traces, 7 frameworks, κ = 0.88). https://arxiv.org/abs/2503.13657
+8. Kim, S. et al. "An LLM Compiler for Parallel Function Calling." ICML 2024. arXiv:2312.04511. https://arxiv.org/abs/2312.04511
+9. Xu, B. et al. "ReWOO: Decoupling Reasoning from Observations for Efficient Augmented Language Models." arXiv:2305.18323 (preprint, 2023). https://arxiv.org/abs/2305.18323
+10. Wang, L. et al. "Plan-and-Solve Prompting: Improving Zero-Shot Chain-of-Thought Reasoning by Large Language Models." ACL 2023. arXiv:2305.04091. https://arxiv.org/abs/2305.04091
+11. Shinn, N. et al. "Reflexion: Language Agents with Verbal Reinforcement Learning." NeurIPS 2023 (Advances in Neural Information Processing Systems 36). arXiv:2303.11366. https://arxiv.org/abs/2303.11366
+12. Huang, J. et al. "Large Language Models Cannot Self-Correct Reasoning Yet." ICLR 2024. arXiv:2310.01798. https://arxiv.org/abs/2310.01798
+13. Du, Y. et al. "Improving Factuality and Reasoning in Language Models through Multiagent Debate." arXiv:2305.14325 (preprint, 2023). https://arxiv.org/abs/2305.14325
+14. Nii, H. P. "The Blackboard Model of Problem Solving and the Evolution of Blackboard Architectures." AI Magazine 7(2), 1986, p. 38 onwards (part 1 of 2), doi:10.1609/aimag.v7i2.537. https://ojs.aaai.org/index.php/aimagazine/article/view/537 (live page behind a bot challenge; abstract checked on the Internet Archive snapshot of 2022-05-04, accessed 2026-11)
+15. Han, B., Zhang, S. "Exploring Advanced LLM Multi-Agent Systems Based on Blackboard Architecture." arXiv:2507.01701 (preprint, 2025). https://arxiv.org/abs/2507.01701
+16. Salemi, A. et al. "LLM-Based Multi-Agent Blackboard System for Information Discovery in Data Science." arXiv:2510.01285 (preprint; v2 2026-01-31). https://arxiv.org/abs/2510.01285
+17. Anthropic. "Harness design for long-running application development" (2026-03-24; planner, generator, evaluator; $9 vs $200). https://www.anthropic.com/research/harness-design-long-running-apps
+18. Anthropic. "Building a C compiler with a team of parallel Claudes" (2026-02-05; 16 agents, just under $20,000, lock files, overwrite problem). https://www.anthropic.com/research/building-c-compiler
+19. OpenAI. Agents SDK documentation: "Multi-agent orchestration", "Handoffs", "Tools" (hosted tools); PyPI `openai-agents` 0.25.0 (2026-11-18). https://openai.github.io/openai-agents-python/multi_agent/ ; https://openai.github.io/openai-agents-python/handoffs/ ; https://openai.github.io/openai-agents-python/tools/ ; https://pypi.org/project/openai-agents/
+20. LangChain. "Multi-agent" documentation (subagents, handoffs, skills, router, custom workflow; illustrative call and token counts). https://docs.langchain.com/oss/python/langchain/multi-agent
+21. LangChain. LangGraph "Persistence" documentation; PyPI `langgraph` 1.2.24 (2026-11-20, MIT). https://docs.langchain.com/oss/python/langgraph/persistence ; https://pypi.org/project/langgraph/
+22. Google. Agent Development Kit, "Workflow patterns" (deprecation of `SequentialAgent`, `ParallelAgent`, `LoopAgent`; graph workflows recommended); PyPI `google-adk` 2.15.0 (2026-11-20, Apache-2.0). https://adk.dev/workflows/patterns/ ; https://pypi.org/project/google-adk/
+23. Microsoft. AutoGen README ("Project archived and no longer maintained", successor Microsoft Agent Framework); PyPI `autogen-agentchat` 0.7.5 (2025-09-30), `agent-framework` 1.26.0 (2026-11-12); AG2 PyPI `ag2` 1.3.3 (2026-11-19, "formerly AutoGen"). https://github.com/microsoft/autogen ; https://pypi.org/project/agent-framework/ ; https://github.com/ag2ai/ag2
+24. CrewAI. Documentation, "Introduction" (Crews and Flows); PyPI `crewai` 1.15.44 (2026-11-19); licence MIT per the repository's LICENSE file. https://docs.crewai.com/en/introduction ; https://pypi.org/project/crewai/ ; https://github.com/crewAIInc/crewAI
+25. Anthropic. Claude Agent SDK "Overview" (Claude Code's loop as a library; subagents, sessions, hooks, MCP; migration from the Claude Code SDK; Managed Agents as hosted harness); PyPI `claude-agent-sdk` 0.2.186 (2026-11-19). https://code.claude.com/docs/en/agent-sdk/overview ; https://pypi.org/project/claude-agent-sdk/
+26. Anthropic. Claude docs, "Tool use with Claude" (client tools versus server tools run on Anthropic's infrastructure; parallel tool use and `disable_parallel_tool_use`). https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+27. Anthropic. Claude docs, "Prompt caching" (write 1.25× for 5-minute TTL, 2× for 1 hour, read 0.1× with per-model exceptions; cache entry available only after the first response starts; organisation isolation). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+28. Temporal. "OpenAI Agents SDK integration" (model calls as activities; hosted tools executed by the model provider). https://docs.temporal.io/develop/python/integrations/openai-agents
+29. Pydantic. PyPI `pydantic-ai` 2.71.0 (2026-11-19, MIT). https://pypi.org/project/pydantic-ai/
+30. Smit, A., Duckworth, P., Grinsztajn, N., Barrett, T. D., Pretorius, A. "Should we be going MAD? A Look at Multi-Agent Debate Strategies for LLMs." arXiv:2311.17371 (preprint; v3 2024-07-18). https://arxiv.org/abs/2311.17371
+
+### 30 — Context engineering & agent memory
+
+Lesson: [`course/03-ai-systems/30-context-engineering-memory.md`](course/03-ai-systems/30-context-engineering-memory.md) · source status: `SOURCES_CHECKED`
+
+1. Anthropic. "Effective context engineering for AI agents." Anthropic Engineering, 2025-09-29. https://www.anthropic.com/research/effective-context-engineering-for-ai-agents
+2. Martin, L. (Anthropic). "The components of agent memory." 2026-11-06. https://www.anthropic.com/research/components-of-agent-memory
+3. Anthropic. "Prompt caching" (TTL, write and read multipliers, minimum cacheable length, prefix order, invalidation table). Claude Platform docs. https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+4. OpenAI. "Prompt caching" guide (minimum length, TTL options, write multipliers for GPT-5.6+, what forms the prefix). https://developers.openai.com/api/docs/guides/prompt-caching
+5. Google. "Context caching" (implicit caching default on Gemini 2.5+, minimum tokens per model). Gemini API docs. https://aistudio.google.com/docs/caching
+6. Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., Liang, P. "Lost in the Middle: How Language Models Use Long Contexts." TACL (2024). arXiv:2307.03172. https://arxiv.org/abs/2307.03172
+7. Hsieh, C.-P. et al. "RULER: What's the Real Context Size of Your Long-Context Language Models?" COLM 2024. arXiv:2404.06654. https://arxiv.org/abs/2404.06654
+8. Modarressi, A. et al. "NoLiMa: Long-Context Evaluation Beyond Literal Matching." ICML 2025. arXiv:2502.05167. https://arxiv.org/abs/2502.05167
+9. Hong, K., Troynikov, A., Huber, J. "Context Rot: How Increasing Input Tokens Impacts LLM Performance." Chroma technical report, 2025-07-14. https://www.trychroma.com/research/context-rot
+10. Anthropic. "Writing effective tools for agents — with agents." Anthropic Engineering, 2025-09-11. https://www.anthropic.com/research/writing-tools-for-agents
+11. Anthropic. "Context editing" (`clear_tool_uses_20250919` defaults, `clear_thinking_20251015`, cache interaction; the `compact_20260112` edit appears in its SDK section). Claude Platform docs. https://platform.claude.com/docs/en/build-with-claude/context-editing
+12. OpenAI. "Compaction" guide (server-side `compact_threshold`, standalone `/responses/compact`, encrypted compaction item). https://developers.openai.com/api/docs/guides/compaction
+13. Anthropic. "Memory tool" (`memory_20250818`, client-side `/memories`, commands, security considerations). Claude Platform docs. https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool
+14. Zhang, Q. et al. "Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models." ICLR 2026. arXiv:2510.04618. https://arxiv.org/abs/2510.04618
+15. Ovadia, O., Brief, M., Mishaeli, M., Elisha, O. "Fine-Tuning or Retrieval? Comparing Knowledge Injection in LLMs." arXiv:2312.05934 (preprint, v3 2024). https://arxiv.org/abs/2312.05934
+16. Sumers, T. R., Yao, S., Narasimhan, K., Griffiths, T. L. "Cognitive Architectures for Language Agents." TMLR. arXiv:2309.02427 (v3, section 4.1 memory). https://arxiv.org/abs/2309.02427
+17. Packer, C. et al. "MemGPT: Towards LLMs as Operating Systems." arXiv:2310.08560 (preprint, 2023). https://arxiv.org/abs/2310.08560
+18. Park, J. S. et al. "Generative Agents: Interactive Simulacra of Human Behavior." UIST 2023. arXiv:2304.03442. https://arxiv.org/abs/2304.03442
+19. Wu, D. et al. "LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory." ICLR 2025. arXiv:2410.10813. https://arxiv.org/abs/2410.10813
+20. Agent Skills. "Specification" and "Overview" (format, field limits, progressive disclosure, origin as an open standard). https://agentskills.io/specification ; https://agentskills.io/
+21. Anthropic. "Equipping agents for the real world with Agent Skills." Anthropic Engineering, 2025-10-16 (updated 2025-12-18: published as an open standard). https://www.anthropic.com/research/equipping-agents-for-the-real-world-with-agent-skills
+22. AGENTS.md (stewarded by the Agentic AI Foundation under the Linux Foundation). https://agents.md
+23. Wang, G. et al. "Voyager: An Open-Ended Embodied Agent with Large Language Models." arXiv:2305.16291 (2023). https://arxiv.org/abs/2305.16291
+24. Anthropic. "How we built our multi-agent research system." Anthropic Engineering, 2025-06-13. https://www.anthropic.com/research/multi-agent-research-system
+25. Dong, S. et al. "Memory Injection Attacks on LLM Agents via Query-Only Interaction" (MINJA). NeurIPS 2025 (Advances in Neural Information Processing Systems 38). arXiv:2503.03704 (v5 2026-02). https://arxiv.org/abs/2503.03704
+26. Chen, Z., Xiang, Z., Xiao, C., Song, D., Li, B. "AgentPoison: Red-teaming LLM Agents via Poisoning Memory or Knowledge Bases." NeurIPS 2024. arXiv:2407.12784. https://arxiv.org/abs/2407.12784
+27. OWASP GenAI Security Project. "OWASP Top 10 for Agentic Applications for 2026" (ASI06 Memory & Context Poisoning), 2025-12-09. https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
+28. Regulation (EU) 2016/679 (GDPR), Art. 12(3), Art. 17 and Art. 33. EUR-Lex. https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng ; alternative URL https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016R0679
+29. Anthropic. "Compaction" (server-side compaction: a summary that Claude writes on the server). Claude Platform docs. https://platform.claude.com/docs/en/build-with-claude/compaction
+
+### 31 — Securing agentic systems
+
+Lesson: [`course/03-ai-systems/31-securing-agentic-systems.md`](course/03-ai-systems/31-securing-agentic-systems.md) · source status: `SOURCES_CHECKED`
+
+1. S. Willison, "The lethal trifecta for AI agents: private data, untrusted content, and external communication," 2025-06-16. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/ *(blog; perspective)*
+2. Meta, "Agents Rule of Two: A Practical Approach to AI Agent Security," 2025-10-31. https://ai.meta.com/blog/practical-ai-agent-security/ *(vendor blog)*
+3. Model Context Protocol, "Specification" (revision 2026-07-28), Security and Trust & Safety; Extensions. https://modelcontextprotocol.io/specification/2026-07-28
+4. Model Context Protocol, "Security Best Practices" (docs for revision 2026-07-28): Confused Deputy Problem, Token Passthrough, SSRF, State Handle Hijacking, Local MCP Server Compromise, OAuth Authorization URL Validation, Scope Minimization. https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices
+5. Model Context Protocol, `schema/2026-07-28/schema.ts` (`ToolAnnotations`, `CacheableResult` and the result types that extend it, `CallToolResult`, `notifications/tools/list_changed`). https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2026-07-28/schema.ts
+6. Model Context Protocol, "The MCP Registry" (preview), Trust and Security. https://modelcontextprotocol.io/registry/about
+7. Invariant Labs, "MCP Security Notification: Tool Poisoning Attacks," 2025-04-01. https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks *(vendor research)*
+8. Invariant Labs, "GitHub MCP Exploited: Accessing private repositories via MCP," 2025-05-26. https://invariantlabs.ai/blog/mcp-github-vulnerability *(vendor research)*
+9. Z. Wang et al., "MCPTox: A Benchmark for Tool Poisoning Attack on Real-World MCP Servers," arXiv:2508.14925 (v1 2025-08-19, v2 2026-09-29), preprint. https://arxiv.org/abs/2508.14925
+10. MITRE, ATLAS data, content version 2026.10 (collection modified 2026-10-28), format 6.1.0: techniques AML.T0034.002, T0051, T0053, T0080, T0081, T0083, T0086, T0110; case studies AML.CS0041, CS0053, CS0054, CS0059. https://github.com/mitre-atlas/atlas-data (file `dist/v6/ATLAS-2026.10.yaml`; accessed 2026-11-20). Browsable at https://atlas.mitre.org
+11. Postmark, "Security Alert: Malicious 'postmark-mcp' npm Package Impersonating Postmark," 2025-09-25. https://postmarkapp.com/blog/information-regarding-malicious-postmark-mcp-package
+12. JFrog Security Research, "mcp-remote command injection RCE" (JFSA-2025-001290844, CVE-2025-6514), 2025-07-09. https://research.jfrog.com/vulnerabilities/mcp-remote-command-injection-rce-jfsa-2025-001290844/
+13. eSecurity Planet, "Hundreds of Malicious Skills Found in OpenClaw's ClawHub," 2026-02-03, reporting Koi Security's audit. https://esecurityplanet.com/threats/hundreds-of-malicious-skills-found-in-openclaws-clawhub *(secondary; the vendor's primary post was not reachable this session)*
+14. Agent Skills, "Specification." https://agentskills.io/specification
+15. P. Reddy, A. S. Gujral, "EchoLeak: The First Real-World Zero-Click Prompt Injection Exploit in a Production LLM System," arXiv:2509.10540, 2025-09-06, preprint. https://arxiv.org/abs/2509.10540
+16. OWASP GenAI Security Project, "OWASP Top 10 for Agentic Applications for 2026," 2025-12-09. https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/)
+17. E. Debenedetti et al., "Defeating Prompt Injections by Design," arXiv:2503.18813v2 (2025-06-24), preprint. https://arxiv.org/abs/2503.18813
+18. L. Beurer-Kellner et al., "Design Patterns for Securing LLM Agents against Prompt Injections," arXiv:2506.08837 (v1 2025-06-10, v3 2025-06-27), preprint. https://arxiv.org/abs/2506.08837
+19. S. Willison, "The Dual LLM pattern for building AI assistants that can resist prompt injection," 2023-04-25 (with a 2025 update). https://simonwillison.net/2023/Apr/25/dual-llm-pattern/ *(blog)*
+20. M. Nasr, N. Carlini, C. Sitawarin et al., "The Attacker Moves Second: Stronger Adaptive Attacks Bypass Defenses Against LLM Jailbreaks and Prompt Injections," arXiv:2510.09023, 2025-10-10, preprint. https://arxiv.org/abs/2510.09023
+21. E. Debenedetti et al., "AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents," arXiv:2406.13352 (v3 2024-11-24). https://arxiv.org/abs/2406.13352
+22. Anthropic, "Beyond permission prompts: making Claude Code more secure and autonomous," 2025-10-20. https://www.anthropic.com/research/claude-code-sandboxing *(vendor engineering post)*
+23. Anthropic, "How we built Claude Code auto mode: a safer way to skip permissions," 2026-03-25. https://www.anthropic.com/research/claude-code-auto-mode *(vendor measurement, one product)*
+24. gVisor, "Security Model" (architecture guide). https://gvisor.dev/docs/architecture_guide/security/
+25. Firecracker, "Production Host Setup Recommendations" (`docs/prod-host-setup.md`). https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md
+26. Kubernetes SIG Apps, `kubernetes-sigs/agent-sandbox`. https://github.com/kubernetes-sigs/agent-sandbox
+
+### 32 — Observing & evaluating agents
+
+Lesson: [`course/03-ai-systems/32-observing-evaluating-agents.md`](course/03-ai-systems/32-observing-evaluating-agents.md) · source status: `SOURCES_CHECKED`
+
+1. OpenTelemetry. `open-telemetry/semantic-conventions-genai` repository: GenAI README (status Development), attribute registry `docs/registry/attributes/gen-ai.md`; no tagged release as of 2026-11-20; commit fdeed76 (2026-11-19) "Set opentelemetry.io/schemas/semconv-genai-dev/0.1.0-dev schema url / version for the upcoming release"; main at 622b2b6 (2026-11-20). https://github.com/open-telemetry/semantic-conventions-genai
+2. OpenTelemetry. "Semantic Conventions for GenAI agent and framework spans" (`create_agent`, `invoke_agent` internal, `invoke_workflow`, `plan`; content and `*_ref` attributes). https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md
+3. OpenTelemetry. "Execute Tool" conventions (`execute_tool` span, agent as a tool, agent skills, `gen_ai.execute_tool.duration`). https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/execute-tool.md
+4. OpenTelemetry. "Client Agent Invocations" (`gen_ai.client.invoke_agent` CLIENT span, `gen_ai.client.invoke_agent.duration`). https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/client-invoke-agent.md
+5. OpenTelemetry. "Semantic conventions for generative AI model spans": content capture configuration (`OTEL_INSTRUMENTATION_GENAI_CAPTURE_CONTENT`, `NO_CONTENT` default) and uploading content to external storage. https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md
+6. OpenTelemetry. "Client Inference" (span name, `gen_ai.response.time_to_first_chunk`, usage attributes incl. cache read/write) and "Inference Token Metrics". https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/client-inference.md ; https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-token-metrics.md
+7. OpenTelemetry. "Semantic conventions for generative AI metrics" (agent metrics `gen_ai.invoke_agent.duration`, `gen_ai.invoke_agent.inference_calls`, `gen_ai.invoke_agent.tool_calls`). https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md
+8. OpenTelemetry. "Semantic conventions for Generative AI events" (`gen_ai.evaluation.result`). https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-events.md
+9. OpenTelemetry. "Semantic conventions for Model Context Protocol (MCP)" (client/server spans, context propagation in `params._meta`). https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/mcp.md
+10. OpenTelemetry Collector Contrib. Tail Sampling Processor README (Beta for traces; `decision_wait` 30 s, `num_traces` 50,000; same-collector requirement; late-arriving spans and decision cache; policy types). https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/tailsamplingprocessor/README.md
+11. Yao, S., Shinn, N., Razavi, P., Narasimhan, K. "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains." arXiv:2406.12045 (2024, preprint). https://arxiv.org/abs/2406.12045
+12. Barres, V., Dong, H., Ray, S., Si, X., Narasimhan, K. "τ²-Bench: Evaluating Conversational Agents in a Dual-Control Environment." arXiv:2506.07982 (2025, preprint). https://arxiv.org/abs/2506.07982
+13. Chen, M. et al. "Evaluating Large Language Models Trained on Code." arXiv:2107.03374 (2021, preprint). https://arxiv.org/abs/2107.03374
+14. Zheng, L. et al. "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena." NeurIPS 2023 Datasets and Benchmarks Track. https://proceedings.neurips.cc/paper_files/paper/2023/hash/91f18a1287b398d378ef22505bf41832-Abstract-Datasets_and_Benchmarks.html ; arXiv:2306.05685 https://arxiv.org/abs/2306.05685
+15. Thakur, A. S., Choudhary, K., Ramayapally, V. S., Vaidyanathan, S., Hupkes, D. "Judging the Judges: Evaluating Alignment and Vulnerabilities in LLMs-as-Judges." Proc. Fourth Workshop on Generation, Evaluation and Metrics (GEM²), ACL 2025, pp. 404–430. https://aclanthology.org/2025.gem-1.33 ; arXiv:2406.12624
+16. Tan, S. et al. "JudgeBench: A Benchmark for Evaluating LLM-based Judges." ICLR 2025. https://proceedings.iclr.cc/paper_files/paper/2025/hash/9e720fce64f91114c49cfd640d821da3-Abstract-Conference.html ; arXiv:2410.12784
+17. Zhuge, M. et al. "Agent-as-a-Judge: Evaluate Agents with Agents." arXiv:2410.10934 (2024, preprint). https://arxiv.org/abs/2410.10934
+18. Grace, M., Hadfield, J., Olivares, R., De Jonghe, J. (Anthropic). "Demystifying evals for AI agents." Anthropic, 2026-01-09. https://www.anthropic.com/research/demystifying-evals-for-ai-agents
+19. Anthropic. "How we built our multi-agent research system." Anthropic, 2025-06-13. https://www.anthropic.com/research/multi-agent-research-system
+20. Miller, E. "Adding Error Bars to Evals: A Statistical Approach to Language Model Evaluations." arXiv:2411.00640 (2024, preprint). https://arxiv.org/abs/2411.00640
+21. Zhu, Y. et al. "Establishing Best Practices for Building Rigorous Agentic Benchmarks" (ABC checklist). arXiv:2507.02825 (2025, preprint). https://arxiv.org/abs/2507.02825
+22. Epoch AI. "SWE-bench Verified" benchmark review (verdict "Flawed"), 2026-09-03. https://epoch.ai/benchmarks/swe-bench-verified/review
+23. OpenAI. "Why SWE-bench Verified no longer measures frontier coding capabilities" (published 2026-02-23 per [22]). https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/
+24. Deng, X. et al. "SWE-Bench Pro: Can AI Agents Solve Long-Horizon Software Engineering Tasks?" arXiv:2509.16941 (2025, preprint). https://arxiv.org/abs/2509.16941
+25. Google. *The Site Reliability Workbook*, "Alerting on SLOs" (multiwindow, multi-burn-rate starting parameters; low-traffic services). https://sre.google/workbook/alerting-on-slos/
+
+### 33 — Agent platform runtime: queues, tenancy, fairness, rollout
+
+Lesson: [`course/03-ai-systems/33-agent-platform-runtime.md`](course/03-ai-systems/33-agent-platform-runtime.md) · source status: `SOURCES_CHECKED`
+
+1. Temporal documentation. "Workflow Execution limits" (event history 51,200 events or 50 MB, warning at 10,240 / 10 MB; 2,000 pending activities, child workflows, signals and cancellations by default). https://docs.temporal.io/workflow-execution/limits
+2. Temporal documentation. "Temporal Cloud limits" (2 MB payload per request, 4 MB gRPC message, 4 MB history transaction, history limits, External Storage advice, 500 APS default). https://docs.temporal.io/evaluate/cloud/limits
+3. Temporal documentation. "Continue-As-New" (fresh event history, same Workflow Id, new Run Id, Continue-As-New Suggested). https://docs.temporal.io/workflow-execution/continue-as-new
+4. Temporal documentation. "Task Queue Priority and Fairness" (priority 1–5, fairness keys and weights, rate limits, limitations). https://docs.temporal.io/develop/task-queue-priority-fairness
+5. Temporal. "Announcing new Temporal capabilities from Replay 2026" (blog, 2026-05-06: Priority and Fairness GA, External Storage public preview for Python and Go, Serverless Workers pre-release). https://temporal.io/blog/replay-2026-product-announcements
+6. Temporal documentation. "Worker Versioning" (Worker Deployment Versions, Pinned, Auto-Upgrade, ramping, Draining, Drained). https://docs.temporal.io/worker-versioning
+7. Temporal. "Announcing GA for Worker Versioning and Public Preview for Upgrade on Continue-as-New" (blog, 2026-03-30). https://temporal.io/blog/ga-worker-versioning-public-preview-upgrade-on-continue-as-new ; status as of 2026-11 ("Public Preview as an experimental SDK-level option"): https://docs.temporal.io/production-deployment/worker-deployments/worker-versioning/upgrade-on-continue-as-new
+8. Temporal documentation. "Schedule" (overlap policies with Skip as default, catch-up window default one year, jitter, pause, backfill). https://docs.temporal.io/schedule
+9. Temporal documentation. "Actions" in Temporal Cloud (workflow starts, each activity start and retry, heartbeats that reach the server, timers, signals, schedules). https://docs.temporal.io/evaluate/cloud/actions
+10. Anthropic. "Rate limits" (RPM, ITPM, OTPM per model class, token bucket, cache-aware ITPM, OTPM not counting `max_tokens`, ramp limits, monthly spend caps per tier: Start $500, Build $1,000, Scale $200,000, Custom none; own spend limits return 400; workspace limits, response headers, tier tables). https://platform.claude.com/docs/en/api/rate-limits
+11. Anthropic. "Pricing" (Claude Sonnet 5.5 $2 / $2.50 / $4 / $0.10 / $10 per MTok, batch 50% discount, Managed Agents session runtime $0.08 per session-hour, no batch mode for sessions). https://platform.claude.com/docs/en/about-claude/pricing
+12. Anthropic. "Prompt caching" (5-minute default lifetime refreshed on use, 1-hour option, write and read multipliers, tool-definition changes invalidate the entire cache). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+13. Anthropic. "Batch processing" (most batches complete within 1 hour, expiry at 24 hours, 100,000 requests or 256 MB per batch, no cache pre-warming in a batch). https://platform.claude.com/docs/en/build-with-claude/batch-processing
+14. Anthropic. "Model deprecations" (lifecycle states, at least 60 days' notice before retirement of publicly released models, requests to retired models fail). https://platform.claude.com/docs/en/about-claude/model-deprecations
+15. OpenAI. "Rate limits" guide (RPM, RPD, TPM, TPD, IPM; organization and project level; maximum of `max_tokens` and estimated tokens; `x-ratelimit-*` headers; batch and background queue limit). https://developers.openai.com/api/docs/guides/rate-limits
+16. Anthropic. "How we built our multi-agent research system" (2025-06-13; token multipliers, rainbow deployments, resuming from errors). https://www.anthropic.com/research/multi-agent-research-system
+17. Demers, A., Keshav, S., Shenker, S. "Analysis and Simulation of a Fair Queueing Algorithm." ACM SIGCOMM 1989, pp. 1–12. https://web.stanford.edu/class/cs244/papers/demers-queueing.pdf
+18. Shreedhar, M., Varghese, G. "Efficient Fair Queueing Using Deficit Round Robin." ACM SIGCOMM 1995, pp. 231–242 (journal version IEEE/ACM Transactions on Networking 4(3), 1996). https://doi.org/10.1145/217382.217453 ; abstract ("requires only O(1) work to process a packet") of the Washington University technical report version: https://doi.org/10.7936/K7513WG9
+19. Sheng, Y., Cao, S., Li, D., Zhu, B., Li, Z., Zhuo, D., Gonzalez, J. E., Stoica, I. "Fairness in Serving Large Language Models." USENIX OSDI 2024, pp. 965–988. https://www.usenix.org/conference/osdi24/presentation/sheng ; arXiv:2401.00588
+20. Yanacek, D. "Fairness in multi-tenant systems." Amazon Builders' Library (2020; now hosted on AWS Builder Center). https://builder.aws.com/content/3Eupj3d2bo4fEvlzYbICMZNhQ3B/fairness-in-multi-tenant-systems
+21. Amazon Builders' Library. "Workload isolation using shuffle-sharding" (8 workers in shards of 2 give 28 shards; Route 53 with 2,048 virtual name servers in shards of 4 gives about 730 billion). https://builder.aws.com/content/3F06NpJ8YeoIGP8VHTw4n81pFn8/workload-isolation-using-shuffle-sharding
+22. Kubernetes documentation. "API Priority and Fairness" (stable since v1.29; priority levels, flow schemas, fair queuing, shuffle sharding, `handSize`, `queueLengthLimit`). https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
+23. OWASP GenAI Security Project. "LLM10:2025 Unbounded Consumption" (denial of wallet, rate limiting and quotas, timeouts and throttling, resource allocation management). https://genai.owasp.org/llmrisk/llm102025-unbounded-consumption/
+24. Stripe. "Idempotent requests" (API reference: saved first response, 255-character keys, parameter comparison, keys may be pruned once at least 24 hours old in API v1). https://docs.stripe.com/api/idempotent_requests
+25. IETF HTTPAPI WG. "The Idempotency-Key HTTP Header Field", draft-ietf-httpapi-idempotency-key-header-08 (Internet-Draft, 2026-10-22). https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
+26. GitHub Docs. "Best practices for using webhooks" (respond within 10 seconds, queue and process asynchronously, `X-GitHub-Delivery`) and "Handling failed webhook deliveries" (no automatic redelivery). https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks ; https://docs.github.com/en/webhooks/using-webhooks/handling-failed-webhook-deliveries
+27. Kubernetes documentation. "Pod termination" (default `terminationGracePeriodSeconds` 30 s, SIGTERM, preStop, SIGKILL). https://kubernetes.io/docs/concepts/workloads/pods/pod-termination/
+28. Firecracker project site (stated boot <125 ms, <5 MiB overhead per VM, up to 150 microVMs per second per host). https://firecracker-microvm.github.io/
+29. Kubernetes SIG Apps. `agent-sandbox` (core `Sandbox` at `agents.x-k8s.io/v1beta1`; SandboxTemplate, SandboxClaim, SandboxWarmPool as optional extension CRDs at `extensions.agents.x-k8s.io/v1beta1` in the latest release's `extensions.yaml`). https://github.com/kubernetes-sigs/agent-sandbox
+30. AWS. "Use isolated sessions for agents", Amazon Bedrock AgentCore Runtime developer guide (dedicated microVM per session, up to 8 hours per lifecycle on microVMs or 14 days on Instances, 15-minute idle default, new compute after a stop with filesystem data kept only with session storage, pre-session snapshot, session-header stickiness). https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-sessions.html
+31. Cloudflare. "Agents" documentation (each agent is a Durable Object with durable identity, local SQL storage and scheduled work). https://developers.cloudflare.com/agents/
+32. Hohpe, G., Woolf, B. *Enterprise Integration Patterns*, Addison-Wesley 2003, "Claim Check" pattern. https://www.enterpriseintegrationpatterns.com/patterns/messaging/StoreInLibrary.html
+33. Little, J. D. C. "A Proof for the Queuing Formula: L = λW." *Operations Research* 9(3), 1961, pp. 383–387. https://doi.org/10.1287/opre.9.3.383 (metadata checked via Crossref, accessed 2026-11)
+34. Temporal documentation. "Workflow Definition" (deterministic constraints; replayed commands matched to existing events; Activities "execute outside the replay path and are automatically retried"). https://docs.temporal.io/workflow-definition
+35. Temporal documentation. "Retry Policies" (default activity policy: initial interval 1 s, coefficient 2.0, maximum interval 100 × initial, unlimited attempts; retries capped by the activity's Schedule-To-Close timeout). https://docs.temporal.io/encyclopedia/retry-policies
 
 ## Part IV — Case studies
 
@@ -1287,12 +1517,22 @@ Lesson: [`course/04-case-studies/C11-coding-agent-platform.md`](course/04-case-s
 5. Git documentation, "git-sparse-checkout." https://git-scm.com/docs/git-sparse-checkout
 6. Model Context Protocol, Specification version 2026-07-28 (overview, security and trust & safety, extensions). https://modelcontextprotocol.io/specification/2026-07-28
 7. Model Context Protocol, Specification 2026-07-28, "Authorization." https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
-8. OWASP GenAI Security Project, "LLM01:2025 Prompt Injection." https://genai.owasp.org/llmrisk/llm01-prompt-injection/
+8. OWASP GenAI Security Project, "OWASP Top 10 for LLM Applications 2026," 2026-08-04: LLM01:2026 Prompt Injection (prevention items 7 and 8; Appendix A maps it to ASI01 Agent Goal Hijack). https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
 9. Temporal documentation, "Event History" and "Workflow Execution." https://docs.temporal.io/encyclopedia/event-history
 10. OpenTelemetry, Generative AI semantic conventions repository (status: Development). https://github.com/open-telemetry/semantic-conventions-genai
 11. C. E. Jimenez et al., "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?," ICLR 2024; arXiv:2310.06770. https://arxiv.org/abs/2310.06770
 12. SWE-bench, "SWE-bench Verified" (500 human-validated instances, created in collaboration with OpenAI). https://www.swebench.com/verified
 13. Model Context Protocol, 2026-07-28, "Security Best Practices" (Token Passthrough). https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices
+14. Anthropic, "Prompt caching" (5-minute default TTL refreshed on hit, 1-hour option; writes 1.25× or 2×, reads 0.1× base). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+15. OpenAI, "Prompt caching" guide (GPT-5.6+: 30-minute default at 1.25× write, 12 hours at 2.5×; earlier models no write charge). https://developers.openai.com/api/docs/guides/prompt-caching
+16. Invariant Labs, "GitHub MCP Exploited: Accessing private repositories via MCP" (blog, 2025-05-26). https://invariantlabs.ai/blog/mcp-github-vulnerability
+17. Temporal documentation, Temporal Cloud limits page (2 MB payload; event history 51,200 events or 50 MB; external storage for large payloads). https://docs.temporal.io/cloud/limits ; https://docs.temporal.io/workflow-execution/limits
+18. Temporal documentation, Workflow Execution events page (execution terminated past 51,200 events; Continue-As-New). https://docs.temporal.io/workflow-execution/event
+19. Epoch AI, "SWE-bench Verified" benchmark review (verdict "Flawed"; summarises OpenAI's 2026-02-23 audit), 2026-09-03. https://epoch.ai/benchmarks/swe-bench-verified/review
+20. Firecracker project, "Production Host Setup Recommendations" (`docs/prod-host-setup.md`: hardware vulnerabilities, jailer, seccomp, SMT, metadata-service rule). https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md
+21. gVisor documentation, "Security Model" (architecture guide). https://gvisor.dev/docs/architecture_guide/security/
+22. Anthropic, "How we built Claude Code auto mode" (2026-03-25: users accept 93% of manual permission prompts; vendor measurement). https://www.anthropic.com/research/claude-code-auto-mode
+23. OpenAI, "Why SWE-bench Verified no longer measures frontier coding capabilities" (2026-02-23: audit of 138 problems o3 did not consistently solve, at least 59.4% with flawed tests; stopped reporting Verified; recommends SWE-bench Pro). https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/ (live page returns 403 to automated clients; read via the Internet Archive copy of 2026-11-17, https://web.archive.org/web/20261117145122/https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)
 
 ### C12 — Real-time fraud detection (and recommendations)
 
@@ -1360,6 +1600,63 @@ Lesson: [`course/04-case-studies/C14-global-flash-sale.md`](course/04-case-studi
 18. Universal Commerce Protocol (UCP), specification site (lists Google, Shopify and others as co-developers). https://ucp.dev/
 19. AWS Well-Architected, "Reducing the Scope of Impact with Cell-Based Architecture: What is a cell-based architecture?" https://docs.aws.amazon.com/wellarchitected/latest/reducing-scope-of-impact-with-cell-based-architecture/what-is-a-cell-based-architecture.html
 
+### C15 — Customer-support agent platform
+
+Lesson: [`course/04-case-studies/C15-support-agent-platform.md`](course/04-case-studies/C15-support-agent-platform.md) · source status: `SOURCES_CHECKED`
+
+1. Anthropic, "Prompt caching" (as of 2026-11: 5-minute default lifetime refreshed on use, 1-hour option; 5-minute writes 1.25×, 1-hour writes 2×; reads 0.1× base input price generically, 0.05× on Claude Opus 5.5 and Sonnet 5.5, 0.025× on the Fable and Mythos 5.x models; changing tool definitions invalidates the tools, system and messages caches; `defer_loading` and caching). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+2. Intercom, Pricing page (Fin AI Agent $0.99 per outcome as of 2026-11: the plan cards read "From $0.99 per Fin outcome", the FAQ "Fin is priced at $0.99 per outcome"; outcome definition; check current terms), vendor page. https://www.intercom.com/pricing
+3. M. Jones et al., "OAuth 2.0 Token Exchange," RFC 8693, January 2020 (impersonation vs delegation; `act` claim and nested actors). https://www.rfc-editor.org/rfc/rfc8693.html
+4. Model Context Protocol, Specification 2026-07-28, "Authorization" (RFC 8707 resource indicators; servers must validate token audience and must not accept or transit other tokens). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
+5. *Moffatt v. Air Canada*, 2024 BCCRT 149 (British Columbia Civil Resolution Tribunal, February 2024). Decision: https://www.canlii.org/en/bc/bccrt/doc/2024/2024bccrt149/2024bccrt149.html (unverified as of 2026-11: the database refuses automated access); both quoted passages taken from B. Sookman, "Moffatt v. Air Canada: A Misrepresentation by an AI Chatbot," 2024-02-16 (secondary). https://barrysookman.com/2024/02/16/moffatt-v-air-canada-a-misrepresentation-by-an-ai-chatbot/
+6. K. Moore, "Recommendations for Automatic Responses to Electronic Mail," RFC 3834, August 2004 (`Auto-Submitted` header; `auto-replied` SHOULD be used on automatic responses and MUST NOT be used on manually generated messages). https://www.rfc-editor.org/rfc/rfc3834.html
+7. S. Yao, N. Shinn, P. Razavi, K. Narasimhan, "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains," arXiv:2406.12045, 2024 (preprint). https://arxiv.org/abs/2406.12045
+8. Anthropic, "Demystifying evals for AI agents" (pass@k vs pass^k; often better to grade outcomes; 20–50 tasks from real failures; simulated users; τ2-bench as τ-bench's successor). https://www.anthropic.com/research/demystifying-evals-for-ai-agents
+9. Regulation (EU) 2024/1689 (AI Act), Art. 50 and Art. 113. https://eur-lex.europa.eu/eli/reg/2024/1689/oj (EUR-Lex unverified as of 2026-11: automated access returns an empty page); article text verified as reproduced at https://artificialintelligenceact.eu/article/50/
+10. Regulation (EU) 2026/1744 (Digital Omnibus on AI), OJ L, 24.7.2026 (postpones the high-risk obligations; Art. 50(2) grace period to 2 December 2026 for generative systems already on the market). https://eur-lex.europa.eu/eli/reg/2026/1744/oj (unverified as of 2026-11: automated access returns an empty page); summarised by Cuatrecasas, "Digital Omnibus on AI has been published," 2026-07-24 (secondary). https://www.cuatrecasas.com/en/spain/intellectual-property/art/digital-omnibus-ai-has-been-published
+11. Anthropic, "Rate limits" (cache-read input tokens do not count toward the input-tokens-per-minute limit; uncached input and cache writes do), as of 2026-11. https://platform.claude.com/docs/en/api/rate-limits
+
+### C16 — Deep-research multi-agent system
+
+Lesson: [`course/04-case-studies/C16-deep-research-agents.md`](course/04-case-studies/C16-deep-research-agents.md) · source status: `SOURCES_CHECKED`
+
+1. Anthropic, "Prompt caching" (as of 2026-11: 5-minute default lifetime refreshed on use, 1-hour option; writes 1.25× or 2×; reads 0.1× base input price generically, 0.05× on Claude Opus 5.5 and Sonnet 5.5, 0.025× on the Fable and Mythos 5.x models). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+2. Anthropic, "How we built our multi-agent research system," 2025-06-13 (90.2 %; 4× and 15× tokens; 95 % and 80 % of BrowseComp variance; 3–5 sub-agents, up to 90 % faster; effort-scaling heuristics; 50-sub-agent failure; synchronous sub-agents; references to external storage; 200,000-token truncation; citation agent; rubric judge; about 20 queries; rainbow deployments). https://www.anthropic.com/research/multi-agent-research-system
+3. J. Wei et al., "BrowseComp: A Simple Yet Challenging Benchmark for Browsing Agents," arXiv:2504.12516, 2025 (preprint; 1,266 questions). https://arxiv.org/abs/2504.12516
+4. W. Yan (Cognition), "Don't Build Multi-Agents," 2025-06-12. https://cognition.com/blog/dont-build-multi-agents
+5. W. Yan (Cognition), "Multi-Agents: What's Actually Working," 2026-04-22. https://cognition.com/blog/multi-agents-working
+6. Y. Kim et al., "Towards a Science of Scaling Agent Systems," arXiv:2512.08296 v3, 2026-04-08 (preprint; 260 configurations, six benchmarks, +80.8 % to −70.0 %). https://arxiv.org/abs/2512.08296
+7. M. Cemri et al., "Why Do Multi-Agent LLM Systems Fail?," arXiv:2503.13657 v3, 2025-10-26 (preprint; 14 failure modes, three categories, 1,600+ traces, seven frameworks). https://arxiv.org/abs/2503.13657
+8. Temporal documentation, Temporal Cloud limits (2 MB payload; 4 MB gRPC message; history 51,200 events or 50 MB, warning at 10,240 events or 10 MB). https://docs.temporal.io/evaluate/cloud/limits ; https://docs.temporal.io/workflow-execution/limits
+9. Temporal, "Worker Versioning" documentation (Pinned and Auto-Upgrade behaviours, draining) and "Announcing GA for Worker Versioning and Public Preview for Upgrade on Continue-as-New," 2026-03-30. https://docs.temporal.io/worker-versioning ; https://temporal.io/blog/ga-worker-versioning-public-preview-upgrade-on-continue-as-new
+10. Meta AI, "Agents Rule of Two: A Practical Approach to AI Agent Security," 2025-10-31 ([A], [B], [C]; "no more than two ... within a session"). https://ai.meta.com/blog/practical-ai-agent-security/
+11. M. Koster et al., "Robots Exclusion Protocol," RFC 9309, September 2022. https://www.rfc-editor.org/rfc/rfc9309.html
+12. Temporal documentation, "OpenAI Agents SDK integration" (Python; "model calls are executed as Activities"). https://docs.temporal.io/develop/python/integrations/openai-agents
+13. Anthropic, "Rate limits" (cache-read input tokens do not count toward the input-tokens-per-minute limit; uncached input and cache writes do), as of 2026-11. https://platform.claude.com/docs/en/api/rate-limits
+
+### C17 — Enterprise workflow-automation agent
+
+Lesson: [`course/04-case-studies/C17-workflow-automation-agent.md`](course/04-case-studies/C17-workflow-automation-agent.md) · source status: `SOURCES_CHECKED`
+
+1. Temporal documentation, "Timers" (persisted; survive outages; "Workers consume no additional resources while waiting for a Timer to fire"). https://docs.temporal.io/workflow-execution/timers-delays
+2. Temporal documentation, Temporal Cloud limits (2 MB payload; 4 MB gRPC message and history transaction; history 51,200 events or 50 MB, warning at 10,240 or 10 MB; 10,000 signals per execution; 2,000 pending activities, signals, child workflows, 500 or fewer recommended; retention 1–90 days, default 30; timers up to 100 years). https://docs.temporal.io/evaluate/cloud/limits
+3. Temporal documentation, "Workflow Execution limits" (51,200 events or 50 MB; pending-operation limits). https://docs.temporal.io/workflow-execution/limits
+4. Stripe API reference, "Idempotent requests" (replayed responses; parameter comparison; keys may be pruned after at least 24 hours, API v1). https://docs.stripe.com/api/idempotent_requests
+5. H. Garcia-Molina, K. Salem, "Sagas," Proc. ACM SIGMOD 1987, pp. 249–259. https://doi.org/10.1145/38713.38742
+6. Stripe documentation, "Receive Stripe events in your webhook endpoint" (duplicate events, no ordering guarantee, retries up to three days in live mode). https://docs.stripe.com/webhooks
+7. M. Jones et al., "OAuth 2.0 Token Exchange," RFC 8693, January 2020. https://www.rfc-editor.org/rfc/rfc8693.html
+8. Model Context Protocol, Specification 2026-07-28, "Authorization." https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
+9. NIST, SP 800-53 Rev. 5, "Security and Privacy Controls for Information Systems and Organizations," control AC-5 Separation of Duties. https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final
+10. Anthropic, "How we built Claude Code auto mode," 2026-03-25 (93 % of permission prompts accepted; 17 % false-negative rate on real overeager actions; 0.4 % false-positive rate). https://www.anthropic.com/research/claude-code-auto-mode
+11. Regulation (EU) 2024/1689 (AI Act), Annex III and Art. 113. https://eur-lex.europa.eu/eli/reg/2024/1689/oj (EUR-Lex unverified as of 2026-11: automated access returns an empty challenge page; dates from secondary summaries, e.g. https://www.cuatrecasas.com/en/spain/intellectual-property/art/digital-omnibus-ai-has-been-published)
+12. Regulation (EU) 2026/1744 (Digital Omnibus on AI), OJ L, 24.7.2026 (Annex III high-risk obligations from 2 December 2027). https://eur-lex.europa.eu/eli/reg/2026/1744/oj (EUR-Lex unverified as of 2026-11: automated access returns an empty challenge page; dates from secondary summaries, e.g. https://www.cuatrecasas.com/en/spain/intellectual-property/art/digital-omnibus-ai-has-been-published)
+13. Temporal documentation, "Worker Versioning" (Pinned, Auto-Upgrade, draining; the Pinned version is inherited across Continue-As-New). https://docs.temporal.io/worker-versioning
+14. Temporal, "Announcing GA for Worker Versioning and Public Preview for Upgrade on Continue-as-New," 2026-03-30. https://temporal.io/blog/ga-worker-versioning-public-preview-upgrade-on-continue-as-new
+15. Temporal documentation, "OpenAI Agents SDK integration" (Python; model calls as Activities, function tools in the workflow unless activity-backed). https://docs.temporal.io/develop/python/integrations/openai-agents
+16. Temporal documentation, "Activities" (idempotency recommended; automatic retries by Retry Policy). https://docs.temporal.io/activities
+17. Anthropic, "Prompt caching" (5-minute default lifetime refreshed on use; 1-hour option). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+18. Temporal documentation, "Upgrade on Continue-as-New" (Public Preview, experimental SDK-level option; by default pinned workflows stay on their version across Continue-as-New; with the option, the new run starts on the Target Version). https://docs.temporal.io/production-deployment/worker-deployments/worker-versioning/upgrade-on-continue-as-new
+
 ## Part V — Interview track
 
 ### I01 — The interview playbook: CLARIFY → QUANTIFY → SKETCH → DEEPEN → STRESS → WRAP
@@ -1372,6 +1669,12 @@ Lesson: [`course/05-interview/I01-interview-playbook.md`](course/05-interview/I0
 4. J. Dean, *Designs, Lessons and Advice from Building Large Distributed Systems*, keynote, LADIS 2009. https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf
 5. P. Singaraju, *The System Design Interview Gap: What Prep Doesn't Teach*, HackerNoon, 2026-04-02 (opinion piece; used for perspective). https://hackernoon.com/the-system-design-interview-gap-what-prep-doesnt-teach
 6. A. A. Balkan, *My review of the System Design book*, 2021-04-29 (opinion; used for perspective). https://ahmet.im/blog/system-design-book-review/
+7. S. Yao, N. Shinn, P. Razavi, K. Narasimhan, *τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains*, arXiv:2406.12045, 2024 (preprint; proposes the pass^k metric). https://arxiv.org/abs/2406.12045
+8. Meta AI, *Agents Rule of Two: A Practical Approach to AI Agent Security*, 2025-10-31 (applies "until robustness research allows us to reliably detect and refuse prompt injection"). https://ai.meta.com/blog/practical-ai-agent-security/
+9. S. Willison, *The lethal trifecta for AI agents: private data, untrusted content, and external communication*, 2025-06-16 (blog). https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
+10. Model Context Protocol, *Specification 2026-07-28: Authorization* (token audience validation; servers must not accept or transit other tokens). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
+11. Anthropic, Claude docs, *Prompt caching* (5-minute default lifetime refreshed on use; 5-minute cache writes 1.25×, 1-hour writes 2×, reads 0.1× base input price, with per-model exceptions). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+12. Temporal documentation, *Workflow Execution limits* (Event History limited to 51,200 events or 50 MB). https://docs.temporal.io/workflow-execution/limits
 
 ### I02 — Numbers & cheat sheets: latency, throughput, storage, capacity, cost & GPU numbers
 
@@ -1412,7 +1715,7 @@ Lesson: [`course/05-interview/I02-numbers-cheat-sheets.md`](course/05-interview/
 33. Lambda, *AI Cloud pricing* (on-demand H100 SXM $4.69–4.89 and H100 PCIe $3.79 per GPU-hour; prices change often). https://lambda.ai/pricing
 34. CoreWeave, *Pricing* (NVIDIA HGX H100, 8 GPUs, on demand $49.24 per hour; prices change often). https://www.coreweave.com/pricing
 
-### I03 — Question bank & rubrics: 77 questions by category and level, what good looks like, red flags
+### I03 — Question bank & rubrics: 90 questions by category and level, what good looks like, red flags
 
 Lesson: [`course/05-interview/I03-question-bank-rubrics.md`](course/05-interview/I03-question-bank-rubrics.md) · source status: `SOURCES_CHECKED`
 
@@ -1429,6 +1732,16 @@ Lesson: [`course/05-interview/I03-question-bank-rubrics.md`](course/05-interview
 11. *Model Context Protocol specification*, version 2026-07-28. https://modelcontextprotocol.io/specification/2026-07-28
 12. SPIFFE project, *SPIFFE overview*. https://spiffe.io/docs/latest/spiffe-about/overview/
 13. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), amending Regulation (EU) 2024/1689, OJ L, 24.7.2026. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
+14. Anthropic Engineering, *How we built our multi-agent research system*, 2025-06-13. https://www.anthropic.com/engineering/multi-agent-research-system
+15. S. Yao, N. Shinn, P. Razavi, K. Narasimhan, *τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains*, arXiv:2406.12045, 2024 (preprint). https://arxiv.org/abs/2406.12045
+16. W. Yan (Cognition), *Don't Build Multi-Agents*, 2025-06-12 (blog; perspective). https://cognition.com/blog/dont-build-multi-agents
+17. Meta AI, *Agents Rule of Two: A Practical Approach to AI Agent Security*, 2025-10-31. https://ai.meta.com/blog/practical-ai-agent-security/
+18. Model Context Protocol, *Specification 2026-07-28: Authorization*. https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
+19. Anthropic, Claude docs, *Prompt caching*. https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+20. Temporal documentation, *Workflow Execution limits*. https://docs.temporal.io/workflow-execution/limits
+21. Anthropic, *Claude Code auto mode* (research post), 2026-03-25 ("users accept 93% of them anyway"). https://www.anthropic.com/research/claude-code-auto-mode
+22. M. Jones et al., *OAuth 2.0 Token Exchange*, RFC 8693, January 2020, §4.1. https://www.rfc-editor.org/rfc/rfc8693.html
+23. Epoch AI, *SWE-bench Verified* benchmark review (verdict "Flawed"; summarises OpenAI's 2026-02-23 audit and training-data exposure), reviewed 2026-09-03. https://epoch.ai/benchmarks/swe-bench-verified/review
 
 ### I04 — ML/LLM system design interviews: how they differ, question bank, worked answers
 
@@ -1452,3 +1765,7 @@ Lesson: [`course/05-interview/I04-ml-llm-interviews.md`](course/05-interview/I04
 16. Y. Zhong et al., *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*, OSDI 2024. arXiv:2401.09670. https://arxiv.org/abs/2401.09670
 17. E. Frantar et al., *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*, arXiv:2210.17323 (preprint). https://arxiv.org/abs/2210.17323
 18. J. Lin et al., *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*, arXiv:2306.00978 (preprint). https://arxiv.org/abs/2306.00978
+19. S. Yao, N. Shinn, P. Razavi, K. Narasimhan, *τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains*, arXiv:2406.12045, 2024 (preprint; final-state grading, pass^k). https://arxiv.org/abs/2406.12045
+20. Model Context Protocol, *Specification 2026-07-28: Authorization* (servers validate the token audience and must not accept or transit other tokens). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
+21. M. Jones et al., *OAuth 2.0 Token Exchange*, RFC 8693, January 2020, §4.1 (`act` claim). https://www.rfc-editor.org/rfc/rfc8693.html
+22. Anthropic Engineering, *How we built our multi-agent research system*, 2025-06-13. https://www.anthropic.com/engineering/multi-agent-research-system

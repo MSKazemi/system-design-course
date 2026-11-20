@@ -109,41 +109,32 @@ above 7.2% errors in both windows.
 **Speaker notes:** Dapper ran at 1/1024 and still had enough data for high-volume services. If you tail-sample,
 compute RED metrics before the sampler.
 
-## Slide 10 — Histograms done right
+## Slide 10 — Deep dive: histograms, eBPF and profiling
 
-- Never average percentiles
-- Sum buckets, then `histogram_quantile`
-- Bucket boundary at the SLO threshold (e.g. 300 ms)
+- Never average percentiles: sum buckets, then `histogram_quantile`, with a bucket boundary at the SLO threshold (e.g. 300 ms)
 - Native/exponential histograms: stable opt-in in Prometheus 3.8
-
-**Visual:** Four p99 values averaged (wrong) vs merged histogram (right). Icons: `ops-latency`, `observability-grafana`.
-
-**Speaker notes:** The average of four p99s is meaningless; the lab's SLI uses the `le="0.3"` bucket directly.
-
-## Slide 11 — eBPF and continuous profiling
-
-- eBPF: verified programs in the kernel, zero code changes
-- OBI v1.0.0 (2026-10-30): RED metrics and spans from traffic
+- eBPF: verified programs in the kernel, zero code changes; OBI v1.0.0 (2026-10-30) gives RED metrics and spans from traffic
 - OTel eBPF profiler: whole-system CPU profiles
 - Limits: Linux-only, privileges, no business context
 
-**Visual:** Kernel layer under processes with probes. Icons: `devops-linux`, `arch-cpu`, `observability-opentelemetry`.
+**Visual:** Left: four p99 values averaged (wrong) vs merged histogram (right). Right: kernel layer under processes with probes. Icons: `ops-latency`, `observability-grafana`, `devops-linux`, `arch-cpu`, `observability-opentelemetry`.
 
-**Speaker notes:** Use eBPF for coverage, SDK instrumentation for meaning. Profiles are Alpha in OTel as of 2026-11.
+**Speaker notes:** The average of four p99s is meaningless; the lab's SLI uses the `le="0.3"` bucket directly. Use eBPF
+for coverage, SDK instrumentation for meaning. Profiles are Alpha in OTel as of 2026-11.
 
-## Slide 12 — Frontier: GenAI telemetry and AIOps
+## Slide 11 — Frontier: GenAI telemetry and AIOps
 
-- GenAI conventions: `gen_ai.*` spans, TTFT, token metrics
+- GenAI conventions: `gen_ai.*` spans, `gen_ai.client.inference.duration`, time to first chunk, token counters
 - All Development status; moved to own repo in 2026
 - Prompts/completions are opt-in (privacy)
 - AIOps: hypotheses with evidence, humans approve actions
 
 **Visual:** LLM call span with token counters; assistant suggestion with "show evidence" link. Icons: `domain-ai`, `ops-tracing`.
 
-**Speaker notes:** Pin instrumentation versions; names have already changed once. A 2023 Microsoft study found LLM
+**Speaker notes:** Pin instrumentation versions; names have already changed (inference no longer goes on `gen_ai.client.operation.duration`). A 2023 Microsoft study found LLM
 root-cause suggestions promising but not a replacement for engineers.
 
-## Slide 13 — Failure modes and cost
+## Slide 12 — Failure modes and cost
 
 - Cardinality explosion, pipeline outage, alert fatigue
 - Monitoring in the same failure domain = blind when needed
@@ -153,6 +144,20 @@ root-cause suggestions promising but not a replacement for engineers.
 **Visual:** Table of failure → detector → mitigation. Icons: `ops-incident`, `ops-cost`.
 
 **Speaker notes:** Always have an external probe that pages when the monitoring itself goes silent.
+
+## Slide 13 — From page to postmortem
+
+- Declare early (second team, customer-visible, or unsolved after an hour); IC, Ops, Comms (and planning), one living incident doc
+- Mitigate first (roll back, flag off, shed load); then troubleshoot: what changed, bisect, test one hypothesis at a time
+- On-call: ≤ 25% of time, 8-person single-site minimum, ≤ 2 incidents per 12-hour shift
+- Error-budget policy: freeze non-P0 changes on SLO miss; >20% budget in one incident → postmortem with a P0 item
+- Practise: "Wheel of Misfortune" role plays, game days with a seeded fault (DiRT at company scale)
+
+**Visual:** Flow: burn-rate page → triage → declare + severity → roles → mitigate → resolve → postmortem → tracked action items. Icons: `ops-incident`, `ops-alert`, `ops-slo`, `ops-budget`, `observability-pagerduty`.
+
+**Speaker notes:** For Lumen, a total outage crosses the 20% trigger after about 43 minutes and pages after about 4,
+so the team has roughly 39 minutes to mitigate. Blameless means the postmortem names contributing causes, not
+culprits, and every action item has an owner, a tracking number and a verifiable end state.
 
 ## Slide 14 — Interview angle and lab
 

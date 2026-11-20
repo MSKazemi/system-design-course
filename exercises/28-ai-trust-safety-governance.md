@@ -19,8 +19,8 @@ keep secrets and enforcement out of the prompt.
 (b) **Indirect.** The attacker controls content the system reads, which can manipulate a high-stakes decision
 (screening for employment is an Annex III area under the AI Act). Mitigation: map-reduce style isolated
 extraction into structured fields, and human review.
-(c) **Indirect**, with an exfiltration goal. Mitigation: taint-aware policy (write tools need approval after
-untrusted content) and recipient allow-lists.
+(c) **Indirect**, with an exfiltration goal. Mitigation: taint-aware policy (write tools and outbound-capable tools,
+such as a web search with a free-form query, need approval after untrusted content) and recipient allow-lists.
 (d) **Neither.** It is a robustness and fairness concern for the guardrail (possible false positive or false
 negative), not an attack. It matters for over-blocking metrics and for "mismatched generalization" in
 jailbreak terms.

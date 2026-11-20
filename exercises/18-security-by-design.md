@@ -155,7 +155,8 @@ server. Name two problems and the fix.
 (1) The token's audience is the Lumen API; if the tool server accepts it, it is not validating `aud`, and anyone who
 steals tokens for Lumen can use them at the tool server. (2) Confused deputy: the tool server cannot tell whether the
 agent validated the token, and the downstream may trust it as if the agent vouched for it; it also hands a third
-party a credential usable against Lumen. Fix: the MCP spec (2025-06-18) forbids passthrough; obtain a new token for the
+party a credential usable against Lumen. Fix: the MCP authorization spec (revision 2026-07-28) says servers "MUST NOT accept or transit any other tokens" and
+clients must send only tokens issued by the MCP server's own authorisation server, so passthrough is forbidden; obtain a new token for the
 tool server's audience (RFC 8707 resource indicator, or RFC 8693 token exchange carrying `act` = agent), scoped to the
 tool's needs and short-lived.
 </details>
@@ -173,4 +174,77 @@ Fixes in order: (1) replace with dynamic, per-service database credentials (e.g.
 workload-identity-based auth, so there is no shared admin password; (2) restrict who can create workloads in that
 namespace and separate admin tooling; (3) enable encryption at rest with a KMS provider; (4) consider an external
 secret store via the Secrets Store CSI driver; (5) rotate the current password now, assuming it is compromised.
+</details>
+
+## 11. Read a delegation chain [Deep]
+
+A Lumen document API receives this token (claims only): `sub` = `alice@acme.example.com`, `tenant` = `acme`,
+`aud` = the document API, `scope` = `docs.read`, `exp` in 4 minutes, and
+`act` = `{ "sub": "spiffe://lumen.example.org/agent/summariser", "act": { "sub": "spiffe://lumen.example.org/agent/assistant" } }`.
+(a) Who is the subject, who is the current actor, and who is a prior actor? (b) Acme's policy says "no
+third-party agent may appear anywhere in a chain that reads Acme documents". Can the document API enforce it from
+this token? (c) Is this delegation or impersonation?
+
+<details><summary>Answer</summary>
+
+(a) Subject: Alice of tenant Acme. Current actor: the summariser (the outermost `act`). Prior actor: the assistant
+(nested `act`). (b) Not reliably at the resource server. RFC 8693 says prior actors in nested `act` claims "are
+informational only" and are not to be considered in access-control decisions, so a conforming API authorises on
+`sub` plus the current actor. Enforce chain-wide rules at the token service, which sees every exchange and can refuse
+to mint a token when any hop breaks policy (for example via a per-user allow-list in the spirit of `may_act`). The
+API should still log the full chain for audit. (c) Delegation: the agent is named as actor and keeps its own
+identity. Impersonation would show `sub` = Alice and no `act`, which erases the agent from every log, the mode to
+avoid for agents. Acceptable alternative for (b): the API may apply an *extra* local deny on nested actors as
+defence in depth, but it must not rely on that as the primary control, because it departs from RFC 8693 semantics.
+</details>
+
+## 12. Design the CRM hop [Deep]
+
+Lumen's assistant, acting for Alice, must call a CRM MCP server run by a third party for Acme, with its own
+authorisation server. An engineer proposes: "Forward the Lumen access token we already have, the CRM can call our
+introspection endpoint." Give two reasons this fails the 2026-07-28 MCP rules, then design the hop using current
+IETF work, stating which documents are drafts.
+
+<details><summary>Answer</summary>
+
+Why it fails: (1) the token's audience is Lumen, not the CRM MCP server; MCP servers "MUST validate that access tokens
+were issued specifically for them" and "MUST NOT accept or transit any other tokens", and clients must send only
+tokens issued by the MCP server's own authorisation server. (2) It is token passthrough: a stolen Lumen token becomes
+usable at the CRM, the CRM's own policy and rate limits are bypassed, and its audit shows the wrong caller. It also
+makes the CRM depend on Lumen's AS, which is in another trust domain.
+
+Design: Alice signed in to Lumen through Acme's enterprise IdP, so Lumen holds an IdP-issued ID token or refresh
+token. The agent runtime (not the model) sends it to Acme's IdP in an RFC 8693 token exchange requesting an ID-JAG
+for the CRM's authorisation server. Acme's IdP evaluates administrator policy ("may `lumen-agent` reach this CRM for
+Alice?") and returns the ID-JAG. The runtime redeems it at the CRM AS with the RFC 7523 `jwt-bearer` grant (or the
+DPoP-bound variant) and receives a short-lived token whose audience is the CRM MCP server, scoped to the task (say
+`contacts.read`). Status: ID-JAG is draft-ietf-oauth-identity-assertion-authz-grant-06 (31 October 2026), an IETF
+working-group draft; the general cross-domain pattern is draft-ietf-oauth-identity-chaining-17 (19 July 2026, in the
+RFC Editor queue, not yet an RFC). MCP's Enterprise-Managed Authorization extension (stable, 2026-07-28) profiles
+ID-JAG but cites revision -04, so check the differences. Acceptable alternative: if Acme has no IdP that supports
+ID-JAG, an interactive OAuth flow per user against the CRM AS with RFC 8707 resource indicators, at the cost of a
+consent screen per user and no central enterprise policy.
+</details>
+
+## 13. Revoke a hijacked agent [Interview]
+
+At 02:00 monitoring shows the summariser agent build 42 issuing unusual document reads across many Acme users. Lumen
+uses per-hop RFC 8693 exchange with 5-minute tokens, sender-constrained with DPoP, and the token service logs every
+exchange. What do you do in the first ten minutes, what is the worst-case window, and what can you prove by morning?
+
+<details><summary>Answer</summary>
+
+First minutes: stop the token service from minting for `spiffe://lumen.example.org/agent/summariser` (or only build
+42 if the identity encodes the version). No new hop succeeds from that moment. Tokens already issued expire within
+5 minutes, so the worst-case window after the deny is about 5 minutes, and DPoP binding means a token copied out of the
+runtime is not usable from elsewhere. If the agent may hold user refresh tokens, revoke those grants (RFC 7009: revoking
+a refresh token SHOULD also invalidate access tokens from the same grant when the server supports it). Also stop the
+agent's pods, but do not rely on that alone: the identity deny is what blocks every enforcement point at once.
+
+By morning: join the token service's exchange records (`jti`, parent `jti`, `sub`, tenant, full actor chain, audience,
+scope, policy decision, agent version) with the document API's accepted-`jti` log. That lists every user, document
+scope and parent agent involved, from logs the agent could not write. Why per-hop exchange helps: a single long-lived
+service-account token would have no per-user subject, no actor chain and a much longer window. Follow-ups: tie this to
+the kill-switch design in [SYSDESIGN-31](../course/03-ai-systems/31-securing-agentic-systems.md) and add the case to the
+red-team regression suite.
 </details>

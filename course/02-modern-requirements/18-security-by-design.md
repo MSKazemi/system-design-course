@@ -13,8 +13,9 @@ learning_objectives:
   - "Design workload identity with SPIFFE/SPIRE and mutual TLS, and estimate the cost of short-lived credentials."
   - "Compare multi-tenant isolation levels (namespace, sandboxed runtime, microVM, dedicated cluster) by blast radius and cost."
   - "Design a software supply chain with SBOMs, SLSA build provenance and Sigstore signatures, and explain what each would and would not have caught in the xz-utils backdoor (CVE-2024-3094)."
+  - "Design an agent delegation chain with RFC 8693 token exchange and nested `act` claims, attenuating audience, scope and lifetime at each hop, and write the audit record that links the human, the agent chain and the action."
   - "Run a STRIDE threat model on a data-flow diagram and turn the EU Cyber Resilience Act's reporting deadlines into system requirements."
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 18 — Security by design
@@ -453,9 +454,218 @@ check `aud`. Rules:
    OAuth 2.0 Token Exchange (RFC 8693 [36]) — carrying both the user (`sub`) and the acting service (`act` claim).
 3. Downstream services authorise on *both* identities: "indexer acting for user U of tenant T may read T's documents".
 
-The MCP authorisation specification (revision 2025-06-18) bakes these rules in for AI tool servers: an MCP server is an
-OAuth resource server, clients MUST send RFC 8707 resource indicators, servers MUST validate that tokens were issued
-for them, and "the MCP server MUST NOT pass through the token it received from the MCP client" [37].
+The MCP authorisation specification (revision 2026-07-28, the current protocol version as of 2026-11) bakes these
+rules in for AI tool servers over HTTP. Authorisation is optional in MCP (stdio servers should take credentials from
+the environment instead), but when it is used an MCP server is an OAuth 2.1 resource server; clients MUST send RFC 8707
+resource indicators in both authorisation and token requests; servers MUST validate that tokens were issued
+specifically for them as the audience; clients MUST NOT send any token other than one issued by the MCP server's own
+authorisation server; and "MCP servers MUST NOT accept or transit any other tokens" [37]. MCP's security
+best-practices page names the anti-pattern *token passthrough* and notes it is "explicitly forbidden in the
+authorization specification" [41].
+
+### Agent identity and delegation chains
+
+> **Requirement.** Lumen's assistant, acting for Alice of tenant Acme, hands part of a task to a sub-agent, which
+> searches Lumen's document API, and then calls Acme's CRM through a third-party MCP server. For every call you must
+> be able to say whose permissions apply, how narrow they are, for how long, and what the audit line says.
+
+This subsection builds on the token-audience rules above and on the agent threat model in
+[SYSDESIGN-31](../03-ai-systems/31-securing-agentic-systems.md), which covers injection, tool poisoning and
+containment. Here the question is narrower: who *is* the agent, and how does authority flow through it. OAuth and
+OIDC fundamentals are in the companion course [MSKazemi/security](https://github.com/MSKazemi/security).
+
+#### Why agents break the user/service split
+
+Classic designs have two kinds of principal. Users authenticate interactively and delegate to clients through
+OAuth. Services authenticate as workloads (SPIFFE, mTLS) and act on their own authority. An agent is both at once.
+It is a workload, with code, a version and a runtime that you deploy and attest. It also acts for a human, whose
+data and permissions it borrows, and it decides at run time which tools to call, in an order no developer wrote down.
+If you model it only as a service, it ends up with a service account that can read every tenant's CRM. If you model
+it only as the user, by forwarding her token, every downstream system believes Alice herself made the call, and you
+lose the ability to tell her actions from the agent's.
+
+Three modes need to stay distinguishable:
+
+- **Autonomous.** The agent acts on its own authority (a nightly re-indexing job, a monitoring agent). The token's
+  subject is the agent's own identity.
+- **On behalf of a user (delegation).** The subject is the user and the token also names the agent as the actor.
+  RFC 8693 puts it as "principal A still has its own identity separate from B" [36].
+- **Impersonation.** The subject is the user and nothing names the agent: "A is B within the context of the rights
+  authorized by the token" [36]. For agents this is the mode to avoid, because it erases the actor from every log.
+
+The IETF WIMSE architecture draft (draft-ietf-wimse-arch-09, 17 November 2026, an Informational Internet-Draft)
+treats AI agents as a special case of delegated workloads and says that autonomous actions "MUST be clearly
+distinguishable from delegated ones" [47]. It also warns that agents needing separate auditing, revocation or policy
+should not share one workload identity.
+
+#### Workload identity for the agent itself
+
+Start with the half you already know. Give each agent *kind and version* its own SPIFFE ID, for example
+`spiffe://lumen.example.org/agent/assistant` and `spiffe://lumen.example.org/agent/summariser`, issued by SPIRE
+after workload attestation exactly as for any other pod [10]. Two design rules follow. First, the credential lives in
+the agent runtime, never in the model's context window, so an injected prompt can ask for a token but cannot read one
+(see [SYSDESIGN-31](../03-ai-systems/31-securing-agentic-systems.md)). Second, the identity is the *actor*, not the
+authority: an SVID proves "this is the summariser, build 42", and says nothing about which tenant's data it may read.
+That must come from the delegated token. When an L7 hop needs a token form of the identity, a JWT-SVID works, and the
+SPIFFE spec requires validators to "reject tokens without an `aud` claim" and encourages a validity period "as small
+as is reasonably possible" [52].
+
+#### Token exchange and the `act` claim
+
+RFC 8693 is the mechanism that combines the two identities [36]. The agent runtime calls the token service with grant
+type `urn:ietf:params:oauth:grant-type:token-exchange`, a `subject_token` ("the identity of the party on behalf of whom
+the request is being made", here Alice's token) and an `actor_token` ("the identity of the acting party", here the
+agent's JWT-SVID). It also names the target with `audience` or `resource` and asks for a narrow `scope`. The service
+returns a new token whose `sub` is Alice and whose `act` claim names the agent.
+
+Delegation chains nest. When the assistant hands work to the summariser, the summariser exchanges the token it
+received, with its own SVID as actor, and the result looks like this:
+
+```json
+{
+  "iss": "https://sts.lumen.example.org",
+  "aud": "https://docs-api.lumen.example.org",
+  "sub": "alice@acme.example.com",
+  "tenant": "acme",
+  "scope": "docs.read",
+  "exp": 1795000300,
+  "jti": "tx-7f3a",
+  "act": {
+    "sub": "spiffe://lumen.example.org/agent/summariser",
+    "act": { "sub": "spiffe://lumen.example.org/agent/assistant" }
+  }
+}
+```
+
+RFC 8693 is precise about what this means: "The outermost `act` claim represents the current actor while nested `act`
+claims represent prior actors", and prior actors "are informational only" and are "not to be considered in access
+control decisions" [36]. So the document API authorises "summariser acting for Alice of Acme, scope `docs.read`" and
+ignores the inner assistant. That has a consequence designers often miss: if you want a rule about the *whole* chain
+(no third-party agent anywhere in it, at most three hops), the resource server cannot enforce it from the token alone.
+Enforce it at the token service, which sees every exchange, and refuse to mint a token when the chain breaks policy.
+The related `may_act` claim lets a token state that "one party is authorized to become the actor" for another [36],
+which gives the token service a per-user allow-list of agents.
+
+RFC 8693 defines the exchange, not the policy, so attenuation is your token service's rule. Lumen's rule at every
+hop: the new scope is a subset of the incoming scope, the audience is exactly one downstream resource, the lifetime
+is at most five minutes and never beyond the incoming token's `exp`, and the token is sender-constrained to the
+calling workload with DPoP or mTLS [7][8]. Authority can only shrink as it travels.
+
+#### Audience restriction and no passthrough
+
+Every exchanged token names one audience, using RFC 8707 resource indicators [44]. That is what makes the MCP rules
+enforceable. MCP servers "MUST validate that access tokens were issued specifically for them" and "MUST NOT accept or
+transit any other tokens" [37]. The authorisation security considerations add the case that matters most for agent
+gateways: when an MCP server calls an upstream API, "the access token used at the upstream API is a separate token,
+issued by the upstream authorization server", and the server "MUST NOT pass through the token it received from the
+MCP client" [48]. The same document says authorisation servers "SHOULD issue short-lived access tokens" [48].
+
+#### Crossing into another trust domain
+
+Token exchange works inside Lumen's own trust domain. Acme's CRM lives in someone else's, with its own authorisation
+server that has never heard of Lumen's token service. Two IETF OAuth working-group documents address this, and
+neither is an RFC yet (as of 2026-11):
+
+- **Identity and Authorization Chaining Across Domains** (draft-ietf-oauth-identity-chaining-17, 19 July 2026,
+  submitted to the IESG and in the RFC Editor queue) [46]. A client in domain A uses token exchange to obtain a JWT
+  authorisation grant, then presents it to domain B's authorisation server with the RFC 7523 JWT bearer grant [45].
+- **Identity Assertion JWT Authorization Grant, ID-JAG** (draft-ietf-oauth-identity-assertion-authz-grant-06,
+  31 October 2026, working-group draft) [42]. It profiles that pattern for enterprises: the client sends the user's
+  SSO ID token, SAML assertion or refresh token to the enterprise IdP in a token exchange, the IdP "evaluates
+  administrator-defined policy" and returns an ID-JAG (`typ` `oauth-id-jag+jwt`, with `sub`, `aud` = the resource's
+  authorisation server, `client_id`, optional `resource` and `scope`), and the client redeems it at the resource's
+  authorisation server with the `jwt-bearer` grant (or a DPoP-bound `jwt-dpop` variant). The draft includes an
+  appendix titled "AI Agent using External Tools".
+
+MCP adopts this as **Enterprise-Managed Authorization**, a stable authorisation extension at version 2026-07-28 in the
+`modelcontextprotocol/ext-auth` repository [49]. It lets an MCP client obtain tokens for MCP servers from the
+organisation's SSO, without the user authorising each server by hand. The extension cites ID-JAG revision -04 while
+the current draft is -06, so check the differences before implementing either.
+
+The value for agents is governance: Acme's administrators, not each user clicking a consent screen, decide which
+agents may reach which tools, and the decision is logged at Acme's IdP.
+
+#### Transaction tokens for internal call chains
+
+Per-hop exchange is precise but costs one token-service call per hop. **Transaction Tokens**
+(draft-ietf-oauth-transaction-tokens-11, 30 July 2026, a working-group draft awaiting write-up) offer a different
+trade inside one trust domain [43]. At the edge, a workload exchanges the external token for a Txn-Token: "short-lived,
+signed JWTs", "expected to be short-lived (on the order of minutes or less)", carrying a transaction id (`txn`), the
+principal (`sub`), the purpose (`scope`), request context (`rctx`), constant authorisation details (`tctx`) and the
+requesting workload (`req_wl`). It travels with the request through every internal service. The draft fences it
+tightly: it "MUST NOT be accepted outside the Trust Domain identified by the aud claim", a workload "MUST NOT use a
+transaction token as an OAuth 2.0 Access Token", it is "not resistant to replay attacks", and a replacement may
+"reduce the scope of permitted actions" but must not expand it or change `txn`, `sub` or `aud` [43].
+
+| Option | Wins when | Costs |
+|---|---|---|
+| Per-hop token exchange (RFC 8693) | each hop needs its own audience and scope, or the actor chain matters | one token-service call per hop, more tokens to log |
+| Transaction token per request (draft) | deep internal chains in one trust domain, one immutable context | one context for the whole chain, replayable inside the domain, draft status |
+| ID-JAG or identity chaining (drafts) | the next hop is another organisation's authorisation server | IdP and resource AS must both support a draft |
+
+#### Least privilege per task
+
+The agent's *maximum* authority (everything Alice could grant) is not the authority of *this* task. Lumen derives
+scopes from the task plan: a "summarise Acme's Q3 notes" task gets `docs.read` on one folder and nothing for the CRM.
+When a tool needs more, MCP's step-up pattern applies: the server returns `403` with `error="insufficient_scope"` and
+the required `scope`, and a client acting for a user "SHOULD attempt the step-up authorization flow" [37]. Note the
+tension: MCP tells clients to request the *union* of previously granted and newly challenged scopes [37], so a long
+session accumulates authority. Keep tokens per task and short-lived, so the union dies with the task.
+
+#### Auditability and revocation
+
+Because nested `act` claims are informational for access control, they are exactly what the audit log needs. The
+token service is the one place that sees every exchange, so it writes one record per minted token: `jti`, parent
+`jti`, `sub`, tenant, full actor chain, audience, scope, expiry, policy decision and agent version. Resource servers log
+the `jti` they accepted. Joining on `jti` answers "which human authorised which agent to do what" without trusting any
+agent's own log, and it feeds the append-only audit design in *Failure modes and operations* below.
+
+Revocation works in layers. Lifetime does most of the work: with five-minute exchanged tokens, a token stolen from a
+hijacked agent is useless within five minutes (the same arithmetic as *Numbers that matter*, item 3). To stop an agent
+at once, stop the token service from minting for its SPIFFE ID: no new hop succeeds, and tokens already issued expire
+within the lifetime. For the user's grant, RFC 7009 revocation of the refresh token "SHOULD also invalidate all access
+tokens based on the same authorization grant" when the server supports access-token revocation [50]. Across
+organisations, the OpenID Continuous Access Evaluation Profile (CAEP 1.0, dated 29 August 2025, announced as a
+final specification on 16 September 2025) defines events such as `session-revoked`, so Acme's IdP can tell Lumen that
+Alice's session ended [51].
+
+#### Worked example: Lumen's assistant calls two APIs
+
+```mermaid
+sequenceDiagram
+  participant A as Lumen app (Alice, Acme)
+  participant AG as Lumen agent runtime
+  participant TS as Lumen token service
+  participant D as Docs API
+  participant IdP as Acme enterprise IdP
+  participant CAS as CRM authorisation server
+  participant CRM as CRM MCP server
+  A->>AG: task + token (sub alice, aud agent)
+  AG->>TS: token exchange, subject alice, actor JWT-SVID
+  TS->>AG: token aud docs-api, scope docs.read, act agent, 5 min
+  AG->>D: search with docs token
+  D->>D: verify aud, tenant, scope, current actor
+  AG->>IdP: token exchange with Alice SSO token, audience CRM AS
+  IdP->>AG: ID-JAG after Acme policy check
+  AG->>CAS: jwt-bearer grant with ID-JAG
+  CAS->>AG: token aud CRM MCP server, scope contacts.read
+  AG->>CRM: tools/call with CRM token
+```
+*Diagram: Alice's task reaches the agent runtime, which exchanges her token plus its own workload identity at Lumen's
+token service for a five-minute, docs-only token naming the agent as actor, and calls the document API with it. For
+the CRM it exchanges Alice's SSO token at Acme's IdP for an ID-JAG, redeems that at the CRM's authorisation server
+for a token scoped to the CRM MCP server, and calls the tool. No token is ever forwarded to a second audience.*
+
+Walk the hops. (1) The Docs API sees `sub` Alice, tenant Acme, current actor the assistant, `docs.read`, and serves
+only Acme's documents she can read (tenant from the verified token, as in *Authorisation at query time* below). If the
+summariser takes over, it exchanges again and the API sees a two-level `act`. (2) Lumen is an OIDC relying party of
+Acme's IdP, so Alice's ID token (or refresh token) came from her sign-in, and the runtime holds it, never the model.
+Without that SSO relationship the ID-JAG route is unavailable (exercise 12 gives the alternative). The CRM call
+leaves Lumen's trust domain, so token exchange at Lumen's service cannot help: Acme's IdP decides, under Acme's policy, whether
+`lumen-agent` may reach the CRM for Alice, and the CRM's authorisation server issues its own token. (3) The audit join
+covers both paths: Lumen's token service logs the Docs exchange, Acme's IdP logs the ID-JAG, and both carry Alice and
+the agent. (4) If Acme disables Alice and Lumen subscribes to Acme's CAEP stream, the session-change event lets Lumen's
+token service refuse new exchanges at once, and every token already in flight dies within five minutes.
 
 ### mTLS edge cases
 
@@ -506,7 +716,11 @@ Either way, the tenant ID must come from the verified token, enforced at the sto
   bills of materials are now expressible in the same pipeline as code SBOMs.
 - **Identity for AI agents.** Agents need delegated, audience-bound, short-lived tokens per tool, plus a record of
   *which human* authorised *which agent* to act. Token exchange (RFC 8693) and the MCP authorisation profile are the
-  current building blocks [36][37]; expect this area to keep moving.
+  current building blocks [36][37]. The next pieces are IETF drafts, not yet RFCs (as of 2026-11): the Identity
+  Assertion JWT Authorization Grant ("Cross-App Access", draft -06, 31 October 2026), Transaction Tokens (draft -11,
+  30 July 2026), identity chaining across domains (draft -17, in the RFC Editor queue) and the WIMSE architecture
+  (draft -09, 17 November 2026) [42][43][46][47]. See
+  [Agent identity and delegation chains](#agent-identity-and-delegation-chains) for how they fit together.
 - **Post-quantum key exchange.** NIST published FIPS 203 (ML-KEM) on 13 August 2024 [40]. For system design this means
   planning crypto-agility: inventory where TLS and signatures are terminated, and make algorithm changes a
   configuration rollout rather than a re-architecture. (Concrete library and protocol support varies by version; check
@@ -524,6 +738,7 @@ Either way, the tenant ID must come from the verified token, enforced at the sto
 | Unsigned or unknown image in prod | admission rejects, or worse, a bypass namespace admits | admission deny count; inventory diff vs registry | no exemptions without expiry; alert on policy bypass |
 | Vulnerable dependency (new CVE) | CRA clock starts | SBOM-to-CVE match time; % fleet affected | SBOM inventory query; rebuild + roll pipeline |
 | Sandbox escape attempt | unusual syscalls, crashes in sandbox | runtime security events | patch runtime; move tenant up the ladder |
+| Hijacked agent keeps calling tools | reads outside the task's scope, many users in one run | minted-token rate per agent ID; token-service policy denials | deny minting for the agent's SPIFFE ID; exchanged tokens expire within 5 minutes |
 
 Operational practices that make the design real:
 
@@ -570,7 +785,8 @@ for all services. "We'll add security later." Treating signing as proof of safet
 
 **Follow-ups to prepare.** Introspection vs local JWT validation; ID token vs access token; how to rotate a root CA
 without downtime; why gVisor or Firecracker for agent code execution; what SLSA L3 adds over L2; how an SBOM helps
-in the first 24 hours of a new CVE.
+in the first 24 hours of a new CVE; whose authority an AI agent uses when it calls a downstream API for a user, and
+what the `act` claim and the audit record show.
 
 ## Common mistakes
 
@@ -653,7 +869,19 @@ All URLs accessed 2026-11.
 34. Kubernetes documentation. *Verify Signed Kubernetes Artifacts*. https://kubernetes.io/docs/tasks/administer-cluster/verify-signed-artifacts/
 35. J. Richer (ed.). *OAuth 2.0 Token Introspection*, RFC 7662, October 2015. https://www.rfc-editor.org/rfc/rfc7662
 36. M. Jones et al. *OAuth 2.0 Token Exchange*, RFC 8693, January 2020. https://www.rfc-editor.org/rfc/rfc8693
-37. Model Context Protocol. *Specification 2025-06-18 — Authorization*. https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
+37. Model Context Protocol. *Specification 2026-07-28 — Authorization* (current protocol version per the versioning page). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization (accessed 2026-11-20)
 38. Kubernetes documentation. *Pod Security Standards*. https://kubernetes.io/docs/concepts/security/pod-security-standards/
 39. ENISA. "The CRA Single Reporting Platform is launched". https://www.enisa.europa.eu/index.php/news/the-cra-single-reporting-platform-is-launched
 40. NIST. *FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard*, 13 August 2024. https://csrc.nist.gov/pubs/fips/203/final
+41. Model Context Protocol. *Security Best Practices* (revision 2026-07-28; "Token Passthrough"). https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices (accessed 2026-11-20)
+42. A. Parecki, K. McGuinness, B. Campbell. *Identity Assertion JWT Authorization Grant*, draft-ietf-oauth-identity-assertion-authz-grant-06, 31 October 2026 (IETF OAuth WG Internet-Draft; work in progress). https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/
+43. A. Tulshibagwale, G. Fletcher, P. Kasselman. *Transaction Tokens*, draft-ietf-oauth-transaction-tokens-11, 30 July 2026 (IETF OAuth WG Internet-Draft; datatracker last updated 2026-08-21; work in progress). https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/
+44. B. Campbell, J. Bradley, H. Tschofenig. *Resource Indicators for OAuth 2.0*, RFC 8707, February 2020. https://www.rfc-editor.org/rfc/rfc8707
+45. M. Jones, B. Campbell, C. Mortimore. *JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants*, RFC 7523, May 2015. https://www.rfc-editor.org/rfc/rfc7523
+46. A. Schwenkschuster et al. *OAuth Identity and Authorization Chaining Across Domains*, draft-ietf-oauth-identity-chaining-17, 19 July 2026 (IETF OAuth WG Internet-Draft, in the RFC Editor queue as of 2026-11; not yet an RFC). https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-chaining/
+47. J. Salowey, Y. Rosomakho, H. Tschofenig. *Workload Identity in a Multi System Environment (WIMSE) Architecture*, draft-ietf-wimse-arch-09, 17 November 2026 (IETF WIMSE WG Internet-Draft, intended Informational; §3.4.7 delegation and impersonation, §3.4.11 AI and ML-based intermediaries). https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/
+48. Model Context Protocol. *Specification 2026-07-28 — Authorization: Security Considerations* ("Access Token Privilege Restriction", "Token Theft"). https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations (accessed 2026-11-20)
+49. Model Context Protocol. *Enterprise-Managed Authorization*, authorisation extension, stable version 2026-07-28 (cites ID-JAG revision -04). https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization/2026-07-28/enterprise-managed-authorization.mdx (accessed 2026-11-20)
+50. T. Lodderstedt (ed.), S. Dronia, M. Scurtescu. *OAuth 2.0 Token Revocation*, RFC 7009, August 2013. https://www.rfc-editor.org/rfc/rfc7009
+51. OpenID Foundation. *OpenID Continuous Access Evaluation Profile 1.0*, 29 August 2025 (final specification; approval announced 16 September 2025 with Shared Signals Framework 1.0 and RISC 1.0). https://openid.net/specs/openid-caep-1_0-final.html ; announcement https://openid.net/press-release-openid-foundation-finalizes-global-standards-for-real-time-identity-security/
+52. SPIFFE project. *JWT-SVID specification* (`aud` and `exp` validation). https://github.com/spiffe/spiffe/blob/main/standards/JWT-SVID.md

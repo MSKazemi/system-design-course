@@ -116,7 +116,23 @@ product.
 **Speaker notes:** Use it for horizontal write scale with transactions, or multi-region strong consistency; not to fix
 one slow query.
 
-## Slide 12 — Frontier: Postgres-as-everything, serverless, object storage
+## Slide 12 — Atomic commit across shards
+
+- Atomic commit: every participant votes yes, or nobody commits; consensus needs only a majority
+- 2PC: prepare (force log, keep locks, vote) then commit; a coordinator crash leaves yes-voters blocked, locks held
+- 3PC assumes a network that never fails; real fixes replicate the decision (Paxos Commit, Spanner, CockroachDB) or order inputs first (Calvin)
+- Spanner measured 17.0 ms mean 2PC latency at 1 participant, 42.7 ms at 50, 150.5 ms at 200 (2012)
+- Across services and vendors: a saga with compensations, or TCC when resources must be held; database to broker: outbox, not 2PC
+
+**Visual:** Sequence diagram coordinator → shard A / shard B with the in-doubt window shaded; beside it, the same flow with each box drawn as a three-replica group. Icons: `arch-database`, `sql-cockroachdb`, `sql-postgresql`, `arch-outbox`.
+
+**Speaker notes:** Skeen's 1981 paper already named the blocking problem; 2PC "does not help availability" on its
+own. Spanner and CockroachDB keep 2PC but make every participant and the coordinator a consensus group, and
+CockroachDB's parallel commits halve commit latency from two consensus rounds to one. Percolator puts the commit point
+in a primary lock in replicated storage, and Calvin agrees on a global order before execution so it needs no vote; XA
+is the standard interface for 2PC inside one estate, TCC the reservation pattern across services.
+
+## Slide 13 — Frontier: Postgres-as-everything, serverless, object storage
 
 - One PostgreSQL 18 cluster: relational, JSONB, full text, queue, pgvector 0.8.7
 - Neon: stateless compute, Paxos safekeepers, pageservers on object storage
@@ -128,7 +144,7 @@ one slow query.
 **Speaker notes:** The disciplined version of Postgres-for-everything: separate clusters for different blast radius,
 and written exit criteria.
 
-## Slide 13 — Interview wrap
+## Slide 14 — Interview wrap
 
 - Per workload: model → engine → isolation → why → trigger to revisit
 - Billing in Postgres SERIALIZABLE; chat partitioned by conversation; sessions in Redis

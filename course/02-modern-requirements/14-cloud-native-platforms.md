@@ -14,6 +14,7 @@ learning_objectives:
   - "Design a GitOps delivery flow with rolling and canary releases"
   - "Compare containers, serverless functions and WebAssembly components on cold start, density and isolation"
   - "Design an internal developer platform and a multi-tenancy model for a shared Kubernetes fleet"
+  - "Plan a change to a live system safely: canary analysis against a control, feature flags, config rollouts, an expand/contract schema migration, and a rollback-or-roll-forward decision"
 last_reviewed: 2026-11-20
 ---
 
@@ -336,6 +337,157 @@ application developer (HTTPRoute) — and puts features such as header matching,
 references into the portable spec [6]. For a new design in 2026 choose the Gateway API; for an existing Ingress NGINX
 estate, plan a migration, because the controller no longer receives security fixes [5].
 
+## Changing a live system safely [Core]
+
+Fifty deploys a day means fifty chances a day to break Lumen. Google's SRE book puts the stakes plainly: "roughly 70%
+of outages are due to changes in a live system", and its three remedies are "implementing progressive rollouts",
+"quickly and accurately detecting problems" and "rolling back changes safely when problems arise" [34]. A change is
+anything that alters production behaviour: a new image, a configuration value, a feature flag, a schema migration, a
+data backfill, and, in AI products, a prompt or model version. This section treats all of them as one discipline.
+
+### Canaries with automated analysis
+
+The Core section introduced canaries; the SRE Workbook defines canarying as "a partial and time-limited deployment of
+a change in a service and its evaluation" [35]. Three of its rules change how you build the pipeline [35]:
+
+- **Compare against a control, not against history.** The Workbook's control is the rest of the fleet, still running
+  the old version, observed at the same time as the much smaller canary; the arithmetic below uses a same-size slice
+  for simplicity. Before/after comparisons are unreliable because time itself moves the metrics
+  (traffic mix, time of day, a dependency's own deploy).
+- **Choose metrics that indicate user problems and tie them to SLIs**: error ratio and latency over the SLO
+  threshold, split by `service.version` ([SYSDESIGN-12](../01-foundations/12-observability.md)), not CPU.
+- **One canary at a time**, sized and timed to be representative; the more often you deploy, the shorter each canary
+  must be, which limits what it can detect.
+
+The detection limit is arithmetic. Take the Numbers section's canary: 5% of 2,000 req/s for 10 minutes is about 60,000
+requests, and give it a control of the same size (an
+assumption that keeps the arithmetic simple). At a 0.1% baseline error ratio each arm expects about 60 errors;
+treating counts as Poisson, the noise on the *difference* is about √(60 + 60) ≈ 11. A doubling to 0.2% adds 60 errors,
+about five times that noise: caught. A rise to 0.12% adds 12, about one noise unit: invisible. To see a 20%
+relative rise at three noise units you need roughly 500,000 requests per arm (normal approximation: √n ≥ 3 × √0.0022 /
+0.0002 ≈ 700), which is about 80 minutes at 100 req/s per arm (our arithmetic, labelled assumptions). So canaries catch
+large regressions quickly; small ones are left to the burn-rate alerts after full rollout, and the rollout must still
+be reversible then.
+
+**Tooling, neutrally** (as of 2026-11: Argo Rollouts v1.10.2, Flagger v1.45.0 [36][37]). A plain Kubernetes Deployment rolls pods in waves (`maxSurge` and `maxUnavailable` both
+default to 25%) and marks a rollout stalled after `progressDeadlineSeconds` (default 600), but "Kubernetes takes no
+action on a stalled Deployment other than to report a status condition"; rolling back is left to you or to a
+higher-level orchestrator [18]. Two CNCF projects supply that orchestration. **Argo Rollouts** is "a Kubernetes
+controller and set of CRDs" adding blue-green, canary, canary analysis and experimentation; it queries metric
+providers such as Prometheus, Datadog, New Relic or Kayenta and can "drive automated promotion or rollback", shaping
+traffic through ingress controllers or service meshes [36]. **Flagger** is "a progressive delivery tool that automates
+the release process" with canary, A/B and blue/green strategies, metric checks against Prometheus, Datadog,
+CloudWatch and others, and routing through Gateway API, service meshes or ingress controllers; it is part of the Flux
+family [37]. A reasonable default is to pair the rollout controller with the GitOps agent you already run (Argo CD
+with Argo Rollouts, Flux with Flagger) so one team owns both; either way, encode the canary analysis as data in Git,
+reviewed like code.
+
+### Feature flags and dark launches
+
+Flags separate *deploy* (the code is on the servers) from *release* (users see it). Facebook's SOSP 2015 paper
+describes the practice at scale: engineers "release the new code into production early but in a disabled mode", then
+use the Gatekeeper system to enable it incrementally (developers, then 1% → 10% → 100% of employees, then a slice of
+users in one region, then 1% → 10% → 100% globally), and "if any problem is detected during the rollout, the new code
+can be disabled instantaneously" [38]. A **dark launch** goes one step further: the new path runs on real traffic but
+its results are discarded or compared, never shown, which tests load and correctness before any user depends on it
+(Flagger's traffic mirroring is one mechanism [37]; Stripe's comparison of old and new reads during a data migration
+is another [40]). Flags have two costs: every flag doubles the states you must test, and stale flags become
+configuration nobody understands. Give each flag an owner and an expiry date.
+
+### Configuration changes are deploys
+
+The same paper reports that "configuration errors are a major source of site outages" and describes the response:
+configs are generated from source, go through the same rigorous code review as code, and are then canaried
+on live traffic in phases (the paper's example: 20 servers, then a full cluster), with pass/fail predicates that
+compare servers on the new config with servers still on the old one [38]. [SYSDESIGN-11](../01-foundations/11-reliability-engineering.md) shows the
+2024–2025 incidents where a fast global config or data push was the trigger. The design rule: every config change,
+flag flip and globally pushed data file goes through the delivery pipeline (schema validation, review, canary stage,
+staged propagation, a kill switch and a last-known-good fallback). If your config system can change all regions in
+one second, it can break all regions in one second.
+
+### Compatibility: two versions are always running
+
+During every rolling update, canary or rollback, version N and N+1 serve traffic at the same time and read each
+other's data. Two properties make that safe: **backward compatibility** (new code reads what old code wrote) and
+**forward compatibility** (old code tolerates what new code writes, for example by ignoring unknown fields; schema
+evolution rules are in [SYSDESIGN-10](../01-foundations/10-apis-communication.md)). AWS's Builders' Library names
+the most common reason a deploy cannot be rolled back: "a change of protocol", such as new code writing a format old
+code cannot read [44]. Its remedy is a **two-phase deployment**: first *prepare* (deploy code that reads both formats
+but still writes the old one), wait until every server has it, then *activate* (write the new format). Rolling
+forward, "readers go before writers"; rollback stays safe because every server can already read the new format [44].
+The article also recommends upgrade-downgrade testing: deploy to half the fleet, finish, roll back, and check every
+API and background job in both directions [44].
+
+### Schema migrations without downtime: expand and contract
+
+The database version of the same idea is **parallel change**, "also known as expand and contract": expand the schema
+so it supports old and new shapes, migrate clients, then contract by removing the old shape [39]. Stripe's account of
+moving subscriptions to a new data model follows the same arc in four steps: dual-write to old and new tables, move
+reads to the new table, move writes to the new table only, then remove the old data [40]. For Lumen, splitting the
+`orgs.plan` text column into a `plans` table looks like this:
+
+```mermaid
+flowchart TB
+  E[1 Expand: add plans table and nullable orgs.plan_id<br/>app v1 unaware]
+  W[2 Deploy v2: write both, read old]
+  B[3 Backfill in batches<br/>idempotent, throttled on replica lag]
+  V[4 Verify: compare old and new reads]
+  R[5 Deploy v3: read new, write both]
+  N[6 Deploy v4: write new only]
+  C[7 Contract: drop orgs.plan<br/>after a bake period]
+  E --> W --> B --> V --> R --> N --> C
+```
+
+*Diagram: seven steps from expand to contract; each step is a separate deploy that can be rolled back to the previous
+one, except the final contract step, which is the point of no return.*
+
+Every arrow is a separate deploy that can be rolled back one version. Step 6 narrows that: once the old column stops
+receiving writes it is stale, so going back to code that reads it (v2 or v1) needs a reverse backfill first. Treat
+step 6 as the point of no return for read-old rollbacks and step 7 as the point of no return for everything. If you
+need a longer safety net, keep dual-writing during the bake period and move the stop-old-writes step to just before
+the drop; Stripe did the equivalent, writing to the new store and then archiving into the old one until its final
+phase removed the old write path [40]. Before step 7, take a backup, wait out a bake period (AWS suggests days between
+phases [44]), and only then drop the column. The mechanics on PostgreSQL 18 (PostgreSQL 19 was released on
+2026-11-19 [46]; these lock levels are from the 18 manual, so re-check them before relying on them on 19):
+
+- **Adding a column** with no default or a non-volatile default stores the value in metadata, "making the `ALTER
+  TABLE` very fast even on large tables"; a volatile default or most column type changes rewrite the whole table and
+  its indexes [42]. Most `ALTER TABLE` forms take an `ACCESS EXCLUSIVE` lock, which conflicts with every other lock
+  mode, including the one plain `SELECT`s take, and a lock request waits indefinitely unless `lock_timeout` is set
+  [42]. Set a short `lock_timeout` on migration sessions and retry, so a migration cannot stall behind a long
+  transaction while holding up traffic.
+- **Indexes:** `CREATE INDEX CONCURRENTLY` builds "without taking any locks that prevent concurrent inserts, updates,
+  or deletes", at the cost of two table scans and waiting for existing transactions; it cannot run inside a
+  transaction block, and a failure leaves an `INVALID` index that still costs on every update and must be dropped or
+  rebuilt [41].
+- **Constraints:** add a foreign key as `NOT VALID` (no scan, but it takes `SHARE ROW EXCLUSIVE` on both the table and
+  the referenced table, so use `lock_timeout`), then `VALIDATE CONSTRAINT`, which takes only `SHARE UPDATE EXCLUSIVE`
+  on the table (plus `ROW SHARE` on the referenced table) [42].
+
+MySQL estates often use shadow-table tools; GitHub's **gh-ost** (v1.1.11 as of 2026-11 [43]) is a "triggerless online schema migration solution"
+that copies rows into a ghost table, applies ongoing changes from the binary log, can throttle or pause, and lets you
+postpone the final table swap [43]. Whatever the tool, the backfill is the risky part: make it idempotent (safe to
+rerun), resumable, rate-limited on replication lag, and verified by a comparison job before reads move.
+
+### Rollback or roll forward?
+
+Default to **rollback**: it is the fastest mitigation, it needs no diagnosis, and it is exactly what incident response
+asks for first ([SYSDESIGN-12](../01-foundations/12-observability.md#incident-response-on-call-and-postmortems-core)).
+Roll forward only when rollback is unsafe (a contract step or a format activation has already happened) or when the
+fix is tiny, already tested and faster to ship than a rollback. The whole point of expand/contract and two-phase
+deploys is to keep the rollback option open for as long as possible; a team that "always rolls forward" has usually
+lost it by accident. Keep `revisionHistoryLimit` (default 10 old ReplicaSets [18]) and images pinned by digest so
+`kubectl rollout undo` or a `git revert` in the config repository brings back exactly the old state.
+
+### Change freezes
+
+Two kinds exist. A **budget freeze** is policy-driven: the SRE Workbook's example error-budget policy halts "all
+changes and releases other than P0 issues or security fixes" until the service is back within its SLO [45]; it turns
+the SLO into a brake that engineering and product agreed on in advance. A **calendar freeze** (a sales peak, a
+holiday) reduces change during high-stakes periods. Both have a cost worth naming: changes pile up and ship together
+afterwards, so the first day after a freeze carries more risk per deploy. Keep freezes short, keep an emergency path
+for security fixes, and keep deploying to non-production environments so the pipeline itself does not rot.
+
 ## Deep dive [Deep]
 
 ### Writing a reconciler that survives reality
@@ -453,18 +605,21 @@ to any design; sometimes as "Design a deployment/CI-CD system" or "Design an int
 3. **SKETCH** — Git → CI (build, test, sign) → config repo → GitOps agent → Kubernetes; Gateway API for ingress;
    HPA/KEDA; observability defaults.
 4. **DEEPEN** — reconciliation and why it self-heals; rollout mechanics (`maxSurge`, readiness, draining);
-   canary analysis with SLO burn rates.
+   canary analysis with SLO burn rates; expand/contract with dual-write and backfill; flags and config as deploys.
 5. **STRESS** — bad deploy at peak; autoscaler too slow; control-plane outage (running pods keep running; no changes
    possible); a noisy tenant; a retired dependency.
 6. **WRAP** — trade-offs: Kubernetes vs serverless; namespace vs cluster per tenant; platform team cost vs product
    team load.
 
 **Red flags:** "Kubernetes will autoscale it" with no signal or timing; liveness probes that check the database; CPU
-autoscaling for an LLM server; manual `kubectl` in production; "containers are secure sandboxes for untrusted code".
+autoscaling for an LLM server; manual `kubectl` in production; "containers are secure sandboxes for untrusted code";
+`ALTER ... RENAME` in the same deploy as the code change.
 
 **Follow-ups:** "What happens if etcd loses quorum?" (API is unavailable; existing pods keep running; no
 scheduling or healing — SYSDESIGN-09). "Why is my HPA not scaling?" (missing requests, metrics-server down,
-`<unknown>` targets, maxReplicas). "How would you scale to zero?" (KEDA/Knative; cold-start budget).
+`<unknown>` targets, maxReplicas). "How would you scale to zero?" (KEDA/Knative; cold-start budget). "How do you
+rename a column on a hot table with no downtime?" (expand, dual-write, backfill, switch reads, stop old writes, drop;
+rollback narrows after old writes stop).
 
 ## Common mistakes
 
@@ -473,6 +628,8 @@ scheduling or healing — SYSDESIGN-09). "Why is my HPA not scaling?" (missing r
 - Treating Kubernetes namespaces as a security boundary for hostile tenants.
 - Building a platform nobody asked for: no product management, no adoption metrics, mandatory everything.
 - Copying `latest` image tags into production (non-reproducible, breaks rollbacks); pin by digest.
+- Shipping a schema change and the code that depends on it in one deploy, so neither can be rolled back alone.
+- Pushing configuration or flags globally in one step, outside the pipeline that canaries code.
 - Forgetting that serverless cold starts land on the first user after a quiet period.
 - Picking Wasm or serverless for fashion rather than a measured requirement (cold start, density, isolation).
 
@@ -483,7 +640,8 @@ scheduling or healing — SYSDESIGN-09). "Why is my HPA not scaling?" (missing r
    what might the default scale-up policy allow in one step?
 3. Why is a level-triggered controller more robust than an event-triggered script?
 4. Name the four OpenGitOps principles and one practical consequence of each.
-5. When would you choose a Wasm component over a container, and when not?
+5. List the deploys needed to rename a hot column with expand/contract. After which step does rolling back to
+   read-old code need a reverse backfill, and which step cannot be rolled back at all?
 
 Full set with answers: [exercises/14-cloud-native-platforms.md](../../exercises/14-cloud-native-platforms.md).
 
@@ -503,6 +661,8 @@ replica-ratio canary and measure its traffic share, and finally delete the clust
 - Agache et al., "Firecracker" (NSDI 2020) [15] — the isolation/density trade-off behind serverless.
 - CNCF TAG App Delivery, Platforms white paper [12] and maturity model [31].
 - WASI releases and the Component Model book [11][28].
+- SRE Workbook, "Canarying Releases" [35], and Pokkunuri, "Ensuring rollback safety during deployments" [44] — how
+  to detect a bad change and keep the way back open.
 
 ## References
 
@@ -539,3 +699,16 @@ replica-ratio canary and measure its traffic share, and finally delete the clust
 [31] CNCF TAG App Delivery, "Platform Engineering Maturity Model," https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/ (accessed 2026-11).
 [32] kind v0.33.0 release notes (default node image kindest/node:v1.37.0), 2026-08-26, https://github.com/kubernetes-sigs/kind/releases/tag/v0.33.0 (accessed 2026-11).
 [33] Kubernetes SIG Network, "Gateway API Inference Extension," https://gateway-api-inference-extension.sigs.k8s.io/ (accessed 2026-11).
+[34] B. Beyer et al. (eds.), *Site Reliability Engineering*, ch. 1 "Introduction" (change management: "roughly 70% of outages are due to changes in a live system"), O'Reilly/Google, 2016, https://sre.google/sre-book/introduction/ (accessed 2026-11).
+[35] A. Warner, Š. Davidovič, with A. Hidalgo, B. Beyer, K. Smith, M. Duftler, "Canarying Releases," ch. 16 in *The Site Reliability Workbook*, O'Reilly/Google, 2018, https://sre.google/workbook/canarying-releases/ (accessed 2026-11).
+[36] Argo Project, "Argo Rollouts — Kubernetes Progressive Delivery Controller," documentation, https://argoproj.github.io/argo-rollouts/ ; latest release v1.10.2, https://github.com/argoproj/argo-rollouts/releases (accessed 2026-11-20).
+[37] Flux project, "Flagger" documentation (progressive delivery; CNCF graduated, part of the Flux family), https://docs.flagger.app/ ; latest release v1.45.0, https://github.com/fluxcd/flagger/releases (accessed 2026-11-20).
+[38] C. Tang, T. Kooburat, P. Venkatachalam, A. Chander, Z. Wen, A. Narayanan, P. Dowell, R. Karl, "Holistic Configuration Management at Facebook," SOSP 2015, https://doi.org/10.1145/2815400.2815401 ; https://sigops.org/s/conferences/sosp/2015/current/2015-Monterey/printable/008-tang.pdf (accessed 2026-11).
+[39] D. Sato, "ParallelChange," martinfowler.com bliki, 2014-05-13, https://martinfowler.com/bliki/ParallelChange.html (accessed 2026-11).
+[40] J. Xu, "Online migrations at scale," Stripe engineering blog, 2017-02-02, https://stripe.com/blog/online-migrations (accessed 2026-11).
+[41] PostgreSQL 18 documentation, "CREATE INDEX" (building indexes concurrently), https://www.postgresql.org/docs/18/sql-createindex.html (accessed 2026-11).
+[42] PostgreSQL 18 documentation, "ALTER TABLE" (rewrites, lock levels, NOT VALID / VALIDATE CONSTRAINT), https://www.postgresql.org/docs/18/sql-altertable.html ; "13.3 Explicit Locking," https://www.postgresql.org/docs/18/explicit-locking.html ; "lock_timeout," https://www.postgresql.org/docs/18/runtime-config-client.html (accessed 2026-11).
+[43] GitHub, "gh-ost: GitHub's online schema migrations for MySQL," repository README, https://github.com/github/gh-ost ; latest release v1.1.11, https://github.com/github/gh-ost/releases (accessed 2026-11-20).
+[44] S. Pokkunuri, "Ensuring rollback safety during deployments," Amazon Builders' Library, 2019-12-05, https://builder.aws.com/content/3F04j2yRAAMBuPSPs50xwXZqg01/ensuring-rollback-safety-during-deployments (formerly https://aws.amazon.com/builders-library/ensuring-rollback-safety-during-deployments/) (accessed 2026-11).
+[45] S. Thurgood, "Example Error Budget Policy," Appendix B in *The Site Reliability Workbook*, O'Reilly/Google, 2018, https://sre.google/workbook/error-budget-policy/ (accessed 2026-11).
+[46] PostgreSQL Global Development Group, "PostgreSQL 19 Released!" 2026-11-19, https://www.postgresql.org/about/news/postgresql-19-released-3449/ (accessed 2026-11-20).

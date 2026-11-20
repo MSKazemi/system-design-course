@@ -4,7 +4,7 @@ title: "ML platforms & data for AI"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
 status: SOURCES_CHECKED
-prerequisites: [SYSDESIGN-13, SYSDESIGN-20, SYSDESIGN-23]
+prerequisites: [SYSDESIGN-13, SYSDESIGN-20, SYSDESIGN-22, SYSDESIGN-23, SYSDESIGN-24, SYSDESIGN-26]
 estimated_time: "3h reading"
 requirement: "Ship a model change from a notebook to production in under a day, serve features at p99 < 10 ms, and prove that what the model saw in training is what it sees in production"
 learning_objectives:

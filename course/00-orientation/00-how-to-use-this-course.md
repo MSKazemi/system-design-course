@@ -9,7 +9,7 @@ estimated_time: "1h reading + 15 min setup check"
 requirement: "Know what a 2026 system designer must master that a 2016 one did not, and pick the shortest path through this course that gets you there"
 learning_objectives:
   - "Explain the requirement loop (Requirement → Numbers → Design → Deep dive → Break it → Operate → Interview angle) and apply it to a small feature"
-  - "Choose a learning path (learner, practitioner, interview candidate) and the unit order that goes with it"
+  - "Choose a learning path (learner, practitioner, interview candidate, agentic systems) and the unit order that goes with it"
   - "Interpret the [Core], [Deep] and [Frontier] markers and the lab test-status labels"
   - "Describe the running example, Lumen, and which stage of its growth each part of the course covers"
   - "Summarise, with sources, six ways system design changed between 2016 and 2026"
@@ -34,9 +34,10 @@ state the requirement, turn it into numbers, design, go deep on the hardest part
 it (SLOs, cost, energy), and finally rehearse how it is asked in interviews. The building blocks (load
 balancers, caches, queues, GPUs, vector indexes) appear *because* a requirement needs them, so you always know
 why each box is in the diagram. A fictional product, **Lumen**, grows through the course from one server to a
-global, GPU-backed, multi-tenant AI service, and the labs build pieces of it on your laptop. You can read
-everything in order, take the **practitioner** path straight to modern requirements and AI systems, or take the
-**interview** path. Sections are marked **[Core]** for everyone, **[Deep]** for senior engineers, and
+global, GPU-backed, multi-tenant AI service and then an agent platform, and the labs build pieces of it on your
+laptop. You can read everything in order, take the **practitioner** path straight to modern requirements and AI
+systems, take the **interview** path, or take the **agentic-systems** path to designing applications in which models
+call tools and act. Sections are marked **[Core]** for everyone, **[Deep]** for senior engineers, and
 **[Frontier]** for 2024–2026 state of the art.
 
 ## Why this matters now
@@ -53,24 +54,42 @@ with Docker Compose or kind, at no cost, and each lab records honestly whether i
 
 ### The course map
 
-The course has 47 units in six parts: 29 chapters (00–28), 14 case studies and 4 interview units. Every part has its own directory.
+The course has 55 units in six parts: 34 chapters (00–33), 17 case studies and 4 interview units. Every part has its own directory.
 
 | Part | Directory | Units | What it gives you |
 |---|---|---|---|
 | 0 — Orientation | [`course/00-orientation/`](./) | 00, 01 | The method, and the numbers every design needs |
 | I — Classical foundations | [`course/01-foundations/`](../01-foundations/) | 02–13 | Requests, scaling, caching, storage, replication, sharding, async, consensus, APIs, reliability, observability, data |
 | II — Modern requirements | [`course/02-modern-requirements/`](../02-modern-requirements/) | 14–20 | Platforms, multi-region and edge, cost, energy, security, privacy and sovereignty, streaming |
-| III — AI-native systems | [`course/03-ai-systems/`](../03-ai-systems/) | 21–28 | LLM inference, serving at scale, GPUs, retrieval, agents, LLM gateways, ML platforms, AI governance |
-| IV — Case studies | [`course/04-case-studies/`](../04-case-studies/) | C01–C14 | Seven classical and seven AI-era problems, solved end to end |
+| III — AI-native systems | [`course/03-ai-systems/`](../03-ai-systems/) | 21–33 | LLM inference, serving at scale, GPUs, retrieval, agents, LLM gateways, ML platforms, AI governance, then five agentic chapters: architectures, context and memory, security, observing and evaluating, the agent runtime |
+| IV — Case studies | [`course/04-case-studies/`](../04-case-studies/) | C01–C17 | Nine classical (C01–C08, C14), five AI-era (C09–C13) and three agentic (C15–C17) problems, solved end to end |
 | V — Interview track | [`course/05-interview/`](../05-interview/) | I01–I04 | The interview playbook, cheat sheets, question bank, ML/LLM interviews |
 
 Each unit has up to three companions with the same file name in other folders: a text-first slide outline in
 [`slides/`](../../slides/), exercises with reasoned answers in [`exercises/`](../../exercises/), and, where
 listed, a runnable lab in [`labs/`](../../labs/).
 
+Part III closes with five chapters on agentic systems, which build on chapter 25's tool calling, MCP and sandboxed
+execution: [29 — Agent architectures and orchestration](../03-ai-systems/29-agent-architectures-orchestration.md),
+[30 — Context engineering and agent memory](../03-ai-systems/30-context-engineering-memory.md),
+[31 — Securing agentic systems](../03-ai-systems/31-securing-agentic-systems.md),
+[32 — Observing and evaluating agents](../03-ai-systems/32-observing-evaluating-agents.md) and
+[33 — Agent platform runtime](../03-ai-systems/33-agent-platform-runtime.md). Part IV closes with three agentic cases:
+[C15 — Customer-support agent platform](../04-case-studies/C15-support-agent-platform.md),
+[C16 — Deep-research multi-agent system](../04-case-studies/C16-deep-research-agents.md) and
+[C17 — Enterprise workflow-automation agent](../04-case-studies/C17-workflow-automation-agent.md). None of these
+units has a built lab yet; labs for 30, 32 and 33 are planned.
+
 Part III is the centre of gravity. Parts I and II build the tools that Part III applies to AI workloads:
 queueing, batching, caching, routing, autoscaling and cost per unit of work. AI serving is treated as a
 system-design workload, not as a separate topic.
+
+**Out of scope: training systems.** Part III covers inference and serving, GPU infrastructure, retrieval, agents
+(architectures, context and memory, security, evaluation and runtime), gateways and governance. Chapter 27 ([SYSDESIGN-27](../03-ai-systems/27-ml-platforms.md)) covers ML platforms,
+including fine-tuning pipelines (LoRA and QLoRA, model registries, evaluation gates), at the systems level. The course
+does not teach large-scale pre-training or post-training systems, such as distributed-training parallelism in depth,
+reinforcement-learning post-training loops or corpus-scale data pipelines. Training appears only as memory,
+checkpoint and failure arithmetic in [SYSDESIGN-23](../03-ai-systems/23-gpu-infrastructure.md) and 27.
 
 ### The requirement loop
 
@@ -148,15 +167,18 @@ Lumen grows in stages. Each stage raises the requirement that the next part of t
 | 2 | Streaming APIs, rate limits, leader election for indexers, SLO alerts, a data lake and search index | "Deploy 20 times a day and know within 5 minutes when users hurt" | 09–13 |
 | 3 | Kubernetes platform, EU and US regions, cost model, carbon-aware batch jobs, zero trust, GDPR and AI Act controls, change-data-capture pipelines | "EU data stays in the EU, cost per active user halves, and every artefact is signed" | 14–20 |
 | 4 | vLLM fleet on GPUs, retrieval with vector indexes, agents in sandboxes, an LLM gateway, an ML platform, guardrails and audit | "2,000 concurrent chat streams with time to first token under 1 s, at a known cost per 1,000 tokens" | 21–28 |
-| Cases | Lumen reappears where the problem fits (LLM chat, enterprise RAG, coding agents) | One prompt each | C09–C11 |
+| 5 | An agent platform for 2,000 tenants: workflows and agent teams, managed context and memory, brokered tool access, agent traces and evals, a queued multi-tenant runtime | "240,000 agent runs a day: no run lost, no side effect duplicated, a hard cost cap on every run" | 29–33 |
+| Cases | Lumen reappears where the problem fits (LLM chat, enterprise RAG, coding agents), and as Lumen Support, Lumen Research and Lumen Flow in the agentic cases | One prompt each | C09–C11, C15–C17 |
 
 Lumen is a *teaching device*, not a case study of a real system. When the course cites how a real system works
 (DynamoDB, Maglev, vLLM), it cites a published source.
 
-### Three learning paths
+### Four learning paths
 
-Choose the path that matches your goal. Unit codes link to the canonical files. Units not yet published will
-appear at these paths.
+Choose the path that matches your goal. Unit codes link to the canonical files. Every path is prerequisite-closed:
+each unit appears after the units its front matter lists as prerequisites, or the path tells you to read those
+prerequisites' [Core] sections first. Units marked *(Core)* need only their [Core] sections; read the others in
+full. Case studies have no depth markers, so a case in a path is always read in full.
 
 **Path A — Learner (full course, beginner → advanced).** Read in order, doing every lab, and slot case studies
 in where their prerequisites are complete:
@@ -165,65 +187,136 @@ in where their prerequisites are complete:
 2. Foundations: [02](../01-foundations/02-anatomy-of-a-request.md) → [03](../01-foundations/03-scaling-compute.md) →
    [04](../01-foundations/04-caching.md) → [05](../01-foundations/05-choosing-storage.md) →
    [06](../01-foundations/06-replication-consistency.md) → [07](../01-foundations/07-partitioning-sharding.md) →
-   [08](../01-foundations/08-async-event-driven.md)
-3. First cases: [C01](../04-case-studies/C01-url-shortener-rate-limiter.md) → [C02](../04-case-studies/C02-news-feed.md)
-4. Foundations, continued: [09](../01-foundations/09-coordination-consensus.md) →
-   [10](../01-foundations/10-apis-communication.md) → [11](../01-foundations/11-reliability-engineering.md) →
+   [08](../01-foundations/08-async-event-driven.md) → [09](../01-foundations/09-coordination-consensus.md) →
+   [10](../01-foundations/10-apis-communication.md)
+3. First cases: [C01](../04-case-studies/C01-url-shortener-rate-limiter.md) → [C02](../04-case-studies/C02-news-feed.md) →
+   [C03](../04-case-studies/C03-chat-presence.md) → [C06](../04-case-studies/C06-payments-ledger.md) →
+   [C07](../04-case-studies/C07-distributed-kv-store.md)
+4. Foundations, continued: [11](../01-foundations/11-reliability-engineering.md) →
    [12](../01-foundations/12-observability.md) → [13](../01-foundations/13-data-at-scale.md)
-5. Classical cases: [C03](../04-case-studies/C03-chat-presence.md) → [C04](../04-case-studies/C04-video-streaming.md) →
-   [C05](../04-case-studies/C05-ride-hailing-proximity.md) → [C06](../04-case-studies/C06-payments-ledger.md) →
-   [C07](../04-case-studies/C07-distributed-kv-store.md) → [C08](../04-case-studies/C08-web-crawler-search.md)
-6. Modern requirements: [14](../02-modern-requirements/14-cloud-native-platforms.md) →
+   → case [C08](../04-case-studies/C08-web-crawler-search.md)
+5. Modern requirements: [14](../02-modern-requirements/14-cloud-native-platforms.md) →
    [15](../02-modern-requirements/15-multi-region-edge.md) → [16](../02-modern-requirements/16-cost-as-requirement.md) →
    [17](../02-modern-requirements/17-energy-carbon-aware.md) → [18](../02-modern-requirements/18-security-by-design.md) →
    [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) → [20](../02-modern-requirements/20-real-time-streaming.md)
-   → cases [C12](../04-case-studies/C12-realtime-fraud-recsys.md), [C14](../04-case-studies/C14-global-flash-sale.md)
-7. AI-native systems: [21](../03-ai-systems/21-llm-inference-anatomy.md) → [22](../03-ai-systems/22-serving-llms-at-scale.md) →
+   → cases [C04](../04-case-studies/C04-video-streaming.md) (needs 13 and 16),
+   [C05](../04-case-studies/C05-ride-hailing-proximity.md) (needs 20), [C14](../04-case-studies/C14-global-flash-sale.md)
+6. AI-native systems: [21](../03-ai-systems/21-llm-inference-anatomy.md) → [22](../03-ai-systems/22-serving-llms-at-scale.md) →
    [23](../03-ai-systems/23-gpu-infrastructure.md) → [24](../03-ai-systems/24-retrieval-vector-systems.md) →
    [25](../03-ai-systems/25-agentic-systems.md) → [26](../03-ai-systems/26-llm-gateways-llmops.md) →
    [27](../03-ai-systems/27-ml-platforms.md) → [28](../03-ai-systems/28-ai-trust-safety-governance.md)
+7. Agentic systems: [29](../03-ai-systems/29-agent-architectures-orchestration.md) → [30](../03-ai-systems/30-context-engineering-memory.md) →
+   [31](../03-ai-systems/31-securing-agentic-systems.md) → [32](../03-ai-systems/32-observing-evaluating-agents.md) →
+   [33](../03-ai-systems/33-agent-platform-runtime.md)
 8. AI-era cases: [C09](../04-case-studies/C09-llm-chat-service.md) → [C10](../04-case-studies/C10-enterprise-rag-assistant.md) →
-   [C11](../04-case-studies/C11-coding-agent-platform.md) → [C13](../04-case-studies/C13-gpu-cluster-telemetry.md)
-9. Finish with [I01](../05-interview/I01-interview-playbook.md), even if you are not interviewing: it is the
-   method compressed into 45 minutes.
+   [C11](../04-case-studies/C11-coding-agent-platform.md) → [C12](../04-case-studies/C12-realtime-fraud-recsys.md) (needs 27) →
+   [C13](../04-case-studies/C13-gpu-cluster-telemetry.md)
+9. Agentic cases: [C15](../04-case-studies/C15-support-agent-platform.md) (needs C06 and C10) →
+   [C16](../04-case-studies/C16-deep-research-agents.md) (needs C08 and C11) → [C17](../04-case-studies/C17-workflow-automation-agent.md)
+10. Finish with [I01](../05-interview/I01-interview-playbook.md), even if you are not interviewing: it is the
+    method compressed into 45 minutes.
 
-**Path B — Practitioner (working engineer; you know the classics and want the new requirements).** Skim 00, do
-01 properly (the numbers matter everywhere), then:
+**Path B — Practitioner (working engineer; you know the classics and want the new requirements, AI first).** Skim
+[00](00-how-to-use-this-course.md), do [01](01-requirements-to-numbers.md) properly (the numbers matter everywhere). Path B assumes you already know
+[02](../01-foundations/02-anatomy-of-a-request.md) *(Core)*, [03](../01-foundations/03-scaling-compute.md) *(Core)*, [04](../01-foundations/04-caching.md) *(Core)*,
+[05](../01-foundations/05-choosing-storage.md) *(Core)*, [06](../01-foundations/06-replication-consistency.md) *(Core)*,
+[07](../01-foundations/07-partitioning-sharding.md) *(Core)*, [08](../01-foundations/08-async-event-driven.md) *(Core)*,
+[09](../01-foundations/09-coordination-consensus.md) *(Core)*, [10](../01-foundations/10-apis-communication.md) *(Core)* and
+[13](../01-foundations/13-data-at-scale.md) *(Core)*: if one of them is unfamiliar, read its [Core] sections before step 1. Then:
 
 1. Operations core: [11](../01-foundations/11-reliability-engineering.md) → [12](../01-foundations/12-observability.md)
 2. Modern requirements: [14](../02-modern-requirements/14-cloud-native-platforms.md) →
    [16](../02-modern-requirements/16-cost-as-requirement.md) → [17](../02-modern-requirements/17-energy-carbon-aware.md) →
-   [18](../02-modern-requirements/18-security-by-design.md) → [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) →
-   [15](../02-modern-requirements/15-multi-region-edge.md) → [20](../02-modern-requirements/20-real-time-streaming.md)
-3. AI-native systems, all of Part III in order: 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28
-4. Cases: [C09](../04-case-studies/C09-llm-chat-service.md) → [C10](../04-case-studies/C10-enterprise-rag-assistant.md) →
+   [18](../02-modern-requirements/18-security-by-design.md) → [15](../02-modern-requirements/15-multi-region-edge.md) →
+   [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) (after 15, which it builds on) →
+   [20](../02-modern-requirements/20-real-time-streaming.md)
+3. AI-native systems, all of Part III in order: [21](../03-ai-systems/21-llm-inference-anatomy.md) →
+   [22](../03-ai-systems/22-serving-llms-at-scale.md) → [23](../03-ai-systems/23-gpu-infrastructure.md) →
+   [24](../03-ai-systems/24-retrieval-vector-systems.md) → [25](../03-ai-systems/25-agentic-systems.md) →
+   [26](../03-ai-systems/26-llm-gateways-llmops.md) → [27](../03-ai-systems/27-ml-platforms.md) →
+   [28](../03-ai-systems/28-ai-trust-safety-governance.md), then the agentic chapters [29](../03-ai-systems/29-agent-architectures-orchestration.md) →
+   [30](../03-ai-systems/30-context-engineering-memory.md) → [31](../03-ai-systems/31-securing-agentic-systems.md) →
+   [32](../03-ai-systems/32-observing-evaluating-agents.md) → [33](../03-ai-systems/33-agent-platform-runtime.md)
+4. AI-era cases: [C09](../04-case-studies/C09-llm-chat-service.md) → [C10](../04-case-studies/C10-enterprise-rag-assistant.md) →
    [C11](../04-case-studies/C11-coding-agent-platform.md) → [C13](../04-case-studies/C13-gpu-cluster-telemetry.md)
-5. Use 02–10 and 13 as reference when a later unit points back to them. Do labs L01, L03, L12, L14, L16, L21, L22
-   and L26 at minimum.
+5. Agentic cases, after the two classical cases they build on: [C06](../04-case-studies/C06-payments-ledger.md) (idempotency and
+   exactly-once effects, which agents that move money need) → [C08](../04-case-studies/C08-web-crawler-search.md) (fetching the open web at
+   scale, which research agents do) → [C15](../04-case-studies/C15-support-agent-platform.md) →
+   [C16](../04-case-studies/C16-deep-research-agents.md) → [C17](../04-case-studies/C17-workflow-automation-agent.md)
+6. Do labs L01, L03, L12, L14, L16, L21, L22, L25 and L26 at minimum.
 
-**Path C — Interview candidate.** Learn the playbook first, then the topics most often asked, then practise on
-cases:
+**Path C — Interview candidate.** Learn the numbers and the playbook first, then the topics most often asked, then
+practise on cases.
 
-1. Method: [00](00-how-to-use-this-course.md) (this page) → [I01](../05-interview/I01-interview-playbook.md) →
-   [01](01-requirements-to-numbers.md) → [I02](../05-interview/I02-numbers-cheat-sheets.md)
-2. High-frequency topics: [03](../01-foundations/03-scaling-compute.md) → [04](../01-foundations/04-caching.md) →
+1. Method: [00](00-how-to-use-this-course.md) (this page) → [01](01-requirements-to-numbers.md) →
+   [I01](../05-interview/I01-interview-playbook.md) → [I02](../05-interview/I02-numbers-cheat-sheets.md) §§1–9 (the classical
+   numbers; §§10–14 come after 21)
+2. High-frequency topics: [02](../01-foundations/02-anatomy-of-a-request.md) *(Core)* →
+   [03](../01-foundations/03-scaling-compute.md) → [04](../01-foundations/04-caching.md) →
    [05](../01-foundations/05-choosing-storage.md) → [06](../01-foundations/06-replication-consistency.md) →
    [07](../01-foundations/07-partitioning-sharding.md) → [08](../01-foundations/08-async-event-driven.md) →
-   [10](../01-foundations/10-apis-communication.md) → [11](../01-foundations/11-reliability-engineering.md);
-   skim [02](../01-foundations/02-anatomy-of-a-request.md) and [09](../01-foundations/09-coordination-consensus.md)
-3. Cases, in roughly the order interviewers use them: [C01](../04-case-studies/C01-url-shortener-rate-limiter.md) →
+   [09](../01-foundations/09-coordination-consensus.md) *(Core)* → [10](../01-foundations/10-apis-communication.md) →
+   [11](../01-foundations/11-reliability-engineering.md)
+3. Classical cases, in roughly the order interviewers use them: [C01](../04-case-studies/C01-url-shortener-rate-limiter.md) →
    [C02](../04-case-studies/C02-news-feed.md) → [C03](../04-case-studies/C03-chat-presence.md) →
-   [C06](../04-case-studies/C06-payments-ledger.md) → [C05](../04-case-studies/C05-ride-hailing-proximity.md) →
-   [C07](../04-case-studies/C07-distributed-kv-store.md) → [C14](../04-case-studies/C14-global-flash-sale.md) →
-   [C04](../04-case-studies/C04-video-streaming.md) → [C08](../04-case-studies/C08-web-crawler-search.md)
-4. The AI round, now common at many companies: [21](../03-ai-systems/21-llm-inference-anatomy.md) →
-   [22](../03-ai-systems/22-serving-llms-at-scale.md) → [24](../03-ai-systems/24-retrieval-vector-systems.md) →
-   [C09](../04-case-studies/C09-llm-chat-service.md) → [C10](../04-case-studies/C10-enterprise-rag-assistant.md) →
-   [I04](../05-interview/I04-ml-llm-interviews.md)
-5. Mock interviews with [I03](../05-interview/I03-question-bank-rubrics.md). Senior and staff candidates add
-   [12](../01-foundations/12-observability.md), [15](../02-modern-requirements/15-multi-region-edge.md),
-   [16](../02-modern-requirements/16-cost-as-requirement.md) and [18](../02-modern-requirements/18-security-by-design.md):
-   operations, geography, cost and security are where senior answers differ from mid-level ones.
+   [C06](../04-case-studies/C06-payments-ledger.md) → [C07](../04-case-studies/C07-distributed-kv-store.md) →
+   [C14](../04-case-studies/C14-global-flash-sale.md)
+4. Operations, data and platforms, which the remaining cases and the AI round build on:
+   [12](../01-foundations/12-observability.md) *(Core)* → [13](../01-foundations/13-data-at-scale.md) *(Core)* →
+   [14](../02-modern-requirements/14-cloud-native-platforms.md) *(Core)* →
+   [16](../02-modern-requirements/16-cost-as-requirement.md) *(Core)* →
+   [20](../02-modern-requirements/20-real-time-streaming.md) *(Core)*, then cases
+   [C08](../04-case-studies/C08-web-crawler-search.md) → [C04](../04-case-studies/C04-video-streaming.md) →
+   [C05](../04-case-studies/C05-ride-hailing-proximity.md)
+5. The AI round, now common at many companies: [21](../03-ai-systems/21-llm-inference-anatomy.md) →
+   [I02](../05-interview/I02-numbers-cheat-sheets.md) §§10–14 → [22](../03-ai-systems/22-serving-llms-at-scale.md) →
+   [23](../03-ai-systems/23-gpu-infrastructure.md) *(Core)* → [24](../03-ai-systems/24-retrieval-vector-systems.md) →
+   [26](../03-ai-systems/26-llm-gateways-llmops.md) → [27](../03-ai-systems/27-ml-platforms.md) *(Core)* →
+   case [C09](../04-case-studies/C09-llm-chat-service.md)
+6. RAG, agents and governance: [15](../02-modern-requirements/15-multi-region-edge.md) *(Core)* →
+   [18](../02-modern-requirements/18-security-by-design.md) *(Core)* →
+   [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) *(Core)* →
+   [25](../03-ai-systems/25-agentic-systems.md) *(Core)* → [28](../03-ai-systems/28-ai-trust-safety-governance.md) *(Core)* →
+   case [C10](../04-case-studies/C10-enterprise-rag-assistant.md) → [I04](../05-interview/I04-ml-llm-interviews.md)
+7. The agentic round: re-read [I01 §17](../05-interview/I01-interview-playbook.md#17-when-the-prompt-is-agentic), then
+   [29](../03-ai-systems/29-agent-architectures-orchestration.md) *(Core)* → [31](../03-ai-systems/31-securing-agentic-systems.md) *(Core)* →
+   [32](../03-ai-systems/32-observing-evaluating-agents.md) *(Core)* → [33](../03-ai-systems/33-agent-platform-runtime.md) *(Core)* →
+   case [C15](../04-case-studies/C15-support-agent-platform.md), the support agent that issues refunds, which is the prompt §17 opens with
+8. Mock interviews with [I03](../05-interview/I03-question-bank-rubrics.md). Senior and staff candidates add the
+   [Deep] sections of [11](../01-foundations/11-reliability-engineering.md), [12](../01-foundations/12-observability.md),
+   [15](../02-modern-requirements/15-multi-region-edge.md), [16](../02-modern-requirements/16-cost-as-requirement.md) and
+   [18](../02-modern-requirements/18-security-by-design.md): operations, geography, cost and security are where senior
+   answers differ from mid-level ones.
+
+**Path D — Agentic systems (you will design, review or run applications in which models call tools and act).** The
+shortest prerequisite-closed route to chapters 29–33 and cases C15–C17. It reads the agent spine in full and the
+classical units underneath it at [Core] depth. It leaves out 16, 17, 20, 23, 27 and the cases nothing in the route
+needs.
+
+1. Method: [00](00-how-to-use-this-course.md) → [01](01-requirements-to-numbers.md)
+2. Foundations, at [Core] depth except 08 and 10, which agent runtimes are built from (durable, idempotent work and
+   API contracts): [02](../01-foundations/02-anatomy-of-a-request.md) *(Core)* → [03](../01-foundations/03-scaling-compute.md) *(Core)* →
+   [04](../01-foundations/04-caching.md) *(Core)* → [05](../01-foundations/05-choosing-storage.md) *(Core)* →
+   [06](../01-foundations/06-replication-consistency.md) *(Core)* → [07](../01-foundations/07-partitioning-sharding.md) *(Core)* →
+   [08](../01-foundations/08-async-event-driven.md) → [09](../01-foundations/09-coordination-consensus.md) *(Core)* →
+   [10](../01-foundations/10-apis-communication.md) → [11](../01-foundations/11-reliability-engineering.md) *(Core)* →
+   [12](../01-foundations/12-observability.md) *(Core)* → [13](../01-foundations/13-data-at-scale.md) *(Core)*, then cases
+   [C06](../04-case-studies/C06-payments-ledger.md) → [C08](../04-case-studies/C08-web-crawler-search.md)
+3. Platform, security and regulation: [14](../02-modern-requirements/14-cloud-native-platforms.md) *(Core)* →
+   [15](../02-modern-requirements/15-multi-region-edge.md) *(Core)* → [18](../02-modern-requirements/18-security-by-design.md) →
+   [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) *(Core)*
+4. AI foundations: [21](../03-ai-systems/21-llm-inference-anatomy.md) → [22](../03-ai-systems/22-serving-llms-at-scale.md) *(Core)* →
+   [24](../03-ai-systems/24-retrieval-vector-systems.md) → [25](../03-ai-systems/25-agentic-systems.md) →
+   [26](../03-ai-systems/26-llm-gateways-llmops.md) → [28](../03-ai-systems/28-ai-trust-safety-governance.md)
+5. AI-era cases: [C09](../04-case-studies/C09-llm-chat-service.md) → [C10](../04-case-studies/C10-enterprise-rag-assistant.md) →
+   [C11](../04-case-studies/C11-coding-agent-platform.md)
+6. The agentic chapters: [29](../03-ai-systems/29-agent-architectures-orchestration.md) → [30](../03-ai-systems/30-context-engineering-memory.md) →
+   [31](../03-ai-systems/31-securing-agentic-systems.md) → [32](../03-ai-systems/32-observing-evaluating-agents.md) →
+   [33](../03-ai-systems/33-agent-platform-runtime.md)
+7. Agentic cases: [C15](../04-case-studies/C15-support-agent-platform.md) → [C16](../04-case-studies/C16-deep-research-agents.md) →
+   [C17](../04-case-studies/C17-workflow-automation-agent.md)
+8. Interview angle: [I01 §17](../05-interview/I01-interview-playbook.md#17-when-the-prompt-is-agentic), how to answer
+   an agentic prompt in 45 minutes. Do labs L24, L25 and L26 at minimum.
 
 ### How a chapter is built
 
@@ -319,7 +412,7 @@ was published on 10 December 2021 [18]. SLSA v1.0, a framework for build provena
 2023 [19]. In March 2024, malicious code was discovered in the upstream release tarballs of the `xz` compression
 library, starting with version 5.6.0 (CVE-2024-3094) [20]. Designs now include signed artefacts, provenance,
 software bills of materials, and dependency policies as components of the system, not as paperwork.
-*Covered in:* 18, C11.
+*Covered in:* 18, 31, C11.
 
 ### 6. Platforms replaced hand-built infrastructure
 
@@ -348,16 +441,22 @@ different thing.
 
 ### Time budget for each path
 
-**Assumptions:** a chapter takes 2.5–3.5 hours to read with exercises, and a lab 1–2 hours (the front matter of
-each unit states its own estimate). A case study takes about 2 hours.
+**Method.** The front matter of every unit states its time (`estimated_time`), and the table adds those values. A
+unit read in full counts its reading time plus any stated setup or hands-on time. A unit read at [Core] depth counts
+half its reading time (an assumption). A lab counts only when the path asks for it. Exercises and mock interviews
+with no stated duration add nothing. Reading only §17 of I01 counts as 0.5 h (§17 is about 1,450 of I01's 12,000
+words, so ≈ 12% of its 2.5 h, rounded up). No agentic unit has a built lab yet (labs for 30, 32 and 33 are
+planned), so they add no lab time.
 
-| Path | Units | Rough time |
+| Path | Units | Time, summed from front matter |
 |---|---|---|
-| A — Learner | 29 chapters + 14 cases + I01, with 17 labs | ≈ 29 × 3 h + 14 × 2 h + 17 × 1.5 h + 2 h ≈ **140 h** |
-| B — Practitioner | ≈ 19 chapters + 4 cases + 8 labs | ≈ 19 × 3 h + 4 × 2 h + 8 × 1.5 h ≈ **77 h** |
-| C — Interview | ≈ 14 chapters + 11 cases + 4 interview units | ≈ 14 × 2.5 h + 11 × 2 h + 4 × 2 h ≈ **65 h**, plus mock interviews |
+| A — Learner | 34 chapters, 17 cases and I01, with all 17 labs | 104.75 h (chapters: 103 h reading + 1.75 h setup and hands-on) + 35.5 h (cases: 14 × 2 h + 3 × 2.5 h) + 26 h (labs) + 2.5 h (I01) = 168.75 h ≈ **169 h** |
+| B — Practitioner | 24 chapters in full, 9 cases and 9 labs; 02–10 and 13 assumed known | 73.75 h (chapters) + 19 h (cases: 7 × 2 h + 2 × 2.5 h) + 14 h (labs) = 106.75 h ≈ **107 h**, plus up to 15.25 h (half of 30.5 h) if you need the [Core] background |
+| C — Interview | 14 chapters in full, 18 at [Core] depth, 12 cases and 4 interview units | 42.75 h (full) + 27 h (half of 54 h) + 25.5 h (cases: 9 × 2 h + 3 × 2.5 h) + 9 h (I01–I04) = 104.25 h ≈ **104 h**, plus mock interviews |
+| D — Agentic systems | 15 chapters in full, 14 at [Core] depth, 8 cases, I01 §17 and 3 labs | 45.75 h (full) + 22 h (half of 44 h) + 17 h (cases: 6 × 2 h + 2 × 2.5 h) + 0.5 h (I01 §17) + 5.5 h (labs) = 90.75 h ≈ **91 h** |
 
-At five hours a week, Path C fits in about three months and Path A in about seven. If time is short, read
+At five hours a week, Path D fits in about four months (≈ 18 weeks), Paths B and C in about five (≈ 21 weeks) and
+Path A in about eight (≈ 34 weeks). If time is short, read
 [Core] sections only and roughly halve these estimates.
 
 ### Lab footprint
@@ -376,6 +475,7 @@ Choosing how to study is itself a trade-off:
 | Path A, in order | You are building foundations, or you want the whole picture | Time; the AI material comes late |
 | Path B, modern first | You already run production systems | Gaps in foundations surface later; follow the back-links |
 | Path C, interview first | An interview is weeks away | Breadth before depth; return for [Deep] afterwards |
+| Path D, agentic first | You must design, review or run an agent product soon | Foundations only at [Core] depth; cost, energy, streaming, GPUs and ML platforms (16, 17, 20, 23, 27) are left out |
 | [Core] only | First pass, or limited time | You'll know *what*, but less *why* |
 | Labs skipped | Reading on a phone | You lose the most memorable lesson in each unit: seeing the number yourself |
 
@@ -486,6 +586,8 @@ knowing how much traffic you are designing for. Never mentioning failure, cost o
 
 - Starting with Part III without Part 0. The AI chapters rely on Little's law, utilisation and tail latency
   from SYSDESIGN-01.
+- Starting the agentic chapters (29–33) without 25 and 26. They assume tool calling, MCP, sandboxes and the LLM
+  gateway, and the agentic cases also lean on the classical cases C06 and C08.
 - Reading [Frontier] as settled fact. It is dated for a reason.
 - Treating Lumen's numbers as industry benchmarks. They are labelled assumptions for practice.
 - Skipping "Break it" because the design "obviously works".

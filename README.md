@@ -20,7 +20,9 @@ its real test status. Found an error? Open an issue.
 - **Mostly new, still classical.** A full classical foundation (caching, replication, sharding, consensus, queues),
   then modern requirements (platform engineering, multi-region & edge, cost, energy & carbon, supply-chain security,
   GDPR / EU AI Act) and a whole part on **AI-native systems**: LLM inference, **vLLM** and serving at scale, GPU
-  infrastructure, RAG and vector search, agents and MCP, LLM gateways, ML platforms, AI safety and governance.
+  infrastructure, RAG and vector search, LLM gateways, ML platforms, AI safety and governance — and **agentic
+  applications**, single- and multi-agent: architectures, context and memory, security, observability and evaluation,
+  and the platform that runs them, with agentic case studies.
 - **Hands-on.** Labs run locally with Docker Compose or kind — load it, break it, measure it.
 - **Interview-strong.** An original six-step framework — **CLARIFY → QUANTIFY → SKETCH → DEEPEN → STRESS → WRAP** — a
   question bank with rubrics by level, cheat sheets, and an *Interview angle* section in every chapter.
@@ -80,17 +82,24 @@ Full syllabus with learning outcomes: [SYLLABUS.md](SYLLABUS.md).
 | 26 | [LLM gateways and LLMOps](course/03-ai-systems/26-llm-gateways-llmops.md) |
 | 27 | [ML platforms and data for AI](course/03-ai-systems/27-ml-platforms.md) |
 | 28 | [Trust, safety and governance for AI systems](course/03-ai-systems/28-ai-trust-safety-governance.md) |
+| 29 | [Agent architectures and orchestration](course/03-ai-systems/29-agent-architectures-orchestration.md) |
+| 30 | [Context engineering and agent memory](course/03-ai-systems/30-context-engineering-memory.md) |
+| 31 | [Securing agentic systems](course/03-ai-systems/31-securing-agentic-systems.md) |
+| 32 | [Observing and evaluating agents](course/03-ai-systems/32-observing-evaluating-agents.md) |
+| 33 | [Agent platform runtime: queues, tenancy, fairness, rollout](course/03-ai-systems/33-agent-platform-runtime.md) |
 
 ### Part IV — Case studies
-| # | Classical | # | AI era |
-|---|---|---|---|
-| C01 | [URL shortener + rate limiter](course/04-case-studies/C01-url-shortener-rate-limiter.md) | C08 | [Web crawler and search](course/04-case-studies/C08-web-crawler-search.md) |
-| C02 | [News feed](course/04-case-studies/C02-news-feed.md) | C09 | [ChatGPT-style LLM chat service](course/04-case-studies/C09-llm-chat-service.md) |
-| C03 | [Chat and presence](course/04-case-studies/C03-chat-presence.md) | C10 | [Enterprise RAG assistant](course/04-case-studies/C10-enterprise-rag-assistant.md) |
-| C04 | [Video upload and streaming](course/04-case-studies/C04-video-streaming.md) | C11 | [AI coding-agent platform](course/04-case-studies/C11-coding-agent-platform.md) |
-| C05 | [Ride-hailing and proximity](course/04-case-studies/C05-ride-hailing-proximity.md) | C12 | [Real-time fraud detection](course/04-case-studies/C12-realtime-fraud-recsys.md) |
-| C06 | [Payments and ledger](course/04-case-studies/C06-payments-ledger.md) | C13 | [GPU/HPC cluster telemetry](course/04-case-studies/C13-gpu-cluster-telemetry.md) |
-| C07 | [Distributed key-value store](course/04-case-studies/C07-distributed-kv-store.md) | C14 | [Global flash sale](course/04-case-studies/C14-global-flash-sale.md) |
+| # | Classical | # | AI era | # | Agentic |
+|---|---|---|---|---|---|
+| C01 | [URL shortener + rate limiter](course/04-case-studies/C01-url-shortener-rate-limiter.md) | C09 | [ChatGPT-style LLM chat service](course/04-case-studies/C09-llm-chat-service.md) | C11 | [AI coding-agent platform](course/04-case-studies/C11-coding-agent-platform.md) |
+| C02 | [News feed](course/04-case-studies/C02-news-feed.md) | C10 | [Enterprise RAG assistant](course/04-case-studies/C10-enterprise-rag-assistant.md) | C15 | [Customer-support agent platform](course/04-case-studies/C15-support-agent-platform.md) |
+| C03 | [Chat and presence](course/04-case-studies/C03-chat-presence.md) | C12 | [Real-time fraud detection](course/04-case-studies/C12-realtime-fraud-recsys.md) | C16 | [Deep-research multi-agent system](course/04-case-studies/C16-deep-research-agents.md) |
+| C04 | [Video upload and streaming](course/04-case-studies/C04-video-streaming.md) | C13 | [GPU/HPC cluster telemetry](course/04-case-studies/C13-gpu-cluster-telemetry.md) | C17 | [Workflow-automation agent](course/04-case-studies/C17-workflow-automation-agent.md) |
+| C05 | [Ride-hailing and proximity](course/04-case-studies/C05-ride-hailing-proximity.md) | | | | |
+| C06 | [Payments and ledger](course/04-case-studies/C06-payments-ledger.md) | | | | |
+| C07 | [Distributed key-value store](course/04-case-studies/C07-distributed-kv-store.md) | | | | |
+| C08 | [Web crawler and search](course/04-case-studies/C08-web-crawler-search.md) | | | | |
+| C14 | [Global flash sale](course/04-case-studies/C14-global-flash-sale.md) | | | | |
 
 ### Part V — Interview track
 | # | Lesson |

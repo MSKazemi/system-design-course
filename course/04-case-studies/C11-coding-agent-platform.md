@@ -60,6 +60,9 @@ is a dependency behind a gateway ([SYSDESIGN-26](../03-ai-systems/26-llm-gateway
 | Budget enforcement | hard stop at the configured cap; overrun ≤ one step's cost |
 | Fairness | one org's burst cannot push others' interactive tasks past their SLO |
 | Auditability | every tool call, approval and file change recorded and attributable |
+| Code confidentiality | tenant code is never used for training; provider terms with zero or bounded retention, or self-hosted models; tenants pinned to their region's gateway and sandboxes |
+
+Rank: isolation > code confidentiality > durability > auditability > budget enforcement > fairness > start and step latency.
 
 ### Out of scope
 
@@ -105,7 +108,7 @@ caching are therefore first-order cost controls.
 
 ### Cost per task
 
-With **assumed** frontier-model prices of $3 per million input tokens, $0.30 per million cached input tokens and $15
+With **assumed** frontier-model prices of $3 per million input tokens, $0.30 per million cached input tokens (an assumed 0.1× read rate) and $15
 per million output tokens (placeholders — use your provider's current prices or your C09 fleet cost):
 
 | Item | Derivation | Cost |
@@ -117,6 +120,14 @@ per million output tokens (placeholders — use your provider's current prices o
 | Storage, network, orchestration | assumption | ≈ $0.02 |
 | **Total** | | **≈ $1.50 per task** |
 
+This prices the uncached tokens at the plain input rate, as on providers without a cache-write charge. Many
+providers charge one (as of 2026-11, Anthropic and OpenAI GPT-5.6+ bill a write at 1.25× input for their default
+5- and 30-minute TTLs [14][15]). Then the 240 k uncached tokens cost 240 k × $3.75/M = $0.90, and the task
+**≈ $1.70**. The TTL matters more than the premium. A wait longer than the TTL, such as an approval or a long test
+run, expires the cache, and the next call re-writes the whole prefix. Late in a task that is ≈ 80 k × $3.75/M =
+$0.30 instead of an $0.024 cached read: **≈ $0.28 per expiry**, about a fifth of a mean task. So keep long waits
+out of the hot path, or pay the longer TTL (2× write on Anthropic, 1 h [14]) where waits are routine.
+
 The sandbox is ≈ 2 % of the cost. **Tokens are the bill**; a runaway loop that makes 400 calls instead of 40 costs
 about 80× more input, not 10×, if context grew without bound (≈ 10 k + 1.75 k tokens per step), about 40× with an
 assumed 200 k-token window cap, and less with compaction. Budgets and loop detection (deep dive 3) are not optional.
@@ -126,6 +137,26 @@ assumed 200 k-token window cap, and less with compaction. Budgets and loop detec
 At 7 task starts/s and an assumed 300 MB full clone (with history), cold clones would pull ≈ 2 GB/s from the Git host
 — and Git providers rate-limit. With partial clone (`--filter=blob:none`), sparse checkout and a regional mirror,
 assume ≈ 50 MB per start from cache → ≈ 350 MB/s served from our own cache tier.
+
+### Paused tasks: hold or snapshot?
+
+| Quantity | Derivation | Value |
+|---|---|---|
+| Tasks that pause for approval | assumption: 20 % of 200 k | 40 k/day |
+| Mean approval wait | assumption | 2 h |
+| Holding the sandbox | 40 k × 2 h × 2 vCPU | 160 k vCPU-h/day ≈ 6,700 vCPU ≈ 70 hosts at the average pause load (up to +40 % on 175 if pauses cluster at peak) |
+| Holding cost per pause | 2 vCPU × 2 h × $0.05 | $0.20 (≈ $8,000/day) |
+| Snapshot size | assumption: 4 GiB memory + 1 GiB disk diff | 5 GiB |
+| Snapshot write volume | 40 k × 5 GiB | ≈ 200 TiB/day ≈ 2.3 GiB/s average |
+| Snapshots stored at any time | 40 k/day × 2 h / 24 h × 5 GiB | ≈ 3,300 snapshots ≈ 16 TiB |
+| Prompt-cache re-write after the wait (paid in both options) | from Cost per task | ≈ $0.28 per pause |
+
+Snapshot-and-release wins on compute: it frees about 70 hosts. The costs move elsewhere. Storage bandwidth
+(≈ 2.3 GiB/s of writes, and as much again in restores) matters more than storage capacity, and restore latency (an
+assumption to measure, not a quoted figure) is added to the first step after approval. Hold the sandbox for a short
+grace period first (assume 2 minutes), because quick approvals then never pay a snapshot. The expired prompt cache
+costs more per pause than holding the sandbox for 2 hours, but it is due either way, so the choice rests on compute,
+storage bandwidth and restore latency.
 
 ## SKETCH: high-level design
 
@@ -168,6 +199,7 @@ GET  /v1/tasks/{id}/events          (SSE: step started, tool call, diff, approva
 POST /v1/tasks/{id}/messages        {"text":"use the existing retry helper"}
 POST /v1/approvals/{aid}            {"decision":"approve","comment":"ok for staging"}
 POST /v1/tasks/{id}/cancel
+POST /v1/webhooks/git              (CI results, review comments; deduplicated on the provider's delivery ID)
 ```
 
 | Entity | Key | Key fields |
@@ -180,7 +212,10 @@ POST /v1/tasks/{id}/cancel
 | `sandbox` | sandbox_id | host, image digest, snapshot chain, network policy, CPU/RAM, expires_at |
 | `budget_ledger` | (org, period) | token and $ reserved / spent per org, user, task |
 
-The `step` log is append-only and is both the **audit trail** and the **replay source** for durability.
+The `step` log is append-only and is both the **audit trail** and the **replay source** for durability. Work does
+not end at "PR opened": CI results and review comments arrive later as webhooks, and providers may deliver one
+event more than once. Deduplicate on the delivery ID, then deliver the event to the task's workflow as a signal, so
+a review comment resumes the same task from its checkpoint instead of starting a new one.
 
 ## DEEPEN
 
@@ -201,6 +236,13 @@ second; it underpins AWS Lambda and Fargate [2]. For hostile, multi-tenant agent
 gVisor is a reasonable alternative when KVM is unavailable. Defence in depth still applies inside: non-root user,
 read-only base image, seccomp, no host mounts, per-sandbox disk quotas, and **no cloud metadata endpoint** reachable.
 
+**Stated limits.** The paper's figures are for a minimal guest. They do not transfer to this design's 2 vCPU, 4 GiB
+sandboxes, so size the fleet from your own measurements. Neither boundary replaces host hardening. Firecracker "is not
+able to mitigate host's hardware vulnerabilities", and its production guide recommends the jailer, the default
+seccomp filters, disabling SMT "in production scenarios that require tenant separation", and dropping guest packets
+to the host's metadata service [20]. gVisor states that "a sandbox is not a substitute for a secure architecture"
+and that it does not in general protect against hardware side channels [21].
+
 **Start latency.** Boot is fast; *environment* is slow: clone, dependency install, build. Make it fast with:
 
 1. **Snapshots**: boot from a memory/disk snapshot of a warmed image (language runtimes loaded). Firecracker supports
@@ -219,7 +261,7 @@ approval-gated capability, because it is the main exfiltration path for stolen c
 
 **Lifecycle.** A sandbox lives for the task (≤ 60 min + idle grace), then is destroyed; its final disk diff is
 snapshotted for resume and kept briefly. Paused tasks (awaiting approval) **snapshot and release** the sandbox
-instead of holding 2 vCPUs idle for hours.
+after a short grace period instead of holding 2 vCPUs idle for hours (see QUANTIFY, paused tasks).
 
 ### Deep dive 2 — tools via MCP, secrets isolation and human approvals
 
@@ -252,21 +294,46 @@ Platform design around that:
    scrub it from captured output before the output is shown to the model, and require approval for the org.
 4. Scan every tool output and diff for secret patterns before it reaches the LLM or the PR.
 
+**Proxy injection hides the credential, not its authority.** A hijacked agent cannot read the token, but it can still
+make the proxy use it, for every operation the token allows on every allow-listed host. "Never leak secrets" and
+"cannot misuse them" are different requirements. So scope each injected token to one repository and one operation
+class (push to the task branch, not `repo:admin`), bind it to the sandbox identity and the task's lifetime, and log
+each injection with the task id ([SYSDESIGN-31](../03-ai-systems/31-securing-agentic-systems.md#5-containment-architecture)).
+
+**Rule of Two.** A coding agent holds all three legs by design: it reads untrusted issue text [A], touches private
+source [B], and pushes, comments and uses the network [C]
+([SYSDESIGN-31](../03-ai-systems/31-securing-agentic-systems.md#1-the-threat-model-is-a-property-of-the-session)).
+Removing a leg removes the product, so the answer is containment: sandbox, egress allow-list, scoped injected
+tokens, and approvals. OWASP's 2026 guidance goes further and asks for per-action human approval for any agent with
+all three [8]. This design approves only actions that leave the sandbox's blast radius (the table below) and should
+record the rest as accepted residual risk.
+
 **Human approvals.** Classify actions by risk and gate the risky ones:
 
 | Class | Examples | Policy (default) |
 |---|---|---|
-| Read | read files, search, view CI logs | auto |
+| Read | read files, search code, view CI logs (not open-web fetch with a model-written URL or query, which is outbound) | auto |
 | Local write | edit files, run tests in sandbox | auto (sandbox is disposable) |
-| External write, reversible | push to the task branch, comment on the issue | auto, logged |
+| External write, visible only to the requester | push to the task branch of a private repo, a draft only the requester sees | auto, logged |
+| External write, readable by others | comment on a shared or public issue, PR or push on a public repo, webhook | **approval** once the session has read untrusted content (issue text, web pages, dependency files), else auto, logged |
 | External write, risky | push to protected branch, change CI config, add a dependency, open network to new domain | **approval** |
 | Irreversible / production | run a migration, deploy, use production credentials | **approval by an authorised role**, or forbidden |
+
+Reversibility is the wrong test for the middle rows. You can delete a comment, but you cannot un-disclose what it
+said, and anything another person can read is an exfiltration channel. In the 2025 GitHub MCP attack, an injected
+public issue led an agent to copy private-repository data into a pull request on the public repo [16]. Since
+nearly every coding task reads the issue, "tainted" is the normal state, so in practice the readable-by-others row
+means approval by default. That makes approval a scarce human signal: Anthropic reports that users accept 93% of
+manual permission prompts in Claude Code (one vendor's measurement) [22]. Ask only for rare actions, track approval
+rate and time-to-approve as SLIs, and see [SYSDESIGN-31](../03-ai-systems/31-securing-agentic-systems.md#approval-design-without-approval-fatigue)
+for design at volume.
 
 An approval request shows the exact command or diff, the reason the agent gave, and the risk class; it is delivered
 via the UI and chat. While waiting, the workflow **durably sleeps** and the sandbox is snapshotted (deep dive 3). The
 approval is bound to the *exact* action (hash of command/diff) so the agent cannot get approval for one thing and do
-another. OWASP's prompt-injection guidance recommends human-in-the-loop controls for privileged operations for exactly
-this reason [8].
+another. OWASP's 2026 prompt-injection entry (LLM01:2026, which it maps to ASI01 Agent Goal Hijack in its agentic
+list) asks for explicit human confirmation before any privileged, irreversible or externally visible action,
+showing the exact rendered action rather than a summary [8].
 
 ### Deep dive 3 — durable sessions, budgets and loop detection
 
@@ -309,6 +376,13 @@ Rules that make replay safe:
   *intent* before execution and *result* after (an outbox-like pattern).
 - **Non-determinism stays in activities.** LLM outputs are non-deterministic; record them, never regenerate them on
   replay.
+- **Respect the engine's limits.** Temporal caps one payload at 2 MB and an event history at 51,200 events or
+  50 MB, and terminates an execution that passes the event limit [17][18]. If each LLM activity carried the full
+  context in its input (≈ 40 k tokens ≈ 160 KB at an assumed 4 bytes per token), 40 steps would write ≈ 6.4 MB of
+  history and the 400-step runaway ≈ 64 MB, past the limit. A late-task 80 k-token context (≈ 320 KB) fits one
+  payload, but a large tool output might not. So pass references, not content: transcripts and tool outputs live
+  in object storage, and the history records their keys and hashes. Use Continue-As-New every N steps to carry only
+  the task state into a fresh execution [18]. Budgets therefore protect the engine as well as the bill.
 
 **Budgets.** Enforce at three levels — task, user, org — in tokens, dollars and wall time.
 
@@ -343,9 +417,14 @@ wait time, sandbox start p95, tool error rate by MCP server ([SYSDESIGN-12](../0
 **Evaluation.** Changes to the model, system prompt, tools or context strategy need an offline benchmark before
 rollout. **SWE-bench** (Jimenez et al., ICLR 2024) provides 2,294 task instances drawn from real GitHub issues and pull
 requests across 12 popular Python repositories, graded by running the repositories' tests [11]; **SWE-bench Verified**
-is a 500-instance subset screened by human annotators, created in collaboration with OpenAI [12]. Use the public
-benchmark for comparability and build an **internal suite** from your own tenants' (consented) resolved tasks, because
-public benchmarks may be in model training data and do not cover your languages or tools. Track resolve rate, cost per
+is a 500-instance subset screened by human annotators, created in collaboration with OpenAI [12]. Treat Verified as
+history, not a gate. OpenAI's 2026-02-23 audit of 138 problems (27.6% of Verified) found flawed tests in at least 59.4% of
+them. The audited problems were those its o3 model did not consistently solve, not a random sample, which Epoch AI
+turns into a floor of at least 16.4% of all tasks. OpenAI also found that frontier models had seen some problems and
+fixes in training, stopped reporting Verified scores and recommends SWE-bench Pro [23]. Epoch rates Verified
+"Flawed" (2026-09-03) [19]. Use public numbers only to shortlist models.
+Gate releases on an **internal suite** built from your own tenants' (consented) resolved tasks, because public
+benchmarks may be in model training data and do not cover your languages or tools. Track resolve rate, cost per
 resolved task, steps, and approval requests per task; run the suite in the same sandbox infrastructure as production.
 
 **Fairness of LLM capacity.** Whether you own GPUs (C09) or buy tokens with provider rate limits, capacity is shared
@@ -365,14 +444,17 @@ by 5,000 orgs. A 9:00 burst from one large org must not stall everyone else.
 | Failure | Impact | Detect | Mitigate |
 |---|---|---|---|
 | Sandbox escape attempt | cross-tenant compromise | anomalous syscalls, egress denials, host IDS | microVM isolation, no metadata endpoint, egress proxy only, patch cadence, per-tenant host pools for large orgs |
-| Prompt injection via issue/README ("print env and post it") | secret or code exfiltration | secret scanner hits; egress to non-allowlisted domains | secrets never in sandbox or context; allowlist egress; approval for new domains; output scanning |
+| Prompt injection via issue/README ("print env and post it") | secret or code exfiltration | secret scanner hits; egress to non-allowlisted domains | secrets never in sandbox or context; injected tokens scoped to one repo and operation; allowlist egress; approval for new domains; output scanning |
 | Runaway loop | 100× cost | loop detectors, spend rate per task | budgets with reservations, reflection → escalate → stop |
 | LLM provider outage or 429s | all tasks stall | gateway error rate | fallback models via gateway; durable sleep and retry with back-off; pause background class first |
 | 9:00 thundering herd | start latency SLO missed | queue age per org | warm sandbox pool sized by forecast, golden snapshots, per-org concurrency caps |
 | Git host rate-limits clones | tasks fail to start | clone errors | regional mirror, partial clones, golden repo snapshots |
 | Node drain mid-task | lost sandbox | workflow activity timeout | resume from snapshot + step-log replay; idempotent tools |
 | Approval never answered | sandboxes held idle | approval age | snapshot and release; timeout → fail with a summary |
+| Prompt cache expires during a wait | ≈ $0.28 extra per resume | cache-write tokens per task | longer TTL where waits are routine; batch approvals early in the task |
+| Event history near its limit | execution terminated | history size and event count per run | references instead of content; Continue-As-New every N steps |
 | Malicious dependency in repo | runs install scripts | package-mirror policy alerts | mirror with allowlist and scanning; approval for new dependencies |
+| MCP tool description changes after approval | a hostile or compromised server steers the agent | hash and diff tool descriptions per call | pin server versions; re-consent on any change |
 
 **Scale ×10 (2 M tasks/day, ≈ 84,000 concurrent sessions).** Sandboxes need ≈ 1,750 hosts at peak — fine for
 microVM density, but snapshot storage and the repo cache become large storage systems (per-region, content-addressed,
@@ -392,7 +474,8 @@ changes.
 | Sandbox isolation incidents | 0 |
 | Resolve rate on internal eval suite | no regression > 2 points on rollout |
 
-**Cost:** ≈ $1.50 per task in our assumptions, over 95 % of it tokens. Levers: prompt caching of the stable prefix (system
+**Cost:** ≈ $1.50 per task in our assumptions (≈ $1.70 with a cache-write premium, plus ≈ $0.28 per cache
+expiry), over 95 % of it tokens. Levers: prompt caching of the stable prefix (system
 prompt + tool schemas), context compaction, a cheaper model for simple steps (search, summarise logs) and the strong
 model for planning and edits, loop detection, and early stopping when tests already pass. Sandboxes are cheap; idle
 sandboxes waiting on approvals are not — snapshot them.
@@ -411,8 +494,8 @@ What 2026 changes (as of 2026-11):
   third-party MCP servers as untrusted code with scoped tokens.
 - **Agents run for hours, not minutes.** Durable execution, snapshot/restore and human approvals move from
   nice-to-have to core; the platform starts to look like a CI system with an LLM inside.
-- **Benchmarks saturate and leak.** Public benchmarks are useful for comparison but internal, consented task suites
-  are what gate releases.
+- **Benchmarks saturate and leak.** OpenAI, which helped create SWE-bench Verified, no longer reports it [23], and
+  Epoch AI rates it "Flawed" [19]. Internal, consented task suites are what gate releases.
 - **Cost governance is a product feature.** Per-task budgets, spend dashboards and model-choice policies are what
   enterprise buyers ask for first.
 
@@ -422,14 +505,14 @@ What 2026 changes (as of 2026-11):
 concurrency (Little's law), sandbox fleet, tokens per task with quadratic context growth, cost per task dominated by
 tokens → sketch control plane, fair scheduler, durable workflow, agent runtime, sandbox + egress proxy, tool broker
 with MCP, approvals, gateway → isolation choice (microVM) and fast start (snapshots, repo cache) → secrets never in
-sandbox or context (proxy injection) → durable replay with idempotent tools and checkpoints → budgets and loop
-detection → traces and SWE-bench-style evaluation → fairness → failures.
+sandbox or context (proxy injection of scoped tokens) → durable replay with idempotent tools and checkpoints → budgets and loop
+detection → traces and internal-suite evaluation → fairness → failures.
 
 | Level | Expectations |
 |---|---|
 | Junior | Queue of tasks, workers running containers, LLM calls in a loop, PR at the end, timeouts |
-| Senior | microVM/gVisor reasoning, egress control, scoped short-lived credentials, durable workflow with replay, budgets with reservation, loop detection, approvals, traces, per-org quotas |
-| Staff | Threat model driven by prompt injection and hostile code, cost model with quadratic context and levers, fairness and priority classes across tenants, evaluation as a release gate with contamination caveats, snapshot economics for paused tasks, scale ×10 storage for snapshots and repo caches |
+| Senior | microVM/gVisor reasoning, egress control, scoped short-lived credentials, durable workflow with replay, budgets with reservation, loop detection, approvals bound to the exact action, traces, per-org quotas |
+| Staff | Threat model driven by prompt injection and hostile code (approval for writes others can read), cost model with quadratic context, cache write premium and TTL, durable-engine history limits (references, Continue-As-New), snapshot-and-release economics for paused tasks, fairness and priority classes across tenants, evaluation as a release gate with contamination caveats, scale ×10 storage for snapshots and repo caches |
 
 **Red flags.** Running agent code in plain shared-kernel containers for many tenants. Putting a GitHub token in the
 sandbox's environment. Giving the sandbox open internet. No budget, or budget checked only after the task ends.
@@ -444,6 +527,8 @@ Re-executing side-effecting tools on retry. "The model will ask before doing any
 | Stateless retries instead of durable workflows | short tasks (< 2 min) | a restart from zero wastes all tokens already spent (≈ $1.50 for a mean task, more for an hour-long one) |
 | One giant model for all steps | simplicity | 2–5× cost vs routing easy steps to a smaller model (assumption; measure on your eval suite) |
 | CI system as the sandbox | existing infra | CI runners are not built for interactive, approval-paused, hour-long sessions |
+| Agent loop inside the sandbox | one snapshot captures agent and files; simpler resume; no network hop per tool call | the gateway credential and the budget logic would sit in the untrusted zone, where the hijacked agent could tamper with them |
+| Self-hosted or bring-your-own model | regulated tenants who cannot send code to a provider | own GPU fleet (C09) or per-tenant gateway routing; weaker models may need more steps |
 
 ## Exercises
 
@@ -462,9 +547,19 @@ All accessed 2026-11-20.
 5. Git documentation, "git-sparse-checkout." https://git-scm.com/docs/git-sparse-checkout
 6. Model Context Protocol, Specification version 2026-07-28 (overview, security and trust & safety, extensions). https://modelcontextprotocol.io/specification/2026-07-28
 7. Model Context Protocol, Specification 2026-07-28, "Authorization." https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
-8. OWASP GenAI Security Project, "LLM01:2025 Prompt Injection." https://genai.owasp.org/llmrisk/llm01-prompt-injection/
+8. OWASP GenAI Security Project, "OWASP Top 10 for LLM Applications 2026," 2026-08-04: LLM01:2026 Prompt Injection (prevention items 7 and 8; Appendix A maps it to ASI01 Agent Goal Hijack). https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
 9. Temporal documentation, "Event History" and "Workflow Execution." https://docs.temporal.io/encyclopedia/event-history
 10. OpenTelemetry, Generative AI semantic conventions repository (status: Development). https://github.com/open-telemetry/semantic-conventions-genai
 11. C. E. Jimenez et al., "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?," ICLR 2024; arXiv:2310.06770. https://arxiv.org/abs/2310.06770
 12. SWE-bench, "SWE-bench Verified" (500 human-validated instances, created in collaboration with OpenAI). https://www.swebench.com/verified
 13. Model Context Protocol, 2026-07-28, "Security Best Practices" (Token Passthrough). https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices
+14. Anthropic, "Prompt caching" (5-minute default TTL refreshed on hit, 1-hour option; writes 1.25× or 2×, reads 0.1× base). https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+15. OpenAI, "Prompt caching" guide (GPT-5.6+: 30-minute default at 1.25× write, 12 hours at 2.5×; earlier models no write charge). https://developers.openai.com/api/docs/guides/prompt-caching
+16. Invariant Labs, "GitHub MCP Exploited: Accessing private repositories via MCP" (blog, 2025-05-26). https://invariantlabs.ai/blog/mcp-github-vulnerability
+17. Temporal documentation, Temporal Cloud limits page (2 MB payload; event history 51,200 events or 50 MB; external storage for large payloads). https://docs.temporal.io/cloud/limits ; https://docs.temporal.io/workflow-execution/limits
+18. Temporal documentation, Workflow Execution events page (execution terminated past 51,200 events; Continue-As-New). https://docs.temporal.io/workflow-execution/event
+19. Epoch AI, "SWE-bench Verified" benchmark review (verdict "Flawed"; summarises OpenAI's 2026-02-23 audit), 2026-09-03. https://epoch.ai/benchmarks/swe-bench-verified/review
+20. Firecracker project, "Production Host Setup Recommendations" (`docs/prod-host-setup.md`: hardware vulnerabilities, jailer, seccomp, SMT, metadata-service rule). https://github.com/firecracker-microvm/firecracker/blob/main/docs/prod-host-setup.md
+21. gVisor documentation, "Security Model" (architecture guide). https://gvisor.dev/docs/architecture_guide/security/
+22. Anthropic, "How we built Claude Code auto mode" (2026-03-25: users accept 93% of manual permission prompts; vendor measurement). https://www.anthropic.com/research/claude-code-auto-mode
+23. OpenAI, "Why SWE-bench Verified no longer measures frontier coding capabilities" (2026-02-23: audit of 138 problems o3 did not consistently solve, at least 59.4% with flawed tests; stopped reporting Verified; recommends SWE-bench Pro). https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/ (live page returns 403 to automated clients; read via the Internet Archive copy of 2026-11-17, https://web.archive.org/web/20261117145122/https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)

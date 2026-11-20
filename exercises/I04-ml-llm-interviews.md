@@ -109,3 +109,64 @@ baseline ships quickly, produces labelled data from reviewer decisions, and give
 beat on per-policy precision and recall. This follows Zinkevich's first rule: don't be afraid to launch without ML.
 Saying it shows you treat ML as a means, not the goal.
 </details>
+
+## 9. [Core] Containment versus tokens in worked answer D
+
+Using answer D's assumptions (saving = H − [T + (1 − c)(1 − s)H + e·L], with H = $4, c = 0.6, s = 0.2, T = $0.10,
+w = 0.15 executed writes per conversation, r = 0.002 per write so e = w · r = 0.0003, L = $30, 150 k conversations a day), compare two projects: halving the token cost, or raising containment
+from 0.6 to 0.7.
+
+<details><summary>Answer</summary>
+
+Baseline: 4 − [0.10 + 0.4 × 0.8 × 4 + 0.0003 × 30] = 4 − [0.10 + 1.28 + 0.009] = **$2.61** per conversation.
+
+- Halve tokens (T = $0.05): 4 − [0.05 + 1.28 + 0.009] = $2.661, **+$0.05**, ≈ $7.5 k/day.
+- Containment 0.7: 4 − [0.10 + 0.3 × 0.8 × 4 + 0.009] = 4 − [0.10 + 0.96 + 0.009] = $2.931, **+$0.32**, ≈ $48 k/day.
+
+Ten points of *real* containment are worth over six times the token saving. Two cautions. Containment must be
+measured with the strict definition (no handoff and no re-contact within 7 days), or customers who give up count as
+wins. And containment gained by letting the agent act more often raises *e*: but at r = 2 % the term is only $0.09; the real risk is
+the tail (a wrong policy repeated on every matching conversation, up to the $750 k/day exposure). So the levers are better tools, better articles and better escalation, under the same
+policy caps.
+</details>
+
+## 10. [Deep] pass^k and audit sample size
+
+In answer D's offline eval, a refund task succeeds with probability 0.9 per trial. (a) What are pass^4 and pass^8?
+(b) Online, the true wrong-action rate is 0.2 % and you audit 1,000 actions a month. What can you conclude?
+
+<details><summary>Answer</summary>
+
+(a) pass^k = 0.9^k for a task with independent trials: pass^4 ≈ **0.66**, pass^8 ≈ **0.43**. A task that "works 90 %
+of the time" fails for a large share of customers who repeat it, which is why customer-facing agents are judged on
+pass^k, not on one run.
+
+(b) Expected errors ≈ 2. The standard error is √(0.002 × 0.998 / 1,000) ≈ 0.14 points, so the 95 % interval is about
+±0.28 points: roughly 0 % to 0.5 %. You cannot tell whether you meet a 0.2 % target. C15 computes that about 10,000
+audited actions are needed for ±0.09 points. Since full human audit at that volume is expensive, pre-screen with a
+calibrated judge, send disagreements and every high-value action to humans, and pool audits across a quarter for
+low-volume intents.
+</details>
+
+## 11. [Deep] Where does the refund breaker trip?
+
+Answer D has 15,000 refund intents a day (10 % of 150 k conversations), a $50 limit and a 3× peak factor. A candidate
+proposes: "trip the breaker when refunds per hour exceed 3× the average hour". Is the threshold right? Propose a better
+one and bound what a sudden refund storm can pay out before it trips.
+
+<details><summary>Answer</summary>
+
+The average hour is 15,000 / 24 = **625** refund intents, so the proposed threshold is ≈ 1,875 an hour. But a normal
+peak hour is also 3 × 625 ≈ **1,875**: the breaker would trip at every busy hour and push honest refunds to approvers.
+
+Compare with the baseline for the **same time of week** instead, as C15 does (3× the trailing four-week baseline for
+that hour), and use a short rolling window so a storm is caught within minutes. With 15-minute windows: at peak the
+baseline is 1,875 / 4 ≈ **470**, so the breaker trips near 1,400 refund intents in the window; in an average hour the
+baseline is ≈ 156 and it trips near 470 in the window. Add a minimum count in the window (an assumed 50, for example)
+so quiet hours, whose baseline is a handful of refunds, do not trip on noise. Before it trips, a sudden storm can add at most about two baselines of excess in the window: ≈ 940 × $50 ≈
+**$47 k** at peak, ≈ $16 k in an average hour, against the $750 k/day worst case. A slow leak paced just under the
+threshold is not caught by the breaker; the per-customer caps and the daily automatic budget bound it. Acceptable
+alternatives: a rate-of-change trigger (refunds per window rising faster than conversations), or a per-tenant or
+per-intent breaker; in every case the multiplier and window are assumptions to tune on replayed history, trading
+false trips (approver time) against exposure.
+</details>
