@@ -27,8 +27,9 @@ Design: a token bucket per (team, model) with a 2M/min refill. At admission, cou
 input + max_tokens**. Reject with 429 and `Retry-After` if insufficient. On completion, cancel or error, **refund
 the unused reservation**. Counters live in Redis (atomic scripts) or use local leases to avoid a round trip per
 request. Clamp `max_tokens` per route to avoid over-reservation. Separate buckets for batch vs interactive. Decide
-fail-open vs fail-closed when Redis is down. Lab L26 shows the *post-hoc* variant: 304 tokens passed a 200-TPM
-limit before the 429, because accounting happened after completion.
+fail-open vs fail-closed when Redis is down (LiteLLM: `general_settings.fail_closed_rate_limit_enforcement`, which
+returns 503 rather than 429). Lab L26 shows the *post-hoc* variant: 304 tokens passed a 200-TPM limit before the
+429, because accounting happened after completion (the `tpm_limit` path in the pinned version and configuration).
 </details>
 
 ### 3. [Deep] Fallback pitfalls
@@ -154,8 +155,8 @@ In L26, the first request after stopping a replica took tens of seconds in one r
 
 <details><summary>Answer</summary>
 
-At 2,000 req/s, if every request that hits the dead deployment waits for retries and backoff (seconds) before the
-deployment is cooled down, hundreds or thousands of in-flight requests see a latency spike, and client timeouts can
+At 2,000 req/s, if every request that hits the dead deployment waits seconds (L26 did not establish whether
+timeouts, retries or backoff caused its delay) before the gateway stops sending traffic there, hundreds or thousands of in-flight requests see a latency spike, and client timeouts can
 trigger their own retries (a retry storm). Reduce it with short **connect** timeouts (distinct from long read or
 stream timeouts), active health checks that remove a replica before user traffic hits it, a cooldown after the first
 connection error, outlier detection in the load balancer, and retry budgets. Then measure the result: L26

@@ -21,13 +21,13 @@ failure handling.
 
 - Tensor cores (FLOPs), HBM (capacity + bandwidth), on-chip SRAM, links
 - Datasheet tensor peaks are "with sparsity": halve them for dense work
-- H100 80 GB / 3.35 TB/s; H200 141 GB / 4.8 TB/s; B200 ≈ 180 GB / 8 TB/s per GPU
+- H100 80 GB / 3.35 TB/s; H200 141 GB / 4.8 TB/s; B200 ≈ 180 GB / 8 TB/s (derived: DGX B200 ÷ 8)
 - MI300X 192 GB / 5.3 TB/s; MI355X 288 GB / 8 TB/s; TPU7x 192 GiB / 7.38 TB/s
 
 **Visual:** a GPU die surrounded by HBM stacks; a bar chart of memory and bandwidth per accelerator. Icons: `arch-gpu`, `arch-memory`.
 
-**Speaker notes:** The spec race moved to memory because inference is bandwidth-bound. B200 per-GPU values are DGX B200
-system totals divided by eight.
+**Speaker notes:** The spec race moved to memory because inference is bandwidth-bound. B200 per-GPU memory and
+bandwidth are DGX B200 system totals divided by eight; NVIDIA does publish 1.8 TB/s NVLink and 1,000 W max per GPU.
 
 ## Slide 3 — Ridge points
 
@@ -45,12 +45,12 @@ system totals divided by eight.
 - HBM (TB/s) → NVLink 900 GB/s (H100) – 1.8 TB/s (B200) → PCIe Gen5 128 GB/s → 400 Gb/s NIC = 50 GB/s
 - Units: GB/s vs Gb/s; bidirectional vs per direction
 - InfiniBand (lossless fabric) vs RoCE v2 (RDMA over Ethernet, needs congestion control)
-- Rail-optimised fabrics; Ultra Ethernet 1.0 (June 2025)
+- Rail-optimised fabrics; Ultra Ethernet 1.0 (June 2025), now at 1.1 (2026-10-12)
 
 **Visual:** the lesson's node diagram: GPUs on NVSwitch, PCIe to CPU and NIC, fabric to the next node. Icons: `arch-gpu`, `arch-network`, `arch-router`.
 
-**Speaker notes:** Each tier is roughly an order of magnitude slower than the one above. Design so the chattiest
-traffic stays highest.
+**Speaker notes:** Each step down loses between 2.6× and 7× of bandwidth; HBM to a 400 Gb/s NIC is about 65× on an
+H100. Design so the chattiest traffic stays highest.
 
 ## Slide 5 — Why TP stays on NVLink
 
@@ -67,7 +67,7 @@ traffic stays highest.
 
 - Device plugin: `nvidia.com/gpu: N` — opaque counts
 - GPU Operator (v26.7.3): driver, toolkit, device plugin, GFD labels, DCGM exporter, MIG manager
-- DRA: ResourceSlices, DeviceClasses, ResourceClaims with CEL — GA in v1.34
+- DRA: ResourceSlices, DeviceClasses, ResourceClaims with CEL — core GA in v1.34 (concept page: stable since v1.35)
 - NVIDIA DRA driver v0.5.1: ComputeDomains supported; GPU allocation not yet official
 
 **Visual:** the lesson's operator/scheduler diagram. Icons: `devops-kubernetes`, `devops-helm`.
@@ -116,7 +116,7 @@ kube-scheduler's workload-aware API.
 - Decode: high DRAM_ACTIVE, modest TENSOR_ACTIVE; prefill/training: the reverse
 - Business view: tokens/s per GPU vs the capacity model; MFU for training
 
-**Visual:** gauge at 98 % next to a tensor-activity gauge at 20 %. Icons: `observability-grafana`, `observability-prometheus`, `ops-dashboard`.
+**Visual:** gauge at 98 % next to a tensor-activity gauge at a much lower level (illustrative value). Icons: `observability-grafana`, `observability-prometheus`, `ops-dashboard`.
 
 **Speaker notes:** The interview question "dashboards say 95 % but throughput is poor" is answered on this slide.
 
@@ -129,7 +129,9 @@ kube-scheduler's workload-aware API.
 
 **Visual:** a 54-day timeline with 419 tick marks. Icons: `ops-incident`, `pattern-backup`.
 
-**Speaker notes:** At this scale you design for fast detection and restart, not for avoiding failure.
+**Speaker notes:** At this scale you design for fast detection and restart, not for avoiding failure. Quote the
+paper's percentages: its Table 5 count and percentage columns do not reconcile for faulty GPUs (148 of 419 would be
+35.3 %, printed 30.1 %), so the GPU total is 58.7 % by percentages but 64 % by counts.
 
 ## Slide 12 — Xid triage
 
@@ -147,7 +149,7 @@ kube-scheduler's workload-aware API.
 - 8× H100 GPUs ≈ 5.6 kW at TDP; DGX B200 ~14.3 kW; GB200 NVL72 liquid-cooled
 - AMD (ROCm), Google TPU (JAX/XLA, cloud-only), AWS Trainium (Neuron, cloud-only)
 - Cost per token = $/GPU-hour ÷ useful tokens per GPU-hour
-- Bandwidth model: B200 cheaper per token than H100 if its hourly price < ≈ 2.4×
+- Bandwidth model: B200 cheaper per token than H100 if its hourly price < ≈ 2.4× (B200 from derived 8 TB/s)
 
 **Visual:** rack with power meter and coolant loop; three vendor chips side by side. Icons: `arch-datacenter`, `ops-cost`, `cloud-gcp`, `cloud-aws`.
 

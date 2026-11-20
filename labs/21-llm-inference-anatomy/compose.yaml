@@ -27,7 +27,7 @@ services:
     volumes:
       - hf-cache:/root/.cache/huggingface
       - vllm-cache:/root/.cache/vllm
-      - triton-cache:/root/.triton          # Triton-CPU kernels compiled on first use (slow once, then cached)        # torch.compile cache: makes restarts much faster
+      - triton-cache:/root/.triton          # Triton-CPU kernels compiled on first use (slow once, then cached)
     # Recommended by the vLLM CPU docs to avoid "get_mempolicy: Operation not permitted".
     cap_add: [SYS_NICE]
     security_opt: ["seccomp=unconfined"]

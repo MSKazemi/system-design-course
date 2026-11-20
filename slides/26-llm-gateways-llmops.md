@@ -39,8 +39,8 @@ model-server signals.
 - Retry budgets prevent storms
 
 **Visual:** state diagram: healthy → failing → cooled down → healthy; icons `pattern-retry`, `pattern-circuit-breaker`.
-**Speaker notes:** In L26 a dead replica cost one request 64 s in one run before cooldown kicked in. Measure
-failure-detection latency.
+**Speaker notes:** In L26 a dead replica cost the first request 64 s in one run (15 s in another) before the
+gateway settled on the healthy replica; the mechanism was not investigated. Measure failure-detection latency.
 
 ## Slide 5 — Fallbacks change behaviour
 - Tool-calling formats differ
@@ -59,7 +59,7 @@ failure-detection latency.
 
 **Visual:** token bucket with a reservation and a refund arrow; icon `pattern-rate-limiter`.
 **Speaker notes:** L26: four requests of 76 tokens passed a 200-TPM limit before the 429. That is post-hoc
-accounting overshoot.
+accounting overshoot on the `tpm_limit` path in the pinned version and configuration.
 
 ## Slide 7 — Streaming through proxies
 - Buffering turns streams into blobs

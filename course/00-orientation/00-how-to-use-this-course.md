@@ -3,7 +3,7 @@ id: SYSDESIGN-00
 title: "How to use this course: paths, the requirement loop, what changed in system design"
 part: "0 — Orientation"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: []
 estimated_time: "1h reading + 15 min setup check"
 requirement: "Know what a 2026 system designer must master that a 2016 one did not, and pick the shortest path through this course that gets you there"
@@ -53,7 +53,7 @@ with Docker Compose or kind, at no cost, and each lab records honestly whether i
 
 ### The course map
 
-The course has 49 units in six parts. Every part has its own directory.
+The course has 47 units in six parts: 29 chapters (00–28), 14 case studies and 4 interview units. Every part has its own directory.
 
 | Part | Directory | Units | What it gives you |
 |---|---|---|---|
@@ -246,10 +246,9 @@ Diagrams are Mermaid, with a one-line text alternative under each. Nothing is co
   so you can change one and recompute.
 - **Fast-moving facts carry a date and a version**, for example "(as of 2026-11, vLLM v0.34.0)". When you read
   this later, treat such claims as starting points to re-check.
-- **Labs state their test status** in one of four words: *illustrative* (a sketch, not run), *syntax-reviewed*
-  (configuration validated, not run end to end), *runtime-tested* (run on a stated date, host and versions, with
-  the observed output summarised), or *reproduced* (runtime-tested independently a second time). A lab never
-  claims more than was actually done.
+- **Labs state their test status** in one of three labels: *illustrative* (a sketch, not run), *syntax-reviewed*
+  (configuration validated, not run end to end), or *runtime-tested* (run on a stated date, host and versions,
+  with the observed output summarised). A lab never claims more than was actually done.
 
 ## What changed in system design, 2016 → 2026 [Core]
 
@@ -289,7 +288,8 @@ The cloud turned capacity into a monthly bill that engineers can read, so cost b
 per-request property of a design. Energy followed. The International Energy Agency estimates data centres used
 about **415 TWh in 2024, around 1.5% of global electricity**, and projects about **945 TWh by 2030** [8].
 Facility efficiency has stopped improving on average. The Uptime Institute reports that industry-average PUE
-fell from 2.5 in 2007 to 1.65 by 2014, and has since been "stuck in the 1.55 to 1.59 band" [9]. Further gains
+fell from 2.5 in 2007 to 1.98 in 2011 and 1.65 by 2014, and that since 2020 it has been "stuck in the 1.55 to 1.59
+band" [9]. Further gains
 must come from the workload itself: utilisation, batching, scheduling work when and where the electricity is
 cleaner, and not computing what you don't need. *Covered in:* 16, 17, and the "Cost and energy" section of every
 chapter.
@@ -306,7 +306,7 @@ how long it lives, how it is erased from replicas and backups, and what an AI sy
 | Data Act | In force 11 January 2024; applies from **12 September 2025** [12] | Data access and portability for connected products; cloud switching |
 | Cyber Resilience Act | In force 10 December 2024; reporting obligations from **11 September 2026**; main obligations from **11 December 2027** [13] | Security requirements and vulnerability handling for products with digital elements |
 | AI Act, Regulation (EU) 2024/1689 | In force 1 August 2024; prohibitions from 2 February 2025; general-purpose AI obligations from 2 August 2025; applicable from 2 August 2026, with exceptions [14] | Risk classification, logging, transparency and human oversight as system requirements |
-| Digital Omnibus amendment, Regulation (EU) 2026/1744 | In force 27 July 2026. High-risk obligations for Annex III systems from **2 December 2027**, for Annex I systems from **2 August 2028** [15] | Shifts the high-risk timeline; designs should still plan for those controls |
+| AI Omnibus (Digital Omnibus on AI), Regulation (EU) 2026/1744 | In force 27 July 2026. High-risk obligations for Annex III systems from **2 December 2027**, for Annex I systems from **2 August 2028** [14][15] | Shifts the high-risk timeline; designs should still plan for those controls |
 
 *(as of 2026-11; check the Official Journal for later amendments.)* *Covered in:* 19, 28, C10.
 
@@ -326,14 +326,14 @@ software bills of materials, and dependency policies as components of the system
 Kubernetes 1.0 was released on 21 July 2015 [21], so in 2016 it was barely a year old. In 2026 its latest minor
 release is 1.37 [22], and the industry's attention has moved from "can we run containers?" to **platform
 engineering**: internal platforms that give product teams paved roads for deploys, observability, security
-and cost. The CNCF's *Platforms White Paper* (v1, 2023) describes this shift [23]. For system designers this
+and cost. The CNCF's *Platforms White Paper* (v1.0, announced April 2023) describes this shift [23]. For system designers this
 changes the vocabulary. Autoscaling, rollouts, service identity and policy are assumed capabilities of the
 platform, and designs are expected to use them rather than reinvent them. *Covered in:* 03, 14, 18.
 
 ### Also changed: the request path itself
 
 HTTP/3 over QUIC was standardised in 2021–2022, and as of November 2026 W3Techs reports that 41.2% of websites
-support it [24]. TLS 1.3 (2018) halved handshake round trips. Encrypted Client Hello became RFC 9849 in 2026.
+support it [24]. TLS 1.3 (2018) halved handshake round trips. Encrypted Client Hello became RFC 9849 in March 2026 [25].
 These are covered in [SYSDESIGN-02](../01-foundations/02-anatomy-of-a-request.md).
 
 ### What did *not* change
@@ -528,20 +528,20 @@ Then continue with [SYSDESIGN-01](01-requirements-to-numbers.md) and its lab, L0
 ## References
 
 [1] A. Vaswani et al., *Attention Is All You Need*, arXiv:1706.03762, June 2017 (NeurIPS 2017). https://arxiv.org/abs/1706.03762 (accessed 2026-11)
-[2] OpenAI, *Introducing ChatGPT*, 30 November 2022. https://openai.com/index/chatgpt/ (accessed 2026-11; the page blocked automated fetching, so the date was checked through search-engine extracts and secondary reports)
+[2] OpenAI, *Introducing ChatGPT*, 30 November 2022. https://openai.com/index/chatgpt/ (unverified as of 2026-11: the page blocked automated fetching, so the date was checked only through search-engine extracts and secondary reports)
 [3] W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. H. Yu, J. E. Gonzalez, H. Zhang, I. Stoica, *Efficient Memory Management for Large Language Model Serving with PagedAttention*, Proc. ACM SOSP 2023; arXiv:2309.06180. https://arxiv.org/abs/2309.06180 (accessed 2026-11)
 [4] vLLM project, *Release v0.34.0*, GitHub, 16 November 2026. https://github.com/vllm-project/vllm/releases/tag/v0.34.0 (accessed 2026-11)
 [5] NVIDIA, *NVIDIA Tesla P100 Data Sheet* (732 GB/s HBM2; 300 W max power). https://images.nvidia.com/content/tesla/pdf/nvidia-tesla-p100-datasheet.pdf (accessed 2026-11)
 [6] NVIDIA, *NVIDIA H100 Tensor Core GPU* product page (H100 SXM: 3.35 TB/s; up to 700 W, configurable). https://www.nvidia.com/en-us/data-center/h100/ (accessed 2026-11)
 [7] NVIDIA, *NVIDIA DGX B200* product page (8 Blackwell GPUs; 1,440 GB total GPU memory; 64 TB/s HBM3e bandwidth; ≈ 14.3 kW max). https://www.nvidia.com/en-us/data-center/dgx-b200/ (accessed 2026-11)
-[8] International Energy Agency, *Energy and AI*, 10 April 2025, Executive summary. https://www.iea.org/reports/energy-and-ai/executive-summary (accessed 2026-11)
+[8] International Energy Agency, *Energy and AI*, 10 April 2025, Executive summary. https://www.iea.org/reports/energy-and-ai/executive-summary (accessed 2026-11; publication date from the report landing page https://www.iea.org/reports/energy-and-ai)
 [9] Uptime Institute, *Global PUEs — are they going anywhere?*, Uptime Institute Journal, 4 December 2023. https://journal.uptimeinstitute.com/global-pues-are-they-going-anywhere/ (accessed 2026-11)
 [10] European Commission, *Legal framework of EU data protection* (GDPR in force 24 May 2016, applies since 25 May 2018). https://commission.europa.eu/law/law-topic/data-protection/legal-framework-eu-data-protection_en (accessed 2026-11)
 [11] European Commission, *NIS2 Directive* policy page. https://digital-strategy.ec.europa.eu/en/policies/nis2-directive (accessed 2026-11)
 [12] European Commission, *Data Act* policy page. https://digital-strategy.ec.europa.eu/en/policies/data-act (accessed 2026-11)
 [13] European Commission, *Cyber Resilience Act* policy page. https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act (accessed 2026-11)
 [14] European Commission, *AI Act — Regulatory framework for AI* policy page. https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai (accessed 2026-11)
-[15] Regulation (EU) 2026/1744 (Digital Omnibus amendments to the AI Act), Official Journal of the EU, 24 July 2026; amended Article 113. https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng (accessed 2026-11)
+[15] Regulation (EU) 2026/1744 (the AI Omnibus, amending the AI Act), Official Journal of the EU, L series, OJ:L_202601744 (the Commission page [14] links to this OJ reference). https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng (accessed 2026-11; EUR-Lex blocked automated fetching, so the OJ publication date of 24 July 2026 is unverified against the primary text as of 2026-11 and rests on secondary legal commentary; the in-force and application dates in the table are confirmed by [14])
 [16] CISA, *Emergency Directive 21-01: Mitigate SolarWinds Orion Code Compromise*, 13 December 2020 (since closed). https://www.cisa.gov/news-events/directives/ed-21-01-mitigate-solarwinds-orion-code-compromise (accessed 2026-11)
 [17] Executive Order 14028, *Improving the Nation's Cybersecurity*, 12 May 2021, published in the Federal Register on 17 May 2021. https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity (accessed 2026-11)
 [18] NIST National Vulnerability Database, *CVE-2021-44228*, published 10 December 2021. https://nvd.nist.gov/vuln/detail/CVE-2021-44228 (accessed 2026-11)
@@ -549,5 +549,6 @@ Then continue with [SYSDESIGN-01](01-requirements-to-numbers.md) and its lab, L0
 [20] NIST National Vulnerability Database, *CVE-2024-3094*, published 29 March 2024. https://nvd.nist.gov/vuln/detail/CVE-2024-3094 (accessed 2026-11)
 [21] Kubernetes blog, *10 Years of Kubernetes*, 6 June 2024 (v1.0 released 21 July 2015). https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/ (accessed 2026-11)
 [22] Kubernetes, *Releases*. https://kubernetes.io/releases/ (accessed 2026-11)
-[23] CNCF TAG App Delivery, *Platforms White Paper*, v1, 2023. https://tag-app-delivery.cncf.io/whitepapers/platforms/ (accessed 2026-11)
-[24] W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026. https://w3techs.com/technologies/details/ce-http3 (accessed 2026-11)
+[23] CNCF TAG App Delivery, *Platforms White Paper*, v1.0 (PDF `platforms-def-v1.0.pdf`). https://tag-app-delivery.cncf.io/whitepapers/platforms/ (accessed 2026-11); announced in J. Gavant and A. Bangser, *Announcing a white paper on platforms for cloud native computing*, CNCF blog, 11 April 2023. https://www.cncf.io/blog/2023/04/11/announcing-a-white-paper-on-platforms-for-cloud-native-computing/ (accessed 2026-11)
+[24] W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026 (41.2% read on 2026-11-20). https://w3techs.com/technologies/details/ce-http3 (accessed 2026-11)
+[25] E. Rescorla, K. Oku, N. Sullivan, C. A. Wood, RFC 9849, *TLS Encrypted Client Hello*, March 2026. https://www.rfc-editor.org/info/rfc9849 (accessed 2026-11)

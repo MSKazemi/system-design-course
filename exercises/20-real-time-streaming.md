@@ -70,7 +70,8 @@ must be larger than what, and what happens if it is not? (c) Why would you *not*
 
 (a) Records are written into a Kafka transaction that commits only when the checkpoint completes. A record produced just
 after a checkpoint started waits for the next one: up to ~30 s (interval) + ~4 s (checkpoint duration) before it becomes
-visible, about 17 s on average for uniformly arriving records, plus normal processing latency. Readers with
+visible, about 19 s on average for uniformly arriving records (15 s average wait for the next checkpoint plus 4 s
+checkpoint duration), plus normal processing latency. The best case is about the checkpoint duration (~4 s). Readers with
 `read_uncommitted` see records earlier but also see aborted ones, which defeats the purpose.
 
 (b) The producer's `transaction.timeout.ms` must exceed the maximum checkpoint duration plus the maximum restart time.
@@ -161,7 +162,7 @@ position and the slot's restart position) and free disk on the WAL volume, with 
 
 Preventions: (1) set `max_slot_wal_keep_size` so a stalled slot is invalidated instead of filling the disk, accepting that
 the connector must re-snapshot (`snapshot.mode=when_needed` handles a missing position); (2) on PostgreSQL versions that
-support it, set `idle_replication_slot_timeout`; (3) treat slots as part of the connector lifecycle: pausing for more than
+support it (18 and later; default 0 = disabled), set `idle_replication_slot_timeout`; (3) treat slots as part of the connector lifecycle: pausing for more than
 a few hours means dropping the slot and planning an incremental snapshot on resume; and keep WAL on a volume sized and
 alerted for this case.
 </details>

@@ -18,7 +18,7 @@
 
 ## Slide 3 — QUANTIFY sessions
 - ≈ 7 tasks/s at peak × 20 min → ≈ 8,400 concurrent sessions (Little's law)
-- 2 vCPU / 4 GiB each → ≈ 17,000 vCPU ≈ 175 hosts (assumptions)
+- 2 vCPU / 4 GiB each → ≈ 17,000 vCPU ≈ 175 hosts of 96 vCPU / 192 GiB (assumptions)
 **Visual:** Little's law triangle with the three numbers. Icons: `arch-servers-cluster`, `ops-throughput`.
 **Speaker notes:** Sandboxes are a fleet, but a modest one.
 
@@ -27,7 +27,7 @@
 - Context grows each step → input grows roughly quadratically
 - Assumed prices → ≈ $1.50 per task; tokens over 95 %, sandbox ≈ 2 %
 **Visual:** stacked area chart of context per step. Icons: `ops-cost`.
-**Speaker notes:** A loop of 400 steps instead of 40 costs roughly 80× more if context keeps growing.
+**Speaker notes:** A loop of 400 steps instead of 40 costs about 80× more input if context grows without bound, about 40× with a 200 k-token window cap (assumption).
 
 ## Slide 5 — SKETCH
 - Control plane → fair scheduler → durable workflow → agent runtime

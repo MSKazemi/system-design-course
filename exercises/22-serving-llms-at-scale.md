@@ -163,7 +163,7 @@ where the knee is, and how prefix caching changes TTFT for the shared-prefix run
 Aggregate tokens/s rises steeply at first (each step's fixed weight-read cost is shared) and then flattens as the CPU's
 compute becomes the limit; per-request TPOT rises. The knee is where TPOT starts rising faster than aggregate
 throughput — on a laptop CPU this comes at much lower concurrency than on a GPU. With prefix caching on, TTFT for
-requests sharing the long prefix drops sharply after the first request, and `vllm:prefix_cache_hits` grows; with it
+requests sharing the long prefix drops sharply after the first request, and `vllm:prefix_cache_hits_total` grows; with it
 off, every request pays the full prefill. Report your hardware and measured numbers rather than expecting the lesson's
 GPU numbers.
 </details>

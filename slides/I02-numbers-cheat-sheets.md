@@ -26,7 +26,7 @@ not a measurement.
 
 ## Slide 4 — Speed of light in fiber
 - ≈ 5 µs per km one way; ≈ 1 ms RTT per 100 km
-- New York–London ≈ 56 ms RTT floor; California–Netherlands ≈ 89 ms
+- New York–London ≈ 56 ms RTT floor; California–Netherlands ≈ 89 ms (5 µs/km rule)
 - AWS says its AZs are within 100 km of each other, so zone hops are ≤ 1 ms of propagation
 **Visual:** world map arc with distance and RTT floor labels. Icons: `arch-region`, `pattern-geo-distribution`.
 **Speaker notes:** No engineering removes the floor. Only moving data closer does.
@@ -57,9 +57,10 @@ bottleneck.
 ## Slide 8 — Cost formulas
 - cost per request = monthly cost ÷ monthly requests
 - $/M tokens = $/GPU-h ÷ (tokens/s × 3,600) × 10⁶
-- Example: $3/h [A] at 1,400 tokens/s ≈ $0.60/M; at 50 % utilization ≈ $1.20
+- Example: $3/h [A, low end of 2026-11 prices] at 1,400 tokens/s ≈ $0.60/M; at 50 % utilization ≈ $1.20
 **Visual:** formula card with one worked line. Icons: `ops-cost`.
-**Speaker notes:** Prices are assumptions except where checked (R2 lists $0.015/GB-month and no egress fee).
+**Speaker notes:** Prices are indicative and dated (checked 2026-11-20): H100 list prices ran ≈ $3–7 per GPU-hour on
+demand. Other prices are assumptions except where checked (R2 lists $0.015/GB-month and no egress fee).
 Utilization is the biggest lever on self-hosted token cost.
 
 ## Slide 9 — Model weight memory
@@ -80,10 +81,11 @@ sliding windows change the formula, so read the config.
 ## Slide 11 — GPU memory and bandwidth (as of 2026-11)
 - H100 SXM 80 GB @ 3.35 TB/s · H100 NVL 94 GB @ 3.9 TB/s · H200 141 GB @ 4.8 TB/s
 - B200 ≈ 180 GB @ ≈ 8 TB/s and GB200 ≈ 186 GB @ ≈ 8 TB/s (derived from system totals)
-- B300 up to 288 GB · L40S 48 GB @ 864 GB/s · L4 24 GB @ 300 GB/s
+- B300 up to 288 GB per GPU (NVIDIA system pages: 2.1 TB per 8-GPU node) · L40S 48 GB @ 864 GB/s · L4 24 GB @ 300 GB/s
 **Visual:** scatter of capacity vs bandwidth with labels. Icons: `arch-servers-cluster`.
-**Speaker notes:** NVIDIA's tensor TFLOPS are listed with sparsity, and dense is half. Bandwidth decides decode speed;
-capacity decides concurrency.
+**Speaker notes:** NVIDIA's tensor TFLOPS are listed with sparsity, and dense is half. NVIDIA's two B300 figures do not
+match exactly, so plan an 8-GPU node with the 2.1 TB system figure. Bandwidth decides decode speed; capacity decides
+concurrency.
 
 ## Slide 12 — Compute rules for AI
 - Prefill ≈ 2N FLOPs/token; training ≈ 6N FLOPs/token (Kaplan et al.)

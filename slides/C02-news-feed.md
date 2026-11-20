@@ -58,7 +58,7 @@ Systems simplify to a threshold because per-pair state is expensive.
 ## Slide 5 — Fan-out done right
 
 - Push IDs (16 B), not content
-- Skip inactive followers (≈ 60 % fewer inserts in our assumptions)
+- Skip followers not active in the last day (≈ 60 % fewer inserts if 40 % are daily-active, our assumption)
 - Partition the log by author; chunk big follower lists
 - Idempotent inserts — the log redelivers
 
@@ -82,15 +82,15 @@ first-class path.
 
 ## Slide 7 — The ranking funnel
 
-- Candidates: in-network + out-of-network (≈ 1,500)
+- Candidates: in-network + out-of-network (≈ 1,500 per request, the order Twitter reported in 2023)
 - Light ranker → ≈ 500; heavy ranker predicts multiple actions
-- Meta: 1,000+ posts per user per day, pass 0 keeps ≈ 500
+- Meta: pass 0 keeps ≈ 500 eligible posts for the later passes
 - X Home Mixer: ≈ 6,000 features per candidate
 
 **Visual:** Funnel diagram with counts at each stage.
 Icons: `domain-ai`, `pattern-batching`, `arch-data-pipeline`.
 
-**Speaker notes:** Every published feed uses this funnel. The light ranker exists to keep the expensive model's input
+**Speaker notes:** The published designs cited in the lesson (Meta, X/Twitter, YouTube) all use this funnel. Meta's "1,000+ posts per user per day" is a daily inventory, not a per-request candidate count. The light ranker exists to keep the expensive model's input
 small.
 
 ## Slide 8 — A 300 ms budget
@@ -144,16 +144,16 @@ Icons: `pattern-horizontal-scaling`, `ops-cost`.
 
 ## Slide 12 — Modern twist
 
-- X's 2026 open feed: in-network from Thunder, an in-memory recent-posts index (pull)
-- Two-tower retrieval for out-of-network
-- Transformer ranker with candidate isolation → cacheable scores
+- X's open-sourced feed: in-network from Thunder, an in-memory recent-posts index (pull); Twitter retired its per-user-cache Fanout Service in 2023
+- Neither source says why; the cost argument is ours
+- Two-tower retrieval for out-of-network; transformer ranker with candidate isolation → cacheable scores
 - EU DSA Art. 38: a non-profiling feed option for very large platforms
 
 **Visual:** Feed request fanning to an in-memory recent-post index and an embedding index, then a transformer box.
 Icons: `company-x`, `domain-ai`, `arch-search-index`, `security-authorization`.
 
-**Speaker notes:** The classic push design is still right for in-network-heavy feeds; recommendation-heavy feeds
-shift the balance toward pull and ranking.
+**Speaker notes:** Our reading, not X's stated rationale: the classic push design is still right for in-network-heavy
+feeds, while recommendation-heavy feeds shift the balance toward pull and ranking.
 
 ## Slide 13 — WRAP
 

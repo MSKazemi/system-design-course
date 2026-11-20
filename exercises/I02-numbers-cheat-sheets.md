@@ -98,7 +98,8 @@ tokens. Decode speed is then limited by 864 GB/s: each step reads ≈ 16.5 GB of
 
 ## 9. [Core] Cost per million tokens
 
-A GPU costs $2.50/hour [A], sustains 2,000 output tokens/s at full load, and runs at 60 % average utilization. Cost
+A GPU costs $2.50/hour [A] (an assumed committed rate; 2026-11 on-demand list prices for H100s ran ≈ $3–7, see the
+lesson §9), sustains 2,000 output tokens/s at full load, and runs at 60 % average utilization. Cost
 per million output tokens?
 
 <details><summary>Answer</summary>
@@ -115,7 +116,7 @@ as much as raw speed.
 <details><summary>Answer</summary>
 
 5 M × 20 × 300 KB = 30 TB/day → 30 × 10¹² × 8 ÷ 86,400 ≈ **2.8 Gbps** average → ≈ **8.3 Gbps** at peak. That belongs on
-a CDN. At an assumed $0.05/GB of origin egress, serving all of it from origin would cost ≈ $1,500/day, which is the
+a CDN. At an assumed $0.05/GB of origin egress (an assumption, not a checked price), serving all of it from origin would cost ≈ $1,500/day, which is the
 argument for caching at the edge.
 </details>
 

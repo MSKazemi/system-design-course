@@ -3,7 +3,7 @@ id: SYSDESIGN-C12
 title: "Real-time fraud detection (and recommendations)"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-08, SYSDESIGN-20, SYSDESIGN-27]
 estimated_time: "2h reading"
 requirement: "Score every card payment for fraud inline in the authorization path, at 15,000 payments/s peak, with a p99 decision latency under 100 ms, and explain every decline"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Explain label delay, investigator feedback bias and model-induced selection bias, and design around them"
   - "Design decision logs that support explanation, audit and retraining"
   - "Adapt the same architecture to a real-time recommender and name what changes"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C12 — Real-time fraud detection (and recommendations)
@@ -224,7 +224,7 @@ A velocity feature such as `cnt_10m(card)` is a windowed count keyed by card. De
 |---|---|---|
 | Ingress, auth, parse | 3 ms | Same-zone call from the gateway |
 | Enrichment (BIN table, geo-IP) | 2 ms | In-process lookup tables, refreshed hourly |
-| Feature fetch (5 groups, parallel, batched) | 10 ms | Hard timeout 12 ms per group |
+| Feature fetch (5 groups, parallel, batched) | 10 ms | p99 target; hard timeout 12 ms per group bounds the tail, overrun counts against the slack |
 | Model inference (GBDT, ~300 features, CPU) | 5 ms | Same host or sidecar, no network hop |
 | Shadow models | 0 ms on the critical path | Scored asynchronously after responding |
 | Rules evaluation | 2 ms | Compiled rules, in-process |
@@ -321,7 +321,7 @@ classifiers on feedbacks and on delayed samples and then combines them [2].
 | Aspect | Fraud | Recommendations |
 |---|---|---|
 | Decision | Approve / challenge / decline one payment | Rank ~50 items out of millions |
-| Model shape | One model scores one event (GBDT or NN) | Funnel: two-tower retrieval → ranking → re-ranking [5][6] |
+| Model shape | One model scores one event (GBDT or NN) | Funnel: candidate generation → ranking [5], often two-tower retrieval [6], plus a common re-ranking stage for diversity (unsourced) |
 | Latency budget | p99 ≤ 100 ms (assumed contract) | p99 ~100–200 ms for a page (assumption) |
 | Streaming features | Velocity per card, merchant, device | Session features: last N items viewed, dwell, category affinity |
 | Labels | Weeks (disputes) | Seconds to minutes (clicks, watches) |
@@ -337,11 +337,11 @@ registry stay identical. One platform, two products.
 
 ## STRESS: failures, hot spots, scale ×10
 
-**Card-testing attack.** 50,000 small payments in 10 minutes from a bot farm against one merchant. Velocity
-features per merchant and IP spike. Flink pre-aggregation keeps the write rate bounded, and an analyst rule
+**Card-testing attack.** 50,000 small payments in about 10 s from a bot farm against one merchant (≈ 5,000/s, a
+third of the 15,000/s peak, on one merchant key; an assumed scenario). Velocity features per merchant and IP spike. Flink pre-aggregation keeps the write rate bounded, and an analyst rule
 (or an automatic merchant-level rate limit) challenges everything from that merchant until the burst passes.
-**Watch for:** the read-your-own-payment lag. The first few hundred attempts may beat the feature update, so
-the in-instance recent-events cache matters here.
+**Watch for:** the read-your-own-payment lag. With a 200–500 ms flush, roughly 1,000–2,500 attempts can be
+scored before the merchant aggregate updates, so the in-instance recent-events cache matters here.
 
 **Hot merchant.** A marketplace makes up 20% of traffic, so `merchant:m_big` is read 3,000 times/s at peak and
 updated continuously. Cache the merchant record in-process with a 1 s TTL (merchant-level aggregates tolerate
@@ -393,7 +393,8 @@ decisions/month (260 M × 30) to get cost per decision, and compare it with frau
 ratio is the business case. The cheapest optimizations are usually log sampling and feature pruning (Sculley's
 underutilized features [7]), not faster models.
 
-**Energy.** Tree models on CPU use a tiny fraction of the energy of GPU inference. If a deep model (sequence model
+**Energy.** Tree models on CPU should use a small fraction of the energy of GPU inference per decision
+(assumption; measure it). If a deep model (sequence model
 over card history) replaces GBDT, re-run the per-decision energy and latency estimate before celebrating the AUC
 gain ([SYSDESIGN-17](../02-modern-requirements/17-energy-carbon-aware.md)).
 
@@ -413,14 +414,16 @@ gain ([SYSDESIGN-17](../02-modern-requirements/17-energy-carbon-aware.md)).
 - **EU AI Act.** Annex III lists creditworthiness and credit-scoring systems as high-risk, "with the exception of
   AI systems used for the purpose of detecting financial fraud" [10]. A pure fraud model is therefore not
   high-risk under that point, but the moment the same platform scores *credit* decisions, the obligations in
-  [SYSDESIGN-28](../03-ai-systems/28-ai-trust-safety-governance.md) apply. *Not legal advice.*
+  [SYSDESIGN-28](../03-ai-systems/28-ai-trust-safety-governance.md) apply. Timing (as of 2026-11): the Digital Omnibus
+  on AI, Regulation (EU) 2026/1744 (in force 27 July 2026), moved the application of the Annex III high-risk
+  obligations to 2 December 2027 and left the point 5(b) fraud exception untouched [13]. *Not legal advice.*
 
 ## Modern twist
 
 What 2026 changes, compared with a 2016 design:
 
 - **Feature platforms are commodity.** Open-source feature stores (Feast; as of 2026-11 at v0.68.0) provide
-  online/offline stores, point-in-time joins and stream feature views [11][12]. The design work moves to
+  online/offline stores, point-in-time joins and (alpha) stream feature views [11][12]. The design work moves to
   freshness SLOs and correctness under late data rather than building the store.
 - **Streaming engines matured.** Flink 2.x (docs for 2.3 at access) provides the event-time windows, watermarks
   and allowed lateness this design relies on [3].
@@ -499,10 +502,12 @@ See [exercises/C12-realtime-fraud-recsys.md](../../exercises/C12-realtime-fraud-
 8. S. Lundberg, S.-I. Lee, "A Unified Approach to Interpreting Model Predictions," NIPS 2017; arXiv:1705.07874.
    https://arxiv.org/abs/1705.07874 (accessed 2026-11)
 9. Regulation (EU) 2016/679 (GDPR), Article 22. https://eur-lex.europa.eu/eli/reg/2016/679/oj (accessed
-   2026-11; article text checked via the reproduction at https://gdpr-info.eu/art-22-gdpr/)
+   2026-11; Article 22 text checked on EUR-Lex)
 10. Regulation (EU) 2024/1689 (AI Act), Annex III, point 5(b). https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-    (accessed 2026-11)
+    (accessed 2026-11; Annex III text checked on EUR-Lex)
 11. Feast documentation, "Point-in-time joins" and "Feature view."
     https://docs.feast.dev/getting-started/concepts/point-in-time-joins ;
     https://docs.feast.dev/getting-started/concepts/feature-view (accessed 2026-11)
 12. feast-dev/feast, GitHub releases. https://github.com/feast-dev/feast/releases (accessed 2026-11)
+13. Regulation (EU) 2026/1744 (Digital Omnibus on AI), OJ L, 24.7.2026, amending Art. 113 of Regulation (EU)
+    2024/1689. https://eur-lex.europa.eu/eli/reg/2026/1744/oj (accessed 2026-11)

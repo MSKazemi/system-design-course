@@ -16,11 +16,11 @@ raw bytes.
 - ~1.43 M active series; ~503,000 samples/s; ~43.5 B samples/day
 - Gorilla: 16 B → 1.37 B per point (12×); Prometheus: 1–2 B per sample
 - Raw ≈ 60 GB/day; 14 days ≈ 0.8–1.2 TB
-- 1-minute rollups ≈ 5 TB/year
+- 1-minute rollups ≈ 5 TB/year (upper bound; ≈ 2.2 TB with 5-minute rollups for 10–30 s series)
 
 **Visual:** Table of sources × series × interval, with a total row.
 **Speaker notes:** Use Prometheus's formula: retention seconds × samples per second × bytes per sample. Series
-counts are assumptions; bytes per sample are sourced.
+counts are assumptions; bytes per sample are sourced, and noisy float sensors may need 3–4 B (assumption).
 
 ## Slide 3 — The cardinality trap
 - `job_id` as a label: 20,000 jobs/day × 16 GPUs × 40 metrics

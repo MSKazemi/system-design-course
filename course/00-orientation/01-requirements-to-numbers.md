@@ -3,7 +3,7 @@ id: SYSDESIGN-01
 title: "Requirements to numbers: SLIs/SLOs, estimation, latency numbers, Little's law, queueing"
 part: "0 — Orientation"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-00]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Decide, before launch day, whether one server survives 500,000 daily active users with 99.9% of requests succeeding and p99 latency under 300 ms"
@@ -47,8 +47,8 @@ run well below it. Then, because users wait for the *slowest* part of their requ
 - **The classic latency table is old.** The "numbers everyone should know" most engineers learned were published
   by Jeff Dean in 2009 [6]. Disks, SSDs and networks have changed by orders of magnitude since then, and the
   speed of light has not. Knowing *which* numbers drift and which don't is a skill in its own right.
-- **AI workloads are measured in tokens, not requests.** One LLM chat request can cost a thousand times more
-  compute than a page view, and its latency has two parts: time to first token, and time per output token.
+- **AI workloads are measured in tokens, not requests.** One LLM chat request can cost orders of magnitude more
+  compute than a page view (an order-of-magnitude assumption; measure it for your model), and its latency has two parts: time to first token, and time per output token.
   Estimating them takes the same tools (Little's law, utilisation, tails) applied to a new unit. The last part
   of this chapter previews that, and SYSDESIGN-21 develops it.
 
@@ -92,7 +92,7 @@ argues about it during an incident.
 
 What a budget means in practice:
 
-| SLO (30-day window) | Error budget | As downtime, if every request fails | As failed requests at 15 M requests/day |
+| SLO (30-day window) | Error budget | As downtime, if every request fails | As failed requests per 30 days (15 M requests/day = 450 M) |
 |---|---|---|---|
 | 99% | 1% | 7.2 hours | 4.5 million |
 | 99.9% | 0.1% | 43.2 minutes | 450,000 |
@@ -170,7 +170,7 @@ Dean's LADIS 2009 keynote listed "Numbers Everyone Should Know" [6]:
 | Mutex lock/unlock | 25 ns | Uncontended, similar. Contended, it can be microseconds |
 | Main memory reference | 100 ns | About the same: DRAM latency has barely improved [7] |
 | Compress 1 KB with a fast compressor | 3,000 ns (3 µs) | Codec- and CPU-dependent; benchmark your own |
-| Send 2 KB over a 1 Gbit/s network | 20,000 ns (20 µs) | Scales with NIC bandwidth: about 25–125× less at 25–100 Gbit/s |
+| Send 2 KB over a 1 Gbit/s network | 20,000 ns (20 µs) | Scales with NIC bandwidth: about 25–100× less at 25–100 Gbit/s |
 | Read 1 MB sequentially from memory | 250,000 ns (250 µs) | Lower: memory bandwidth has grown; measure on your hardware |
 | Round trip within the same datacenter | 500,000 ns (500 µs) | Depends on fabric and software stack; Scott's extrapolation holds it constant [7]. Measure it |
 | Disk seek | 10,000,000 ns (10 ms) | Unchanged for spinning disks; NVMe flash has no seek |
@@ -190,8 +190,9 @@ Two modern reference points with sources:
 **How to use the table without being fooled by it.** Colin Scott's interactive version extrapolates each number
 by year, using explicit growth assumptions: bandwidths that double every two to three years, memory latency
 held flat, and network round trips held constant because physics bounds them [7]. Its lesson is not any one
-value. It is the *ratios* and *which ones move*. Memory is about 100× faster than an SSD read, which is about
-100× faster than a cross-continent round trip. Bandwidth keeps improving and latency mostly doesn't. **Date
+value. It is the *ratios* and *which ones move*. Memory (100 ns) is about 160× faster than an SSD
+random read (16 µs in Scott's table, 45 µs for the 990 PRO at queue depth 1), which is itself thousands of times
+faster than a cross-continent round trip (150 ms) [7]. Bandwidth keeps improving and latency mostly doesn't. **Date
 every number you quote, and measure the ones your design depends on.**
 
 ### Little's law: the most useful equation in capacity planning
@@ -322,7 +323,9 @@ constraint.
 a comfortable utilisation. On *availability*, it cannot. One machine is one failure, one kernel patch or one bad
 deploy away from 100% downtime, and the 99.9% SLO allows only 43 minutes of that per month. The defensible
 answer is: **"Three smaller servers across two or more zones, each sized so that any two carry the peak at under
-70% utilisation."** That is 34 / 0.7 ≈ 49 cores' worth across two servers, so three servers of 24–32 cores each.
+70% utilisation."** The peak keeps 20 cores busy (Step 2; the 34 already include the 60% target), so any two
+servers need 20 / 0.7 ≈ 29 cores between them. Three servers of 16 cores each give 48 cores in total, 32 after
+losing one, which is about 63% busy at the peak.
 SYSDESIGN-03 refines this with zone-loss arithmetic.
 
 ### Worked example: storage for a year of chat history
@@ -528,8 +531,8 @@ fixed arrival rates from 20 to 110 requests/s and watch p50 and p99 bend upwards
 You also check Little's law against the service's own measurement of the average number of requests in the
 system. An optional profile adds Prometheus and Grafana to watch the same curves live. In the recorded run
 (2026-11-20, on a shared, busy host), the measured mean latency stayed within about 6% of the D/M/1
-prediction up to 80% utilisation, Little's law held to three decimal places at every step, and two identical
-runs at 90 requests/s (about 92% measured utilisation) differed by 2.7× in mean latency. That last result is a reminder that near saturation,
+prediction up to 80% utilisation, L and λW agreed to within 0.001 at every step, and two identical 90 s
+runs at 90 requests/s (about 94% utilisation in the 30 s step at that rate) differed by 2.7× in mean latency. That last result is a reminder that near saturation,
 a single short load test is not a capacity measurement. The full table is in the lab README.
 
 ## Further reading
@@ -552,18 +555,18 @@ a single short load test is not a capacity measurement. The full table is in the
 [1] B. Beyer, C. Jones, J. Petoff, N. R. Murphy (eds.), *Site Reliability Engineering*, O'Reilly, 2016, ch. 4 *Service Level Objectives* (SLI and SLO definitions). https://sre.google/sre-book/service-level-objectives/ (accessed 2026-11)
 [2] Ibid., ch. 3 *Embracing Risk* (error budgets). https://sre.google/sre-book/embracing-risk/ (accessed 2026-11)
 [3] B. Beyer, N. R. Murphy, D. K. Rensin, K. Kawahara, S. Thorne (eds.), *The Site Reliability Workbook*, O'Reilly, 2018, ch. 2 *Implementing SLOs*, https://sre.google/workbook/implementing-slos/ ; ch. 5 *Alerting on SLOs* (14.4× burn rate = 2% of a 30-day budget in 1 hour), https://sre.google/workbook/alerting-on-slos/ (accessed 2026-11)
-[4] J. D. C. Little, *A Proof for the Queuing Formula: L = λW*, Operations Research 9(3):383–387, 1961. https://doi.org/10.1287/opre.9.3.383 (accessed 2026-11)
-[5] J. D. C. Little, *Little's Law as Viewed on Its 50th Anniversary*, Operations Research 59(3):536–549, 2011. https://doi.org/10.1287/opre.1110.0940 (accessed 2026-11)
+[4] J. D. C. Little, *A Proof for the Queuing Formula: L = λW*, Operations Research 9(3):383–387, 1961. https://doi.org/10.1287/opre.9.3.383 (accessed 2026-11; publisher page blocked automated fetching, title, volume and pages verified via Crossref metadata)
+[5] J. D. C. Little, *Little's Law as Viewed on Its 50th Anniversary*, Operations Research 59(3):536–549, 2011. https://doi.org/10.1287/opre.1110.0940 (accessed 2026-11; publisher page blocked automated fetching, title, volume and pages verified via Crossref metadata)
 [6] J. Dean, *Designs, Lessons and Advice from Building Large Distributed Systems*, keynote, LADIS 2009 ("Numbers Everyone Should Know"). https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf (accessed 2026-11)
 [7] C. Scott, *Latency Numbers Every Programmer Should Know* (interactive, with per-year extrapolation; based on P. Norvig's 2002 numbers). https://colin-scott.github.io/personal_website/research/interactive_latency.html (accessed 2026-11)
-[8] I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 204,000 km/s). https://arxiv.org/abs/1811.10737 (accessed 2026-11)
+[8] I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 204,000 km/s, stated in the paper's text). https://arxiv.org/pdf/1811.10737 (accessed 2026-11)
 [9] Samsung Electronics, *Samsung NVMe SSD 990 PRO Data Sheet*, Rev. 2.0 (sequential read 7,450 MB/s; random read QD1 22K IOPS). https://download.semiconductor.samsung.com/resources/data-sheet/samsung_nvme_ssd_990_pro_datasheet_rev.2.0.pdf (accessed 2026-11)
 [10] WonderNetwork, *Global Ping Statistics: London to New York* (daily averages ≈ 70–71 ms, 5–19 Nov 2026). https://wondernetwork.com/pings/London/New%20York (accessed 2026-11)
-[11] M. Harchol-Balter, *Performance Modeling and Design of Computer Systems: Queueing Theory in Action*, Cambridge University Press, 2013 (M/M/1 response-time distribution; M/M/k). https://doi.org/10.1017/CBO9781139226424 (accessed 2026-11)
+[11] M. Harchol-Balter, *Performance Modeling and Design of Computer Systems: Queueing Theory in Action*, Cambridge University Press, 2013 (M/M/1 response-time distribution; M/M/k). https://doi.org/10.1017/CBO9781139226424 (accessed 2026-11; book confirmed, chapter location of the results unverified as of 2026-11; the standard results were recomputed independently)
 [12] J. F. C. Kingman, *The single server queue in heavy traffic*, Mathematical Proceedings of the Cambridge Philosophical Society 57(4):902–904, 1961. https://doi.org/10.1017/S0305004100036094 (accessed 2026-11)
 [13] J. Dean, L. A. Barroso, *The Tail at Scale*, Communications of the ACM 56(2):74–80, February 2013. https://www.barroso.org/publications/TheTailAtScale.pdf (accessed 2026-11)
 [14] Grafana Labs, *Open and closed models*, k6 documentation (coordinated omission; `constant-arrival-rate` and `ramping-arrival-rate` executors). https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/ (accessed 2026-11)
-[15] OpenAI, *What are tokens and how to count them?*, OpenAI Help Center (1 token ≈ 4 characters ≈ ¾ word in English). https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them (accessed 2026-11; the page blocked automated fetching, so its wording was checked through search-engine extracts only)
-[16] L. Kleinrock, *Queueing Systems, Volume 1: Theory*, Wiley, 1975 (the G/M/1 queue; D/M/1 as a special case). https://www.wiley.com/en-us/Queueing+Systems%2C+Volume+1%3A+Theory-p-9780471491101 (accessed 2026-11)
+[15] OpenAI, *What are tokens and how to count them?*, OpenAI Help Center (1 token ≈ 4 characters ≈ ¾ word in English). https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them (unverified as of 2026-11: the page blocked automated fetching, so its wording was checked through search-engine extracts only; treat the ratio as a rule of thumb)
+[16] L. Kleinrock, *Queueing Systems, Volume 1: Theory*, Wiley, 1975 (the G/M/1 queue; D/M/1 as a special case). https://www.wiley.com/en-us/Queueing+Systems%2C+Volume+1%3A+Theory-p-9780471491101 (accessed 2026-11; book confirmed, the D/M/1 equation's location in it unverified as of 2026-11; the numbers were recomputed independently)
 [17] Y. Zhong, S. Liu, J. Chen, J. Hu, Y. Zhu, X. Liu, X. Jin, H. Zhang, *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*, Proc. USENIX OSDI 2024. https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin (accessed 2026-11)
 [18] International Energy Agency, *Energy and AI*, April 2025, Executive summary. https://www.iea.org/reports/energy-and-ai/executive-summary (accessed 2026-11)

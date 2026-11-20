@@ -20,9 +20,9 @@ exclusion with a human in the loop.
 ## Slide 2 — The numbers
 
 - 500,000 location updates/s
-- Whole live index ≈ 128 MB
+- Whole live index ≈ 128 MB (our estimate)
 - ≈ 600,000 nearby-car views/s; ≈ 1,000 ride requests/s
-- Trip traces ≈ 3.5 TB/day
+- Trip traces ≤ 3.5 TB/day (upper bound)
 
 **Visual:** A tiny memory chip labelled 128 MB next to a huge "updates/s" counter.
 Icons: `ops-throughput`, `arch-memory`.
@@ -71,7 +71,7 @@ Icons: `domain-map`.
 - Res 7: 5.16 km², edge ≈ 1.41 km
 - Res 8: 0.737 km², edge ≈ 0.53 km → neighbors ≈ 0.92 km apart
 - Res 9: 0.105 km², edge ≈ 0.20 km
-- Res 8, k = 2 → 19 cells ≈ 2 km radius; then exact-distance filter
+- Res 8, k = 2 (19 cells) guarantees ≈ 1.3 km; k = 3 (37 cells) guarantees ≈ 2.1 km; then exact-distance filter
 
 **Visual:** Concentric k-rings at res 8 around a pickup pin.
 Icons: `domain-map-pin`, `pattern-partitioning`.
@@ -140,7 +140,7 @@ Icons: `domain-ai`, `ops-metrics`, `domain-payment`.
 
 ## Slide 12 — Modern twist
 
-- H3 cell IDs as the join key across matching, pricing, analytics, ML features
+- Uber uses H3 for pricing and dispatch analysis; we recommend cell IDs as the join key across matching, pricing, analytics, ML features
 - H3 4.x API: `gridDisk`, `gridRing`, pentagon-aware
 - ML models on hard real-time paths with classical fallbacks
 - Location is personal data: approximate views, cell aggregates, executable retention

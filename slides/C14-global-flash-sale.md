@@ -25,9 +25,11 @@
 ## Slide 4 — Admission rate from the narrowest pipe
 - Payment provider ≈ 2,000 authorisations/s (assumption — ask)
 - 60 % of admitted users pay → admit ≈ 3,300 users/s
-- ≈ 167 k admissions sell out in ≈ 50 s
+- Stock is taken at reservation: all 100 k units are held after ≈ 30 s
+- ≈ 40 k unpaid units return only as 10-min reservations expire: admit one user per released unit
+- ≈ 167 k admissions in total; everyone ranked beyond that hears "sold out" at once
 **Visual:** funnel from 12 M waiting to 3,300/s admitted to 2,000/s paid. Icons: `pattern-backpressure`, `domain-payment`.
-**Speaker notes:** Work backwards from downstream capacity; most people will only see "sold out" — tell them fast.
+**Speaker notes:** Work backwards from downstream capacity. The sale is held out in about 30 seconds, but completes over the reservation-expiry tail; most people will only see "sold out" — tell them fast.
 
 ## Slide 5 — SKETCH
 - CDN → edge waiting room (signed tickets) → admission controller
@@ -39,7 +41,8 @@
 ## Slide 6 — The invariant
 - held + confirmed ≤ total stock, always, including failover
 - Conditional decrement `WHERE available > 0` — correct but one hot row
-- Stock buckets: 100 rows × 1,000 units → ≈ 33 writes/s each
+- Stock buckets: 100 rows × 1,000 units → ≈ 33 writes/s each (same-region commit)
+- Lock is held until commit: cross-region synchronous commit (100–200 ms, assumption) → 5–10/row/s → ≈ 330–660 buckets
 **Visual:** one hot row vs 100 cooler rows. Icons: `pattern-sharding`, `pattern-transaction`.
 **Speaker notes:** Buckets keep the invariant because each bucket is disjoint and never goes below zero.
 
@@ -59,7 +62,8 @@
 
 ## Slide 9 — The waiting room
 - Signed tickets verified at the edge; no database per poll
-- Admission controller publishes a threshold from downstream health
+- Admission controller publishes a threshold from downstream health; edges cache it ≤ 5 s
+- Not in an eventually consistent edge KV (Workers KV: 60 s or more to propagate)
 - Short-lived admission token required by the gateway
 **Visual:** edge node with cookies; controller dial. Icons: `arch-queue`, `security-token`, `pattern-rate-limiter`.
 **Speaker notes:** The waiting room converts an outage into a line.
@@ -83,7 +87,7 @@
 - Pre-scale before T0; load-test a step, not a ramp
 - Flags: lower admissions, pause on provider errors, hold-all page, brownout the rest
 **Visual:** degradation ladder. Icons: `domain-bot`, `security-ddos`, `pattern-autoscaling`.
-**Speaker notes:** Autoscaling reacts in minutes; the spike arrives in seconds.
+**Speaker notes:** Autoscaling is too slow: the Kubernetes HPA evaluates every 15 s by default, then pods must start; the spike arrives in seconds.
 
 ## Slide 13 — STRESS and multi-region
 - SQL failover: pause admissions; synchronous replication for the sale DB

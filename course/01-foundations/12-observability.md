@@ -3,7 +3,7 @@ id: SYSDESIGN-12
 title: "Observability"
 part: "I — Classical foundations"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01, SYSDESIGN-03, SYSDESIGN-11]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Page a human within minutes when Lumen's answer API is burning its 99.5% monthly availability budget fast, never page for blips, and let the on-call engineer go from alert to the guilty span in under five minutes"
@@ -80,7 +80,7 @@ unique combination is a separate series [7]. The main metric kinds are *counters
 data model adds the notion of *temporality* — cumulative (running totals since start) or delta (change since last
 export) — which matters when you convert between systems [8]. Histograms are the most important kind for latency:
 averages hide tails, and you cannot average percentiles across instances, but you *can* add histogram buckets and
-compute a percentile afterwards.
+compute a percentile afterwards [30].
 
 **Logs.** A log record is a timestamp, a severity, a body and attributes. *Structured* logs (key–value or JSON)
 can be queried; free-text logs mostly cannot. OpenTelemetry deliberately did not invent a new logging API for
@@ -194,8 +194,8 @@ flowchart TB
 burn-rate threshold; the first two page, the third opens a ticket.*
 
 For our 99.5% SLO the fast-burn page fires when the error ratio exceeds 14.4 × 0.005 = **7.2%** in both the last
-hour and the last five minutes. The lab implements exactly these rules (with every window divided by 12 so you can
-watch them in minutes).
+hour and the last five minutes. The lab implements the two paging rules (with every window divided by 12 so you can
+watch them in minutes); the 3-day ticket rule is left out.
 
 ## Numbers that matter
 
@@ -211,7 +211,7 @@ megabytes per day. The danger is not volume but *series count*.
 
 **Traces at 100%.** 20 req/s × 8 spans × 500 B = 80 KB/s ≈ **6.9 GB/day** before backend overhead.
 At **10% head sampling** that is ≈ 0.69 GB/day; Dapper reported that a uniform 1/1024 rate still gave enough data
-for high-volume services and that latency overhead at 1/16 and below was within experimental error [10].
+for high-volume services and that latency and throughput penalties at sampling rates below 1/16 were within experimental error [10].
 
 **Logs.** 20 req/s × 2 × 300 B = 12 KB/s ≈ **1 GB/day** — more than sampled traces, and the first place a bill
 grows when someone adds a debug line in a hot path.
@@ -228,8 +228,9 @@ grows when someone adds a debug line in a hot path.
 
 Time to exhaust = 30 days / burn rate. Time for a 1-hour window to cross 14.4× during a sustained burn *b* is
 roughly 60 min × 14.4 / *b* (the long window's average must rise to the threshold). This is why a total outage
-pages in about four minutes with these rules, while a 7% error rate takes most of an hour — and why the 6-hour
-rule exists to catch slower burns.
+pages in about four minutes with these rules, while a 10% error rate (burn rate 20) takes about 43 minutes
+(60 × 14.4 / 20). A sustained rate below 7.2% never trips the fast rule at all: 7% errors is burn rate 14.0, so
+only the 6-hour rule (3%) catches it, after about 6 h × 3 / 7 ≈ 2.6 hours. That is why the 6-hour rule exists.
 
 **Latency SLI** example: if 99% of answers must be faster than 300 ms, put a histogram bucket boundary *at* 300 ms;
 then "good" is exactly the `le="0.3"` bucket count and needs no interpolation.
@@ -290,14 +291,14 @@ metrics), otherwise your error rate is wrong.
 | Columnar "wide event" store | arbitrary slicing on high-cardinality fields | query cost; schema discipline | ClickHouse-based stacks, Honeycomb-style backends |
 
 The last row reflects an influential school of thought: emit one wide, structured event per unit of work with many
-fields, and derive metrics from it at query time [23]. It trades metric cheapness for flexibility. Most teams end
+fields, and derive metrics from it at query time (the argument of Majors, Fong-Jones and Miranda [23]). It trades metric cheapness for flexibility. Most teams end
 up with a hybrid: metrics for alerting, wide events or traces for investigation.
 
 ### Push vs pull for metrics
 
 Prometheus *pulls* (scrapes) targets; OTLP *pushes*. Pull gives you a free liveness signal (`up == 0`) and keeps
 load control on the server side; push works through NAT and for short-lived jobs. Prometheus 3 accepts OTLP pushes
-natively (`--web.enable-otlp-receiver`), which is what the lab uses.
+natively (`--web.enable-otlp-receiver`) [29], which is what the lab uses.
 
 ## Deep dive [Deep]
 
@@ -325,7 +326,9 @@ the period's budget consumed by the time it can fire is *k* × *w*long / *T*. Wi
 14.4 / 720 = **2%** — the Workbook's number [18]. Choosing *k* is choosing "how much budget may I lose before a human
 is woken".
 
-Low-traffic services break this math: at 10 requests per hour, one failure is a 1,000× burn rate on a 99.9% SLO [18].
+Low-traffic services break this math: at 10 requests per hour, one failure is a 10% hourly error ratio, a 100× burn rate on
+a 99.9% SLO (10% / 0.1%; the Workbook's text says 1,000×, which does not follow from its own numbers), and it
+consumes 13.9% of the 30-day budget [18].
 The Workbook's suggestions — synthetic traffic, grouping small services, or making the product tolerate single
 failures — apply; so does requiring a minimum request count in the alert expression.
 
@@ -508,28 +511,30 @@ minutes.
 [1] OpenTelemetry, "Specification Status Summary," https://opentelemetry.io/docs/specs/status/ (accessed 2026-11).
 [2] OpenTelemetry, "OpenTelemetry Profiles Enters Public Alpha," blog, 2026, https://opentelemetry.io/blog/2026/profiles-alpha/ ; and "Profiles" concept page (Status: Alpha), https://opentelemetry.io/docs/concepts/signals/profiles/ (accessed 2026-11).
 [3] OpenTelemetry, "OpenTelemetry eBPF Instrumentation reaches v1.0.0," blog, 2026, https://opentelemetry.io/blog/2026/obi-v1-release/ ; release v1.0.0 (2026-10-30), https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/releases (accessed 2026-11).
-[4] Grafana Labs, "OpenTelemetry eBPF Instrumentation: why we donated Grafana Beyla to OpenTelemetry," 2025-05-07, https://grafana.com/blog/2025/05/07/opentelemetry-ebpf-instrumentation-beyla-donation/ (accessed 2026-11).
+[4] N. Grcevski (Grafana Labs), "Introducing OpenTelemetry eBPF Instrumentation: Why we donated Grafana Beyla to OpenTelemetry," dateline 2025-05-08, https://grafana.com/blog/opentelemetry-ebpf-instrumentation-beyla-donation/ (accessed 2026-11).
 [5] OpenTelemetry, "Elastic Contributes its Continuous Profiling Agent to OpenTelemetry," blog, 2024, https://opentelemetry.io/blog/2024/elastic-contributes-continuous-profiling-agent/ (accessed 2026-11).
 [6] OpenTelemetry, GenAI semantic conventions (docs/gen-ai/: gen-ai-spans.md, gen-ai-metrics.md, gen-ai-token-metrics.md; all "Status: Development"), https://github.com/open-telemetry/semantic-conventions-genai (main branch, accessed 2026-11).
 [7] Prometheus, "Metric and label naming," https://prometheus.io/docs/practices/naming/ (accessed 2026-11).
 [8] OpenTelemetry, "Metrics Data Model" (temporality, exponential histograms, exemplars), https://opentelemetry.io/docs/specs/otel/metrics/data-model/ (accessed 2026-11).
 [9] OpenTelemetry, "Logs" specification overview (Logs Bridge API, trace context in log records), https://opentelemetry.io/docs/specs/otel/logs/ (accessed 2026-11).
-[10] B. H. Sigelman et al., "Dapper, a Large-Scale Distributed Systems Tracing Infrastructure," Google Technical Report dapper-2010-1, 2010, https://research.google/pubs/pub36356/ (accessed 2026-11).
+[10] B. H. Sigelman et al., "Dapper, a Large-Scale Distributed Systems Tracing Infrastructure," Google Technical Report dapper-2010-1, 2010, https://research.google/pubs/pub36356/ ; full text https://static.googleusercontent.com/media/research.google.com/en//archive/papers/dapper-2010-1.pdf (accessed 2026-11).
 [11] W3C, "Trace Context" (Level 1), W3C Recommendation, 23 November 2021 (first Recommendation 6 February 2020), https://www.w3.org/TR/trace-context/ (accessed 2026-11).
 [12] G. Ren et al., "Google-Wide Profiling: A Continuous Profiling Infrastructure for Data Centers," IEEE Micro, 2010, https://research.google/pubs/google-wide-profiling-a-continuous-profiling-infrastructure-for-data-centers/ (accessed 2026-11).
-[13] OpenTelemetry, Resource semantic conventions, https://opentelemetry.io/docs/specs/semconv/resource/ (accessed 2026-11).
+[13] OpenTelemetry, Resource semantic conventions, https://opentelemetry.io/docs/specs/semconv/resource/ ; `deployment.environment.name`: https://opentelemetry.io/docs/specs/semconv/resource/deployment-environment/ ; `k8s.pod.name`: https://opentelemetry.io/docs/specs/semconv/resource/k8s/ (accessed 2026-11).
 [14] OpenTelemetry, "Semantic conventions for HTTP metrics" (`http.server.request.duration`), https://opentelemetry.io/docs/specs/semconv/http/http-metrics/ (accessed 2026-11).
 [15] B. Beyer et al. (eds.), *Site Reliability Engineering*, ch. 6 "Monitoring Distributed Systems," O'Reilly/Google, 2016, https://sre.google/sre-book/monitoring-distributed-systems/ (accessed 2026-11).
-[16] T. Wilkie, "The RED Method: How to instrument your services," Grafana Labs blog, 2018-08-02, https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/ ; slides, GrafanaCon EU 2018, https://grafana.com/files/grafanacon_eu_2018/Tom_Wilkie_GrafanaCon_EU_2018.pdf (accessed 2026-11).
+[16] J. Dam (Grafana Labs), "The RED Method: How to instrument your services" (write-up of Tom Wilkie's talk), Grafana Labs blog, 2018-08-03, https://grafana.com/blog/the-red-method-how-to-instrument-your-services/ ; slides, GrafanaCon EU 2018, https://grafana.com/files/grafanacon_eu_2018/Tom_Wilkie_GrafanaCon_EU_2018.pdf (accessed 2026-11).
 [17] B. Gregg, "The USE Method," https://www.brendangregg.com/usemethod.html (accessed 2026-11).
 [18] S. Murphy et al. (eds.), *The Site Reliability Workbook*, ch. 5 "Alerting on SLOs," O'Reilly/Google, 2018, https://sre.google/workbook/alerting-on-slos/ (accessed 2026-11).
 [19] T. Pelkonen et al., "Gorilla: A Fast, Scalable, In-Memory Time Series Database," PVLDB 8(12), 2015, https://www.vldb.org/pvldb/vol8/p1816-teller.pdf (accessed 2026-11).
 [20] OpenTelemetry, "Collector" documentation (agent and gateway deployment patterns), https://opentelemetry.io/docs/collector/ (accessed 2026-11).
 [21] OpenTelemetry Collector Contrib, "Tail Sampling Processor" README (stability beta; decision_wait 30 s; num_traces 50,000), https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/tailsamplingprocessor (accessed 2026-11).
 [22] OpenTelemetry Collector Contrib, "Load Balancing Exporter" README (routing by traceID), https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/loadbalancingexporter (accessed 2026-11).
-[23] C. Majors, L. Fong-Jones, G. Miranda, *Observability Engineering*, O'Reilly, 2022, ISBN 9781492076438, https://www.oreilly.com/library/view/observability-engineering/9781492076438/ (publisher page; not fetchable by script, accessed 2026-11).
+[23] C. Majors, L. Fong-Jones, G. Miranda, *Observability Engineering*, 1st ed., O'Reilly, 2022, https://www.oreilly.com/library/view/observability-engineering/9781492076438/ ; a 2nd edition appeared in 2026 (https://www.oreilly.com/library/view/observability-engineering-2nd/9781098179915/). Publisher pages return HTTP 403 to scripts: unverified as of 2026-11 beyond search listings; the lesson only cites the book's general thesis.
 [24] Prometheus, CHANGELOG — 3.8.0 (2025-11-28) "Native histograms are now a stable, but optional feature"; 3.9.0 (2026-01-06) feature flag made a no-op, https://github.com/prometheus/prometheus/blob/main/CHANGELOG.md (accessed 2026-11).
 [25] eBPF.io, "What is eBPF?", https://ebpf.io/what-is-ebpf/ (accessed 2026-11).
 [26] OpenTelemetry, semantic-conventions releases (v1.45.0, 2026-11-02), https://github.com/open-telemetry/semantic-conventions/releases (accessed 2026-11).
 [27] T. Ahmed et al., "Recommending Root-Cause and Mitigation Steps for Cloud Incidents using Large Language Models," ICSE 2023, arXiv:2301.03797, https://arxiv.org/abs/2301.03797 (accessed 2026-11).
 [28] grafana/docker-otel-lgtm, v0.41.0 (2026-11-13), https://github.com/grafana/docker-otel-lgtm (accessed 2026-11).
+[29] Prometheus, "Using Prometheus as your OpenTelemetry backend" (`--web.enable-otlp-receiver`), https://prometheus.io/docs/guides/opentelemetry/ (accessed 2026-11).
+[30] Prometheus, "Histograms and summaries" (quantiles cannot be aggregated; histogram buckets can be summed across instances), https://prometheus.io/docs/practices/histograms/ (accessed 2026-11).

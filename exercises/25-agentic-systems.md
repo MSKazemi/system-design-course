@@ -63,7 +63,8 @@ What changed in the MCP 2026-07-28 revision that matters to a platform team runn
 - **Routing headers:** `Mcp-Method` and `Mcp-Name` on Streamable HTTP let gateways route and authorise per tool.
 - **`server/discover`** for up-front capability and version discovery. Version errors are per request.
 - **Tasks** moved to an extension. Roots, Sampling and Logging are deprecated (≥12 months). The legacy HTTP+SSE
-  transport is deprecated.
+  transport has been deprecated since 2025-03-26 (the release post says a year-long offramp, the spec registry
+  sets its own removal rule), so use Streamable HTTP.
 - **Auth hardening:** issuer (`iss`) validation, credentials bound to the issuer, and DCR deprecated in favour of
   Client ID Metadata Documents.
 State a tool needs across calls must be explicit (a handle passed back by the model).

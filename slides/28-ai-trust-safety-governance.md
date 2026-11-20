@@ -23,14 +23,15 @@ advice: the regulation parts are there to help derive system requirements.
 **Speaker notes:** Draw boundaries before choosing defenses. The model-to-tools boundary matters most because
 that is where text becomes action.
 
-## Slide 3 — The OWASP lists
-- LLM Top 10 2025: LLM01 Prompt Injection through LLM10 Unbounded Consumption
+## Slide 3 — The OWASP lists (LLM Top 10 2026, Aug 2026)
+- LLM Top 10 2026: LLM01 Prompt Injection through LLM10 Improper Output Handling; Excessive Agency now LLM03
 - Agentic Top 10 for 2026 (Dec 2025): ASI01 Agent Goal Hijack, ASI03 Identity and Privilege Abuse, …
 - Many entries are classical security problems in new clothes
 - Use them as a control checklist, not as a ranking
 
 **Visual:** Two columns of ten codes, with lines from each to a control (policy engine, ACL retrieval, signing, quotas).
-**Speaker notes:** As of 2026-11 the 2025 LLM list is still the current edition on OWASP's site.
+**Speaker notes:** The 2026 LLM edition was released in August 2026 and renumbered the list, so System Prompt
+Leakage (LLM07 in 2025) is now Hidden Context Exposure (LLM08). Map older documents by name, not number.
 
 ## Slide 4 — Indirect prompt injection
 - Greshake et al. 2023: LLM apps "blur the line between data and instructions"
@@ -74,7 +75,7 @@ policy engine has to say no, but they do not replace it.
 - Action-selector, plan-then-execute, LLM map-reduce
 - Dual LLM, code-then-execute, context-minimization
 - Principle: after untrusted input, no consequential actions possible
-- CaMeL: 77% of AgentDojo tasks with provable security vs 84% undefended
+- CaMeL: authors report 77% of AgentDojo tasks with provable security vs 84% undefended (arXiv v2)
 
 **Visual:** Dual-LLM diagram: privileged LLM with tools, quarantined LLM reading untrusted docs, symbolic references between them.
 **Speaker notes:** The seven-point utility gap is the honest price of a guarantee. Lead with that number in an
@@ -102,7 +103,7 @@ Icons: security-key, security-encryption, arch-file-storage.
 
 ## Slide 11 — EU AI Act as requirements (not legal advice)
 - Art. 12 logging over the lifetime; Arts. 19 and 26(6): keep logs at least six months
-- Art. 14 human oversight; Art. 50 disclosure and machine-readable marking
+- Art. 14 human oversight; Art. 50 disclosure and machine-readable marking (grace to 2 Dec 2026 for systems already on the market)
 - Art. 53 GPAI documentation, copyright policy, training-content summary
 - Omnibus (Reg. 2026/1744): high-risk Annex III from 2 Dec 2027, Annex I from 2 Aug 2028
 

@@ -66,14 +66,14 @@ already grown.
 
 ### 5. [Core] HTTP/2 vs HTTP/3
 
-On a mobile network with 2% packet loss, why can HTTP/2 over one TCP connection perform *worse* than HTTP/1.1 with
-six connections? How does HTTP/3 address it, and what does it cost?
+On a mobile network with 2% packet loss, why can HTTP/2 over one TCP connection, by the mechanism alone, perform
+*worse* than HTTP/1.1 with six connections? How does HTTP/3 address it, and what does it cost?
 
 <details><summary>Answer</summary>
 
 HTTP/2 multiplexes all streams onto one TCP connection. TCP delivers bytes in order, so one lost segment stalls
 **every** stream until it is retransmitted (transport head-of-line blocking). With six HTTP/1.1 connections, a
-loss stalls only the one connection that carried it. HTTP/3 runs over QUIC, which orders data per stream, so a loss
+loss stalls only the one connection that carried it. (This is a mechanism argument; whether it wins on a given path is something to measure.) HTTP/3 runs over QUIC, which orders data per stream, so a loss
 delays only the streams whose data was in the lost packet. QUIC also merges the transport and TLS handshakes.
 Costs: UDP may be blocked or throttled (keep an HTTP/2 fallback), QUIC currently uses more CPU per byte (a WWW 2024
 study measured up to 45.2% lower data rates on fast links), and load balancers must understand connection IDs.

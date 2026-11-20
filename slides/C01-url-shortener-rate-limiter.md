@@ -61,7 +61,8 @@ round trip, and because the edge sees abusive traffic first.
 - RFC 9110: 301/308 permanent and heuristically cacheable; 302/307 temporary
 - Browser-cached 301 → lost clicks, no edits, no takedown for repeat visitors
 - Choice: 302 + `Cache-Control: public, s-maxage=60, max-age=0`
-- CDN absorbs load; browsers revalidate; takedown bounded to ≈ 60 s
+- CDN absorbs load; browsers revalidate; passive CDN staleness ≤ 60 s (+ any SWR window)
+- The 60 s takedown SLO needs active purge that bypasses stale-while-revalidate / stale-if-error
 
 **Visual:** Two timelines of a repeat click: 301 never reaches the edge; 302 reaches the edge and is logged.
 Icons: `arch-client`, `arch-cdn`, `ops-logs`.
@@ -124,12 +125,12 @@ scripts with a virtual clock.
 - Home region: exact, but a cross-region round trip per call
 - Static split: unfair to skewed customers
 - Adaptive shares, sync every second: bounded overshoot
-- 6,000/min, 3 regions, 1 s sync → ≤ ≈ 200 extra per interval ≈ 3 %
+- 6,000/min, 3 regions, 1 s sync → ≤ ≈ 200 extra per interval ≈ 3 % (worst-case burst bound, not steady-state error)
 
 **Visual:** Three gauges sharing one quota; arrows exchanging consumption every second.
 Icons: `arch-region`, `pattern-consistency`, `ops-clock`.
 
-**Speaker notes:** State the bound. It converts "eventually consistent limiter" into a product contract the customer
+**Speaker notes:** State the bound and its assumption: any region admits at most the full per-second rate for one sync interval. It converts "eventually consistent limiter" into a product contract the customer
 can be told.
 
 ## Slide 11 — When the limiter fails

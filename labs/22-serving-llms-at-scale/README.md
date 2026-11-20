@@ -121,8 +121,8 @@ treat absolute values as noisy. Observed, not estimated:
 Aggregate throughput rose 5× from 1 to 16 concurrent requests while TPOT roughly doubled; TTFT grew fastest, because
 new requests' prefills queue behind each other and share steps with running decodes.
 
-**Experiments 2–4 — prefix caching** (8 sequential requests, ≈ 870 prompt tokens of which ≈ 800 words are a shared
-prefix, 16 output tokens):
+**Experiments 2–4 — prefix caching** (8 sequential requests, ≈ 870 prompt tokens each, of which the first ≈ 770–830
+tokens — the 800-word generated prefix — are shared; 16 output tokens):
 
 | Run | TTFT p50 (ms) | TTFT p99 (ms) | `prefix_cache_hits_total` Δ / `queries_total` Δ |
 |---|---|---|---|

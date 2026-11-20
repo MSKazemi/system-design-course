@@ -79,8 +79,8 @@ service reconcile it? What would last-write-wins do?
 <details><summary>Answer</summary>
 
 {X:2} and {X:1, Y:1} are concurrent (neither dominates), so the read returns **both siblings**: [book, pen] and
-[book, lamp]. The cart service merges by union → [book, pen, lamp] and writes back with a clock that dominates both
-({X:2, Y:1}). LWW would keep only whichever write carries the later timestamp and silently drop the other item —
+[book, lamp]. The cart service merges by union → [book, pen, lamp] and writes back through a coordinator; if X coordinates, it
+increments its own entry, giving {X:3, Y:1}, which dominates both siblings (Dynamo §4.4 shows the same step). LWW would keep only whichever write carries the later timestamp and silently drop the other item —
 acceptable for "last login time", not for carts. Union merges can resurrect deleted items, which Dynamo accepted for
 carts; CRDT sets with tombstones avoid that.
 </details>

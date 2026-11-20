@@ -57,7 +57,7 @@ Icons: `domain-upload`, `storage-aws-s3`, `pattern-retry`.
 ## Slide 5 — The transcoding DAG
 
 - Probe → split at keyframes → parallel chunk encodes
-- Fast lane (360p/720p) → playable in minutes
+- Fast lane (360p/720p) → playable in minutes (our two-lane design; Netflix documents chunked parallel encoding)
 - Full ladder + VMAF QC → complete
 - Captions in parallel; AV1 later for popular videos
 
@@ -93,7 +93,7 @@ Icons: `arch-cpu`, `company-google`, `company-meta`.
 ## Slide 8 — Per-title and per-shot encoding
 
 - Fixed ladder: one size fits nobody
-- Netflix per-title: top 1080p rung 5,800 → 4,640 kbps (20 %) for one title
+- Netflix per-title: top 1080p rung 5,800 → 4,640 kbps (20 %) for *Orange Is the New Black*
 - Dynamic Optimizer (per-shot): ≈ 28–38 % over fixed-QP/CRF across codecs
 - Needs trial encodes + a perceptual metric (VMAF)
 

@@ -34,7 +34,8 @@ that fits? What part size would you choose for a flaky 20 Mbit/s uplink, and why
 
 <details><summary>Answer</summary>
 
-Minimum: 40 GB ÷ 10,000 = 4 MB per part (round up to a power of two, e.g. 8 MB, for headroom). On a 20 Mbit/s uplink a
+Minimum: max(5 MiB, 40 GB ÷ 10,000 = 4 MB) = **5 MiB**, because S3 requires every part but the last to be at least
+5 MiB (lesson ref [17]); round up to 8 MiB for headroom. On a 20 Mbit/s uplink a
 64 MB part takes ≈ 26 s; a failure loses at most that much work. Much larger parts (1 GB ≈ 7 minutes) lose too much on
 each failure; much smaller ones add request overhead and approach the part-count limit. Choose something like 32–64 MB,
 and upload 2–4 parts in parallel if bandwidth allows. Also: lifecycle rule to abort incomplete uploads, and a checksum
@@ -48,6 +49,7 @@ A 10-minute 1080p upload. Single-machine fast-preset encoding of 360p + 720p run
 
 <details><summary>Answer</summary>
 
+(The clock starts at upload-complete, as the lesson's target is defined; the upload itself is not counted.)
 Single machine: 600 s ÷ 2 = 300 s just for encoding (plus everything else). Chunked: 60 chunks of 10 s, one per worker,
 each takes 5 s → encoding ≈ 5 s. Remaining overheads dominate: fetching the source from object storage, probing,
 splitting at keyframes (sources may have sparse keyframes, forcing larger chunks), scheduling 60 tasks, concatenation,
@@ -63,9 +65,9 @@ illustrate, and say what extra work per-title encoding requires.
 <details><summary>Answer</summary>
 
 Visual complexity differs: a cartoon reaches high quality at low bitrate, so 5,800 kbps at 1080p is "far more than
-needed"; noisy, grainy content can still show blockiness at 5,800 kbps. Netflix's per-title example: the top 1080p
-rung dropped to 4,640 kbps (20 % savings) and 1080p started at 1,540 kbps where the fixed ladder served 480p at
-1,750 kbps. Extra work: trial encodes at several resolutions/quality points to build the title's rate–quality curve,
+needed"; noisy, grainy content can still show blockiness at 5,800 kbps. Netflix's per-title examples: for *Orange Is the New
+Black* the top 1080p rung dropped to 4,640 kbps (20 % savings); for an episode of *BoJack Horseman* 1080p started at
+1,540 kbps where the fixed ladder served 480p at 1,750 kbps. Extra work: trial encodes at several resolutions/quality points to build the title's rate–quality curve,
 plus a perceptual metric (VMAF) to choose points — multiplying encode compute, which is why it is applied to
 content that will be watched a lot.
 </details>
@@ -108,7 +110,7 @@ removed entirely?
 
 Example: TLS + connection reuse 1–2 RTT (≈ 160 ms; 0 if already connected); playback API 200 ms; master + media
 playlist fetch 2 × 100 ms; first segment (2 s of 400 kbps video ≈ 100 KB) ≈ 300 ms; decoder start 200 ms; total ≈
-1.2 s, leaving slack for the p95 tail. Removable: the playback API round trip if the manifest URL is embedded in the
+1.1 s (160 + 200 + 200 + 300 + 200 = 1,060 ms), leaving slack for the p95 tail. Removable: the playback API round trip if the manifest URL is embedded in the
 page/app response; playlist fetches if prefetched on hover or near the end of the previous episode; TLS if the
 connection is warm (or 0-RTT/QUIC, [SYSDESIGN-02](../course/01-foundations/02-anatomy-of-a-request.md)).
 </details>

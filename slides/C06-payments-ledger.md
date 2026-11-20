@@ -69,7 +69,7 @@ Icons: `payments-stripe`, `company-airbnb`, `security-lock`.
 
 - Journal entry = postings that sum to zero per currency
 - Append-only; fix with correcting entries (Square Books, TigerBeetle)
-- Capture: receivable +4,999 / seller payable −4,499 / fee revenue −500
+- Capture (E2): buyer_hold +4,999 / seller_payable −4,499 / platform_fee_revenue −500 (Σ = 0); authorization (E1) put +4,999 on psp_receivable
 - Settlement clears the receivable — reconciliation checks it
 
 **Visual:** The worked entry table with a Σ = 0 badge per entry.

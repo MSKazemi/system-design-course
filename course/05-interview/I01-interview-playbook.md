@@ -3,7 +3,7 @@ id: SYSDESIGN-I01
 title: "The interview playbook: CLARIFY → QUANTIFY → SKETCH → DEEPEN → STRESS → WRAP"
 part: "V — Interview track"
 level: [core, deep]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-00, SYSDESIGN-01]
 estimated_time: "2.5h reading + 3 timed mock interviews"
 requirement: "In 45 minutes, with a stranger watching, turn a one-line prompt into a defensible, quantified design and show the interviewer how you think about trade-offs, failure and cost."
@@ -22,8 +22,9 @@ last_reviewed: 2026-11-20
 > **The requirement.** In 45 minutes, with a stranger watching, turn a one-line prompt ("design a notification
 > service") into a design you can defend with numbers, and leave the interviewer with evidence that you would make
 > good decisions on their team. It is hard because the interview tests *judgment under time pressure in a
-> conversation*, not knowledge. Most candidates who fail know enough. They spend their minutes in the wrong places,
-> draw boxes without saying why each one exists, or never get to failure and cost.
+> conversation*, not knowledge. In this course's experience (an observation, not a sourced statistic), many candidates
+> who fail know enough. They spend their minutes in the wrong places, draw boxes without saying why each one exists,
+> or never get to failure and cost.
 
 ## In one minute
 
@@ -40,7 +41,8 @@ bring the framework along.
 
 ## Why this matters now
 
-Three things about the interview changed between 2016 and 2026, and they affect how you should prepare.
+Three things about the interview changed between 2016 and 2026, and they affect how you should prepare. Items 1 and 3
+are course observations, not sourced statistics; item 2 rests on the SRE Workbook [3].
 
 1. **The question pool moved toward AI-era systems.** Classical prompts (feeds, chat, URL shorteners, rate limiters)
    are still common because they test fundamentals cheaply. Many teams now also ask about LLM serving, retrieval,
@@ -57,10 +59,11 @@ Three things about the interview changed between 2016 and 2026, and they affect 
    money to send") and watching what happens. The framework here is built for that. You reason from requirements and
    numbers, so a changed constraint changes your design visibly instead of breaking a recited one.
 
-Public interviewer guidance from large employers agrees on the basics. Meta's published preparation guide describes a
-45-minute design interview that is usually not coding. It advises clarifying requirements such as scale, latency and
-storage, outlining the high-level approach before breaking it into parts, focusing on the hard problems rather than
-every detail, explaining trade-offs, and driving the discussion [1]. Amazon's SDE III preparation page lists the
+Public interviewer guidance from large employers agrees on the basics. Meta's published preparation guide (updated
+2022-10-06, so practice may have changed) describes a 45-minute design interview that "almost never" involves coding.
+It suggests starting with requirements (how many users and messages, latency requirements, how data is stored),
+outlining the high-level approach and then breaking it into subparts, focusing on "the interesting and hard problems"
+because there is not time for every detail, exploring trade-offs, and driving the discussion [1]. Amazon's SDE III preparation page lists the
 objectives a design should meet: practicality, accuracy, efficiency, reliability, optimization and scalability. It
 also tells candidates to "ask questions to complete and validate your design" [2]. The six steps below put those
 expectations into an order you can practice.
@@ -133,7 +136,7 @@ minutes for your questions [1]):
 | DEEPEN | 12–14 | 33 | Two deep dives, sometimes one chosen by the interviewer |
 | STRESS | 5–6 | 39 | Failures, hot spots, ×10, SLOs, cost |
 | WRAP | 1–2 | 41 | Thirty seconds can be enough |
-| Your questions | 4 | 45 | Prepare two real questions |
+| Your questions | 4–5 | 45 | Prepare two real questions |
 
 **60-minute interview** (about 52–55 minutes of design):
 
@@ -153,8 +156,8 @@ Two rules make the budgets work:
 - **Announce transitions.** "I think we have enough requirements. Let me put some numbers on this, about three
   minutes." This tells the interviewer you are managing time and lets them redirect you cheaply.
 - **Check the clock at the end of SKETCH.** If you are past minute 22 in a 45-minute interview, cut DEEPEN to one deep
-  dive and fold the important failures into it. Running out of time before STRESS is the most common way an
-  otherwise good interview loses the "reliability" and "operations" signals.
+  dive and fold the important failures into it. In this course's experience, running out of time before STRESS is a
+  common way an otherwise good interview loses the "reliability" and "operations" signals.
 
 ### 4. CLARIFY — scope and priorities
 
@@ -326,8 +329,8 @@ trade-offs. Willingness to say "I'd measure this before deciding".
 
 **Goal.** Show that you know how the system fails, how you would notice, and what it costs to run. Many candidates
 skip this step, and it is where operational experience shows most clearly. One published review of a popular
-interview book singles out its thin treatment of designing for failure and of queue semantics such as acks, retries
-and dead-letter queues [6].
+interview book criticises its thin treatment of message queues: delivery modes, acks and retries, dead-letter queues,
+ordering and exactly-once delivery [6].
 
 **Moves** (pick what fits the time):
 
@@ -374,7 +377,7 @@ items are real (not "add machine learning").
 
 ### 10. Driving versus following
 
-Interviewers consistently say they want the candidate to drive. Meta's guide uses the word explicitly [1]. Driving
+Meta's guide asks candidates to "drive the discussion" [1], and this course recommends the same everywhere. Driving
 does not mean ignoring the interviewer. A useful model is **"propose, check, proceed"**:
 
 - **Propose** the next move and why: "Next I'd like to sketch the write path, since it's the hard part."
@@ -401,14 +404,14 @@ You will hit gaps. The question is what you do in the next 30 seconds. Use **bou
 
 1. **Bound** what you know: "I haven't operated Cassandra's lightweight transactions in production, so I'm not sure
    of their exact latency."
-2. **Reason** from first principles: "They run a Paxos round across replicas, so I'd expect several round trips,
+2. **Reason** from first principles: "They need a consensus round across replicas, so more than one round trip,
    meaning milliseconds within a region rather than microseconds. That's too slow for every write, but fine for a
    rare uniqueness check."
 3. **Commit** to a decision and say how you would validate it: "So I'll use them only for username registration and
    benchmark them before launch."
 
-Never bluff a specific fact (a version, a limit, a benchmark number). Experienced interviewers usually notice, and a
-confident wrong fact costs more than an honest bound. For estimates, a bounded range ("somewhere between 1 and 10 ms,
+Never bluff a specific fact (a version, a limit, a benchmark number). An interviewer who knows the area will often
+notice (course judgment), and a confident wrong fact costs more than an honest bound. For estimates, a bounded range ("somewhere between 1 and 10 ms,
 let me use 5") is a correct answer.
 
 If you do not know a technology the interviewer names, say so and ask for its key property: "I don't know that
@@ -469,7 +472,7 @@ Examples:
   dominates. It costs some answer quality on hard queries. I'd change the routing threshold if offline evals show
   the quality drop exceeds the agreed margin."
 
-The *trigger* is the part most candidates leave out. It turns an opinion into an engineering decision that can be
+The *trigger* is the part candidates most often leave out (course observation). It turns an opinion into an engineering decision that can be
 revisited, which is what senior engineers do in real design reviews.
 
 Useful vocabulary for comparing options:
@@ -868,7 +871,7 @@ The framework has its own budget arithmetic, worth knowing by heart:
 - **Speaking rate.** Assume (labelled assumption) about 130–150 spoken words per minute in technical conversation.
   A 2-minute WRAP is ≈ 300 words, about the length of the template above. A 5-minute CLARIFY leaves room for about 8–10
   question-and-answer exchanges, so choose questions that matter.
-- **Deep-dive budget.** In a 45-minute interview, DEEPEN gets ≈ 13 minutes, so two deep dives of ≈ 6 minutes each.
+- **Deep-dive budget.** In a 45-minute interview, DEEPEN gets ≈ 13–14 minutes, so two deep dives of ≈ 6–7 minutes each.
   At level 3 depth (mechanism, trade-off, edge case, failure), that's ≈ 90 seconds per level. Practice with a timer.
 - **Interviewer airtime.** Plan for the interviewer to speak for a quarter to a third of the time (assumption), with
   questions, redirects and probes. A plan that uses 45 minutes of your own speech will overrun.
@@ -952,7 +955,7 @@ This unit *is* the interview angle. A short version of the whole playbook:
 1. **CLARIFY**: restate, verbs, ranked adjectives, scale anchors, out of scope (≈ 5 min).
 2. **QUANTIFY**: assumptions column, peak, reads vs writes, state, "so what" (≈ 4 min).
 3. **SKETCH**: follow one request, justify each box, API, data model (≈ 8 min).
-4. **DEEPEN**: 2 deep dives to trade-off level or beyond; offer a choice (≈ 13 min).
+4. **DEEPEN**: 2 deep dives to trade-off level or beyond; offer a choice (≈ 13–14 min).
 5. **STRESS**: failure table with detection, hot spot, ×10, SLOs, cost (≈ 6 min).
 6. **WRAP**: decisions, risks, next (≈ 1–2 min).
 
@@ -1000,6 +1003,8 @@ rubric in [I03](I03-question-bank-rubrics.md).
 
 1. Meta Careers, *Preparing for your Software Engineering Interview at Meta*, published 2016-06-27, updated
    2022-10-06. https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/ (accessed 2026-11)
+   (some automated clients receive HTTP 400; archived copy:
+   https://web.archive.org/web/20260610131027/https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/)
 2. Amazon, *SDE III/Sr. SDE Interview Prep* (redirects from amazon.jobs to atoz.amazon).
    https://amazon.jobs/content/en/how-we-hire/sde-iii-interview-prep (accessed 2026-11)
 3. S. Virji, J. Youngman, H. Robertson, S. Thorne, D. Rensin, Z. Egyed, with R. Bondi, "Non-Abstract Large System

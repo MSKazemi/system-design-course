@@ -3,7 +3,7 @@ id: SYSDESIGN-C13
 title: "Telemetry & observability platform for a GPU/HPC cluster"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-12, SYSDESIGN-05, SYSDESIGN-23]
 estimated_time: "2h reading"
 requirement: "Collect GPU, node, network and facility telemetry from a 10,240-GPU cluster at 1–10 s resolution, detect failing hardware before it kills jobs, and report energy per job"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Design retention and downsampling tiers, and explain why downsampling alone does not save space"
   - "Design rule-based, statistical and ML anomaly detection for thermal, power and GPU hardware failures"
   - "Compute job-level energy, including shared node power and facility overhead"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C13 — Telemetry & observability platform for a GPU/HPC cluster
@@ -95,12 +95,19 @@ capacity formula `needed_disk_space = retention_time_seconds * ingested_samples_
 - 43.5 B × 1.37 B ≈ **60 GB/day**, or 43.5–87 GB/day at Prometheus's 1–2 B.
 - 14 days raw ≈ **0.8–1.2 TB** (single copy). A year raw would be ~22 TB at 1.37 B/sample. That is affordable on
   object storage, but slow to query at 1 s.
+- Sensitivity: 1.37 B is Gorilla's average on Facebook's series. Noisy float power and temperature compress worse,
+  so also budget 3–4 B/sample (assumption): 130–174 GB/day, **1.8–2.4 TB** for 14 days.
 
 **Rollups.** 1-minute rollups keeping 5 aggregates (min, max, sum, count, last):
-1.43 M series × 1,440 min × 5 ≈ 10.3 B values/day ≈ 14 GB/day ≈ **5 TB/year**. Hourly: about 85 GB/year.
+1.43 M series × 1,440 min × 5 ≈ 10.3 B values/day ≈ 14 GB/day ≈ **5 TB/year** (an upper bound). Hourly: about
+85 GB/year. A 1-minute rollup pays off for the 1 s GPU series (60 raw samples → 5 values, 12×) but barely for
+10–30 s series (6 raw samples → 5 values per minute), so roll those up at 5 minutes instead; that cuts the warm
+tier to ≈ 2.2 TB/year.
 
 **The cardinality trap (what happens if you add `job_id` as a label).**
-Assume 20,000 jobs/day using an average of 16 GPUs each (assumption). Every job creates new GPU series:
+Assume 20,000 jobs/day using an average of 16 GPUs each (assumption: mostly short HPC, evaluation and debug jobs
+plus a few multi-day training runs; at full utilization that is a mean of ~46 min per allocation). Every job
+creates new GPU series:
 20,000 × 16 × 40 = **12.8 M new series per day**, about 9× the cluster's entire steady-state series count,
 every day. Index size, memory for the head block and query fan-out all scale with series count, not samples.
 **Job IDs must not be labels on high-frequency hardware metrics.** See deep dive 1.
@@ -163,7 +170,7 @@ Why each box is here:
   framework ingesting about 70 GB/day of telemetry for the entire CINECA datacenter, used to evaluate ML-based job
   scheduling, power prediction and deep-learning anomaly detection [6]. Its architecture uses collector
   *plugins* that publish over MQTT to brokers, with Apache Cassandra plus KairosDB as the time-series back-end [4];
-  the open-source code is at `github.com/EEESlab/examon` [7]. The M100 ExaData paper (Borghesi et al., *Scientific
+  the open-source code is at `github.com/ExamonHPC/examon` [7]. The M100 ExaData paper (Borghesi et al., *Scientific
   Data*, 2023) published 2.5 years (2020-03-09 to 2022-09-28) of ExaMon data from the Marconi100 supercomputer:
   980+ compute nodes, 573 metrics across plugins (including IPMI, Ganglia, Nagios, Slurm and a job table), 49.9 TB
   before compression [4]. *Disclosure: the course author is a co-author of the M100 ExaData paper.*
@@ -291,8 +298,7 @@ Keep **max** in rollups: thermal events are spikes, and an average hides them.
   (preprint).
 - Ostrouchov et al.'s survival analysis of Titan's 18,688 GPUs (over 100,000 GPU-years) found that GPU reliability
   depends on heat dissipation, strongly correlated with cooling-architecture details and job scheduling [16].
-  Tiwari et al. analyzed GPU errors on the same class of large HPC systems and their implications for system
-  design and operation [17].
+  Tiwari et al. analyzed GPU errors on Titan and their implications for system design and operation [17].
 
 **Layer 1 — Deterministic rules on hardware events (Xid, ECC, row remapping).** NVIDIA's Xid catalog gives
 meanings and actions [18]:
@@ -333,14 +339,15 @@ diagnostics, not to drain nodes automatically. Their false positives cost GPU-ho
 stateDiagram-v2
   [*] --> Healthy
   Healthy --> Suspect: statistical or ML anomaly
-  Healthy --> Failed: hard Xid (48, 74, 79, 95)
+  Healthy --> Failed: hard fault (Xid 79, 74, or 48 with 63/64)
   Suspect --> Diagnose: drain after current job ends
   Failed --> Diagnose: drain now
   Diagnose --> Healthy: diagnostics pass
   Diagnose --> RMA: diagnostics fail or thresholds exceeded
   RMA --> Healthy: replaced and burned in
 ```
-*Diagram: a healthy node becomes suspect on a statistical or ML anomaly, or failed on a hard Xid. Suspect nodes
+*Diagram: a healthy node becomes suspect on a statistical or ML anomaly, or failed on a hard fault (Xid 79, 74, or
+48 together with 63/64; Xid 48 alone or 95 first gets a GPU reset). Suspect nodes
 drain after the current job ends; failed nodes drain immediately. Both go to diagnostics, which return them to
 healthy or send hardware to RMA, after which replaced hardware is burned in and returns to healthy.*
 
@@ -364,7 +371,7 @@ received vs expected) next to every energy number.
 loop's measured power by the rack heat load.
 
 **Worked example** (all assumptions): a job on 64 GPUs (8 nodes) for 6 h at an average of 550 W per GPU (the
-H100 SXM's TDP is 700 W [14]):
+H100s in Llama 3 training ran at 700 W TDP [14]):
 - GPU: 64 × 0.55 kW × 6 h = **211 kWh**;
 - node non-GPU baseline 2 kW per node: 8 × 2 kW × 6 h = **96 kWh**;
 - IT total 307 kWh; × PUE 1.2 → **~369 kWh** at the facility meter.
@@ -477,7 +484,7 @@ nodes on an ML score alone; no meta-monitoring.
 
 | Alternative | Why not chosen (here) | When it wins |
 |---|---|---|
-| Single Prometheus server | ~1.4 M series at 1 s and two weeks of retention is beyond a comfortable single instance; no HA or long-term store | Small clusters (tens of nodes) |
+| Single Prometheus server | ~1.4 M series at 1 s and two weeks of retention is beyond a comfortable single instance (judgement; load-test); no HA or long-term store | Small clusters (tens of nodes) |
 | Push everything over MQTT (ExaMon-style) end to end | Excellent for heterogeneous sensors and facility data; less native for Prometheus tooling | Mixed facility + IT telemetry; research platforms [4][6] |
 | One store for everything (ClickHouse only) | Fine for analytics; you rebuild PromQL-style alerting and dashboards | Teams strong in SQL, analytics-first use cases |
 | Job ID as label with short retention | Still millions of series per day; index churn | Very small clusters with few, long jobs |
@@ -502,11 +509,11 @@ See [exercises/C13-gpu-cluster-telemetry.md](../../exercises/C13-gpu-cluster-tel
    https://doi.org/10.1038/s41597-023-02174-3 (full text via Europe PMC PMC10193329; accessed 2026-11)
 5. A. Agelastos et al., "The Lightweight Distributed Metric Service: A Scalable Infrastructure for Continuous
    Monitoring of Large Scale Computing Systems and Applications," SC14, 2014. https://doi.org/10.1109/SC.2014.18
-   (metadata accessed 2026-11)
+   (author manuscript SAND2014-3273C read at https://www.osti.gov/servlets/purl/1142975; accessed 2026-11)
 6. A. Bartolini, F. Beneventi, A. Borghesi, D. Cesarini, A. Libri, L. Benini, et al., "Paving the Way Toward
    Energy-Aware and Automated Datacentre," ICPP Workshops 2019. https://doi.org/10.1145/3339186.3339215
-   (abstract accessed 2026-11)
-7. EEESlab, "examon" (GitHub repository). https://github.com/EEESlab/examon (accessed 2026-11)
+   (publisher page blocks automated fetch; abstract read via Semantic Scholar, accessed 2026-11)
+7. ExamonHPC, "examon" (GitHub repository; formerly EEESlab/examon). https://github.com/ExamonHPC/examon (accessed 2026-11)
 8. NVIDIA, dcgm-exporter `etc/default-counters.csv` (main branch).
    https://github.com/NVIDIA/dcgm-exporter/blob/main/etc/default-counters.csv (accessed 2026-11)
 9. Thanos documentation, "Compactor" (downsampling and retention).
@@ -517,8 +524,7 @@ See [exercises/C13-gpu-cluster-telemetry.md](../../exercises/C13-gpu-cluster-tel
 12. ClickHouse documentation, "Manage data with TTL." https://clickhouse.com/docs/guides/developer/ttl
     (accessed 2026-11)
 13. Tiger Data (TimescaleDB) documentation, "About continuous aggregates."
-    https://www.tigerdata.com/docs/use-timescale/latest/continuous-aggregates/about-continuous-aggregates
-    (accessed 2026-11)
+    https://www.tigerdata.com/docs/learn/continuous-aggregates (accessed 2026-11)
 14. Llama Team, AI @ Meta, "The Llama 3 Herd of Models," arXiv:2407.21783, 2024, §3.3 (infrastructure and reliability).
     https://arxiv.org/abs/2407.21783 (accessed 2026-11)
 15. S. Cui et al., "Story of Two GPUs: Characterizing the Resilience of Hopper H100 and Ampere A100 GPUs,"
@@ -526,10 +532,11 @@ See [exercises/C13-gpu-cluster-telemetry.md](../../exercises/C13-gpu-cluster-tel
     (accessed 2026-11)
 16. G. Ostrouchov, D. Maxwell, R. A. Ashraf, C. Engelmann, M. Shankar, J. H. Rogers, "GPU Lifetimes on Titan
     Supercomputer: Survival Analysis and Reliability," SC20, 2020. https://doi.org/10.1109/SC41405.2020.00045
-    (abstract accessed 2026-11)
+    (abstract read via Semantic Scholar, full text unverified as of 2026-11)
 17. D. Tiwari et al., "Understanding GPU errors on large-scale HPC systems and the implications for system design
-    and operation," HPCA 2015. https://doi.org/10.1109/HPCA.2015.7056044 (metadata accessed 2026-11)
+    and operation," HPCA 2015. https://doi.org/10.1109/HPCA.2015.7056044 (author
+    manuscript read at https://www.osti.gov/servlets/purl/1185857; accessed 2026-11)
 18. NVIDIA, "XID Errors: Analyzing Xid Errors with the Xid Catalog."
-    https://docs.nvidia.com/deploy/xid-errors/analyzing-xid-catalog.html (accessed 2026-11)
+    https://docs.nvidia.com/deploy/xid-errors/latest/analyzing-xid-catalog.html (accessed 2026-11)
 19. SchedMD, "acct_gather.conf" (Slurm energy plugins). https://slurm.schedmd.com/acct_gather.conf.html
     (accessed 2026-11)

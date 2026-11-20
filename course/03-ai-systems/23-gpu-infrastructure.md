@@ -3,7 +3,7 @@ id: SYSDESIGN-23
 title: "GPU & accelerator infrastructure"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-21, SYSDESIGN-22, SYSDESIGN-14]
 estimated_time: "3h reading"
 requirement: "Lumen's platform team must run inference fleets and weekly fine-tuning jobs on a shared pool of 64 GPUs, keep tail latency inside SLO, survive hardware faults, and report cost per token and per training run."
@@ -72,16 +72,19 @@ You need four parts, not the micro-architecture:
 |---|---|---|---|---|---|---|
 | NVIDIA H100 SXM | 80 GB HBM3 | 3.35 TB/s | ≈ 989.5 TFLOPS | ≈ 1,979 TFLOPS | up to 700 W | [1] |
 | NVIDIA H200 SXM | 141 GB HBM3e | 4.8 TB/s | ≈ 989.5 TFLOPS | ≈ 1,979 TFLOPS | up to 700 W | [2] (preliminary) |
-| NVIDIA B200 (per GPU, derived from DGX B200 ÷ 8) | 180 GB HBM3e | 8 TB/s | — | ≈ 4.5 PFLOPS | system ~14.3 kW max for 8 GPUs | [3] |
+| NVIDIA B200 (per GPU; memory, bandwidth, FP8 derived from DGX B200 ÷ 8) | 180 GB HBM3e (derived) | 8 TB/s (derived) | — | ≈ 4.5 PFLOPS (derived) | 1,000 W max per GPU [34]; DGX B200 system ~14.3 kW max [3] | [3][34] |
 | AMD Instinct MI300X | 192 GB HBM3 | 5.3 TB/s | 1.3 PFLOPS | — | 750 W | [5] |
 | AMD Instinct MI355X | 288 GB HBM3E | 8 TB/s | 2.5 PFLOPS | — | 1,400 W | [6] |
 | Google TPU7x (Ironwood), per chip | 192 GiB | 7.38 TB/s | 2,307 TFLOPS | 4,614 TFLOPS | — | [7] |
 | AWS Trainium3, per chip | 144 GB HBM3e | 4.9 TB/s | — | — | — | [8] |
 
-(NVIDIA dense values are the datasheet's sparse figures halved; B200 values are DGX B200 system totals divided by eight
-GPUs. Empty cells: not stated on the cited page.)
+(NVIDIA dense values are the datasheet's sparse figures halved; B200 memory, bandwidth and FP8 values are DGX B200
+system totals divided by eight GPUs, because NVIDIA publishes no per-GPU figure for them; the B200 power figure is
+NVIDIA's own per-GPU maximum. AMD publishes dense and sparse separately. TPU7x and Trainium3 figures are the vendors'
+stated peaks; their pages do not say dense or sparse. Empty cells: not stated on the cited page.)
 
-**Ridge points** (dense FLOP/s ÷ bandwidth): H100 FP8 ≈ 591; H200 FP8 ≈ 412; B200 FP8 ≈ 562; TPU7x FP8 ≈ 625 FLOP/byte.
+**Ridge points** (dense FLOP/s ÷ bandwidth): H100 FP8 ≈ 591; H200 FP8 ≈ 412; B200 FP8 ≈ 562 (from the derived
+per-GPU values); TPU7x FP8 ≈ 625 FLOP/byte (from the stated peak).
 Every one of these is far above decode's arithmetic intensity at realistic batch sizes (chapter 21), which is why
 memory bandwidth per dollar is the metric to compare for chat inference, and FLOPs per dollar for training and
 prefill-heavy work.
@@ -104,20 +107,23 @@ InfiniBand or RoCE network cards over a non-blocking fabric.*
 
 | Tier | Per-GPU bandwidth (vendor figure) | Order of magnitude below HBM | Used for |
 |---|---|---|---|
-| HBM | 3.35 TB/s (H100) – 8 TB/s (B200) [1][3] | — | weights, KV, activations |
-| NVLink + NVSwitch | 900 GB/s H100 [1]; ≈ 1.8 TB/s B200 (14.4 TB/s ÷ 8) [3] | ~4× | tensor parallelism, all-reduce, KV transfer within a node/rack |
+| HBM | 3.35 TB/s (H100) [1] – 8 TB/s (B200; derived: DGX B200 64 TB/s ÷ 8) [3] | — | weights, KV, activations |
+| NVLink + NVSwitch | 900 GB/s H100 [1]; 1.8 TB/s GPU-to-GPU B200 (HGX B200 [35]; matches DGX B200's 14.4 TB/s ÷ 8 [3]) | ~4× | tensor parallelism, all-reduce, KV transfer within a node/rack |
 | PCIe Gen5 x16 | 128 GB/s bidirectional [1] | ~25× | host↔GPU loads, NIC traffic, GPUs without NVLink |
 | InfiniBand NDR / 400 GbE | 400 Gb/s = 50 GB/s per NIC; DGX B200 has 8 ConnectX-7 at up to 400 Gb/s [3] | ~65× | data/pipeline parallel, KV transfer between nodes, storage |
-| Next generation | Quantum-X800 switches: 144 ports of 800 Gb/s [18]; Ultra Ethernet spec 1.0 (June 2025) [19] | — | larger training fabrics |
+| Next generation | Quantum-X800 switches: 144 ports of 800 Gb/s [18]; Ultra Ethernet spec 1.0 (June 2025); current published version 1.1 (2026-10-12) [19] | — | larger training fabrics |
 
 (Units matter: NVLink is quoted in GB/s *bidirectional*; network links in Gb/s *per direction*. Divide by 8 and check
-direction before comparing.)
+direction before comparing.) The steps are not a uniform factor of ten: on an H100, HBM → NVLink is 3.7×
+(3,350 ÷ 900), NVLink → PCIe 7.0× (900 ÷ 128) and PCIe → one 400 Gb/s NIC 2.6× (128 ÷ 50), about 65× from HBM to the
+network in three steps.
 
 **InfiniBand vs RoCE.** Both provide **RDMA** — the NIC writes directly into remote (GPU) memory, bypassing the kernel —
 which collective libraries such as NCCL use. InfiniBand is a separate, lossless, credit-based fabric with its own
 switches and subnet manager. **RoCE v2** runs RDMA over UDP/IP on Ethernet and needs careful congestion control
 (PFC/ECN) to stay effectively lossless. The Ultra Ethernet Consortium published its 1.0 specification on 11 June 2025 to
-standardise an Ethernet transport for AI/HPC [19]. Large fabrics are usually **rail-optimised**: GPU *k* of every server
+standardise an Ethernet transport for AI/HPC; after point releases 1.0.1–1.0.3, the current published version is 1.1
+(2026-10-12) [19]. Large fabrics are usually **rail-optimised**: GPU *k* of every server
 connects to the same leaf ("rail") switch, so the dominant collective traffic crosses one switch hop.
 
 ### 3. Kubernetes and GPUs
@@ -150,7 +156,9 @@ compatibility yourself.
 **Dynamic Resource Allocation (DRA) — GA in v1.34.** DRA replaces opaque counts with structured requests:
 drivers publish **ResourceSlices** describing devices and attributes; admins define **DeviceClasses**; workloads
 create **ResourceClaims** (or ResourceClaimTemplates) selecting devices with CEL expressions; the scheduler allocates
-matching devices. The `resource.k8s.io/v1` APIs graduated to stable in Kubernetes v1.34 [9]. Kubernetes' current
+matching devices. The core of DRA and its `resource.k8s.io` APIs, at the stable `v1` version, went GA in Kubernetes v1.34 [9]; the
+DRA concept page now lists the feature as "Stable since Kubernetes v1.35", the release in which its feature gate was
+locked on [9]. Kubernetes' current
 releases are v1.37.x, v1.36.x and v1.35.x (patch releases of 2026-10-28) [21].
 
 **NVIDIA's DRA driver** (v0.5.1, 2026-10 [22]) manages two resource types. **ComputeDomains** — "an abstraction for
@@ -211,9 +219,12 @@ researchers on part of the same hardware.
 
 ### 7. Measuring GPUs honestly
 
-The most common dashboard metric, "GPU utilisation" (NVML/`nvidia-smi` utilisation, exported by DCGM as
-`DCGM_FI_DEV_GPU_UTIL`), measures the "percent of time over the past sample period during which one or more kernels was executing" [11] —
-not how much of the GPU the kernel used. A tiny kernel that keeps one SM busy reads as 100 %. Use DCGM's **profiling metrics** instead [26]:
+The most common dashboard metric, "GPU utilisation" (NVML/`nvidia-smi` utilisation; DCGM field 203,
+`DCGM_FI_DEV_GPU_UTIL_RATIO` in DCGM's current field list and in dcgm-exporter 4.9.0's default counters, where it is
+reported as a ratio — exporter releases up to 4.8.4 exported it as `DCGM_FI_DEV_GPU_UTIL` in percent [36]), measures the "percent of time over the past sample period during which one or more kernels was executing" [11] —
+not how much of the GPU the kernel used. A tiny kernel that keeps one SM busy reads as 100 %. So a fleet can read 98 % on every GPU while producing only a
+third of the tokens/s its capacity model predicts (the scenario of exercise 7): the gauge cannot tell a full GPU from
+a busy but underfed one. Use DCGM's **profiling metrics** instead [26]:
 
 | DCGM field | Definition (DCGM docs [26]) | Use |
 |---|---|---|
@@ -262,8 +273,12 @@ starts measured in minutes are usually storage and provisioning, not the GPU.
 The Llama 3 paper reports, for a **54-day snapshot** of pre-training on up to **16K H100 GPUs** (700 W TDP, 80 GB
 HBM3): **466 job interruptions**, of which 47 planned and **419 unexpected**; "approximately 78%" of unexpected
 interruptions attributed to confirmed or suspected hardware issues; **GPU issues the largest category at 58.7 %**; and
-effective training time above 90 % [16]. Its root-cause table lists faulty GPUs (148 interruptions) and **GPU HBM3
-memory (72, 17.2 %)** as the top two categories, ahead of software bugs and network switches/cables [16].
+effective training time above 90 % [16]. Its root-cause table (Table 5) lists faulty GPUs (**30.1 %**) and **GPU HBM3
+memory (72, 17.2 %)** as the top two categories, ahead of software bugs and network switches/cables [16]. One caution
+when reusing that table: it prints 148 interruptions for faulty GPUs, which would be 35.3 % of 419, not the printed
+30.1 %. The percentage column (whose GPU rows sum to the 58.7 % quoted in the text) and the count column (whose GPU rows
+sum to 268, or 64.0 %) do not reconcile, and the paper does not say which is right, so this chapter quotes the
+percentages.
 
 419 unexpected interruptions in 54 days is **≈ 7.8 per day — one every ≈ 3.1 hours**. At that rate:
 
@@ -393,8 +408,8 @@ for *your* models, availability, and price. Benchmark your workload; do not comp
   [4]) make wide expert parallelism and huge KV pools practical, and push schedulers to understand domains via DRA
   ComputeDomains [22].
 - **Kubernetes workload-aware scheduling**: Workload/PodGroup gang scheduling beta in v1.37; hierarchical
-  CompositePodGroups alpha in v1.37 [10]; DRA stable since v1.34 [9].
-- **Ethernet for AI fabrics**: Ultra Ethernet 1.0 (June 2025) and its point releases [19]; 800 Gb/s-per-port switches
+  CompositePodGroups alpha in v1.37 [10]; core DRA GA since v1.34 [9].
+- **Ethernet for AI fabrics**: Ultra Ethernet 1.0 (June 2025); the current published version is 1.1 (2026-10-12) [19]; 800 Gb/s-per-port switches
   (Quantum-X800) [18].
 - **FP4 inference** (NVFP4/MXFP4) on Blackwell-class and MI350-class hardware, supported in vLLM's quantisation stack [30].
 - **Slurm under NVIDIA stewardship** and Slinky on Kubernetes [14][15].
@@ -422,7 +437,7 @@ and *idle fraction*. Cost per token = the first ÷ the second.
 
 Compare GPU generations by **bandwidth per dollar for decode**. Using chapter 22's model (Qwen3-32B, FP8, batch 128,
 1,650-token context, 70 % of peak bandwidth assumed), the bandwidth model predicts ≈ 4,960 output tokens/s on an H100,
-≈ 7,100 on an H200 and ≈ 11,850 on a B200 (bandwidth term only; the H200 and B200 also hold more KV, enabling larger
+≈ 7,100 on an H200 and ≈ 11,850 on a B200 (B200 from the derived 8 TB/s per GPU; bandwidth term only; the H200 and B200 also hold more KV, enabling larger
 batches). If a B200-hour costs less than ≈ 2.4× an H100-hour (11,850 ÷ 4,960), it is cheaper per token for this
 workload — a calculation you redo with real prices and real benchmarks.
 
@@ -506,9 +521,9 @@ that DCGM complements on GPU hosts.
 6. AMD, *Instinct MI355X — specifications* (288 GB, 8 TB/s, 2.5 PFLOPs FP16, 1,400 W). https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html (accessed 2026-11)
 7. Google Cloud, *TPU7x (Ironwood)* documentation (192 GiB, 7,380 GB/s, 2,307 BF16 / 4,614 FP8 TFLOPS, 9,216 chips per pod). https://docs.cloud.google.com/tpu/docs/tpu7x (accessed 2026-11)
 8. AWS, *AWS Trainium* product page (Trainium3: 144 GB HBM3e, 4.9 TB/s, UltraServers up to 144 chips). https://aws.amazon.com/ai/machine-learning/trainium/ (accessed 2026-11)
-9. Kubernetes, *Kubernetes v1.34: DRA has graduated to GA*, 2025-09-01; and *Dynamic Resource Allocation* concept page. https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/ ; https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/ (accessed 2026-11)
+9. Kubernetes, *Kubernetes v1.34: DRA has graduated to GA*, 2025-09-01; and *Dynamic Resource Allocation* concept page ("Stable since Kubernetes v1.35"). https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/ ; https://kubernetes.io/docs/concepts/resource-management/dynamic-resource-allocation/ (accessed 2026-11)
 10. Kubernetes, *Gang Scheduling* concept page (beta since v1.37, disabled by default; CompositePodGroup alpha in v1.37). https://kubernetes.io/docs/concepts/scheduling-eviction/gang-scheduling/ (accessed 2026-11)
-11. PyTorch, *torch.cuda.utilization* ("percent of time over the past sample period during which one or more kernels was executing on the GPU as given by nvidia-smi"). https://docs.pytorch.org/docs/stable/generated/torch.cuda.utilization.html (accessed 2026-11)
+11. PyTorch, *torch.cuda.utilization* ("percent of time over the past sample period during which one or more kernels was executing on the GPU as given by nvidia-smi"). https://docs.pytorch.org/docs/2.15/generated/torch.cuda.utilization.html (accessed 2026-11)
 12. Kubernetes SIGs, *Kueue README* (v0.20.7, 2026-11-19). https://github.com/kubernetes-sigs/kueue (accessed 2026-11)
 13. Volcano project, *README* (CNCF incubating; v1.16.0, 2026-10-14). https://github.com/volcano-sh/volcano (accessed 2026-11)
 14. SchedMD / Slinky project, *slurm-operator README* (v1.3.0, 2026-11-19). https://github.com/SlinkyProject/slurm-operator (accessed 2026-11)
@@ -516,18 +531,21 @@ that DCGM complements on GPU hosts.
 16. A. Grattafiori et al. (Llama Team, Meta), *The Llama 3 Herd of Models*, arXiv:2407.21783, 2024 (Table 3; §3.3.4 reliability, Table 5). https://arxiv.org/abs/2407.21783
 17. T. Dao et al., *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*, NeurIPS 2022. arXiv:2205.14135. https://arxiv.org/abs/2205.14135
 18. NVIDIA, *Quantum-X800 InfiniBand platform* (144 ports of 800 Gb/s). https://www.nvidia.com/en-us/networking/products/infiniband/quantum-x800/ (accessed 2026-11)
-19. Ultra Ethernet Consortium, *UEC Specification 1.0* (2025-06-11) and Linux Foundation press release. https://ultraethernet.org/specification ; https://www.linuxfoundation.org/press/uec-launches-spec-1.0 (accessed 2026-11)
+19. Ultra Ethernet Consortium, *UEC Specification 1.0* (2025-06-11) and *Specification history* (1.0.1 2025-09-05, 1.0.2 2026-01-28, 1.0.3 2026-07-16, 1.1 2026-10-12, current); Linux Foundation press release. https://ultraethernet.org/specification-history/ ; https://www.linuxfoundation.org/press/uec-launches-spec-1.0 (accessed 2026-11)
 20. NVIDIA, *GPU Operator overview* and releases (v26.7.3, 2026-11-17). https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/overview.html ; https://github.com/NVIDIA/gpu-operator/releases (accessed 2026-11)
 21. Kubernetes, *GitHub releases* (v1.37.2, v1.36.6, v1.35.10 on 2026-10-28). https://github.com/kubernetes/kubernetes/releases (accessed 2026-11)
 22. Kubernetes SIGs / NVIDIA, *DRA Driver for NVIDIA GPUs README* (v0.5.1, 2026-10-12). https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu (accessed 2026-11)
-23. NVIDIA, *MIG User Guide — Introduction*. https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html (accessed 2026-11)
+23. NVIDIA, *MIG User Guide — Introduction*. https://docs.nvidia.com/datacenter/tesla/mig-user-guide/latest/introduction.html (accessed 2026-11)
 24. NVIDIA, *k8s-device-plugin README* (time-slicing, MPS, MIG strategies; v0.20.2). https://github.com/NVIDIA/k8s-device-plugin (accessed 2026-11)
-25. NVIDIA, *MIG User Guide — Supported MIG Profiles* (H100 80GB). https://docs.nvidia.com/datacenter/tesla/mig-user-guide/supported-mig-profiles.html (accessed 2026-11)
+25. NVIDIA, *MIG User Guide — Supported MIG Profiles* (H100 80GB). https://docs.nvidia.com/datacenter/tesla/mig-user-guide/latest/supported-mig-profiles.html (accessed 2026-11)
 26. NVIDIA, *DCGM User Guide — Feature Overview* (profiling metrics). https://docs.nvidia.com/datacenter/dcgm/latest/user-guide/feature-overview.html (accessed 2026-11)
 27. NVIDIA, *dcgm-exporter releases* (4.9.0, 2026-11-06). https://github.com/NVIDIA/dcgm-exporter/releases (accessed 2026-11)
-28. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/latest/serving/parallelism_scaling.html (accessed 2026-11)
-29. NVIDIA, *Xid Errors — Analyzing Xid Errors with the Xid Catalog*. https://docs.nvidia.com/deploy/xid-errors/analyzing-xid-catalog.html (accessed 2026-11)
+28. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/parallelism_scaling/ (accessed 2026-11)
+29. NVIDIA, *Xid Errors — Analyzing Xid Errors with the Xid Catalog*. https://docs.nvidia.com/deploy/xid-errors/latest/analyzing-xid-catalog.html (accessed 2026-11)
 30. vLLM project, *Release v0.34.0* (ROCm 10.0 images; quantisation changes). https://github.com/vllm-project/vllm/releases/tag/v0.34.0 (accessed 2026-11)
 31. SGLang project, *README* (hardware platforms). https://github.com/sgl-project/sglang (accessed 2026-11)
 32. llm-d project, *README* (adopters and AMD MI300X results). https://github.com/llm-d/llm-d (accessed 2026-11)
 33. S. Rajbhandari, J. Rasley, O. Ruwase, Y. He, *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*, SC 2020. arXiv:1910.02054 ("2Ψ + 2Ψ + KΨ = 16Ψ bytes", K = 12 for mixed-precision Adam). https://arxiv.org/abs/1910.02054
+34. NVIDIA, *NVIDIA DGX B200 User Guide — Introduction to NVIDIA DGX B200 Systems* (power table: "Maximum Power per GPU" 1,000 W, as reported by `nvidia-smi`, with at least five of six PSUs operating). https://docs.nvidia.com/dgx/dgxb200-user-guide/introduction-to-dgxb200.html (accessed 2026-11)
+35. NVIDIA, *NVIDIA HGX Platform — specifications* (HGX B200: NVLink GPU-to-GPU bandwidth 1.8 TB/s). https://www.nvidia.com/en-us/data-center/hgx/ (accessed 2026-11)
+36. NVIDIA, *DCGM API — Field Identifiers* (field 203 `DCGM_FI_DEV_GPU_UTIL_RATIO`, "GPU Utilization") and *dcgm-exporter default-counters.csv* at 4.9.0 ("GPU utilization as a ratio") vs 4.8.4 (`DCGM_FI_DEV_GPU_UTIL`, "GPU utilization (in %)"). https://docs.nvidia.com/datacenter/dcgm/latest/dcgm-api/dcgm-api-field-ids.html ; https://github.com/NVIDIA/dcgm-exporter/blob/4.9.0/etc/default-counters.csv (accessed 2026-11)

@@ -11,7 +11,7 @@ Status values: `DRAFT` (written, under review) · `SOURCES_CHECKED` (every sourc
 ### 00 — How to use this course: paths, the requirement loop, what changed in system design
 
 *Requirement:* Know what a 2026 system designer must master that a 2016 one did not, and pick the shortest path through this course that gets you there  
-*Time:* 1h reading + 15 min setup check · *Status:* `DRAFT` · [lesson](course/00-orientation/00-how-to-use-this-course.md) · [slides](slides/00-how-to-use-this-course.md) · [exercises](exercises/00-how-to-use-this-course.md)
+*Time:* 1h reading + 15 min setup check · *Status:* `SOURCES_CHECKED` · [lesson](course/00-orientation/00-how-to-use-this-course.md) · [slides](slides/00-how-to-use-this-course.md) · [exercises](exercises/00-how-to-use-this-course.md)
 
 You will be able to:
 
@@ -24,7 +24,7 @@ You will be able to:
 ### 01 — Requirements to numbers: SLIs/SLOs, estimation, latency numbers, Little's law, queueing
 
 *Requirement:* Decide, before launch day, whether one server survives 500,000 daily active users with 99.9% of requests succeeding and p99 latency under 300 ms  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/00-orientation/01-requirements-to-numbers.md) · [slides](slides/01-requirements-to-numbers.md) · [exercises](exercises/01-requirements-to-numbers.md) · [lab](labs/01-requirements-to-numbers/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/00-orientation/01-requirements-to-numbers.md) · [slides](slides/01-requirements-to-numbers.md) · [exercises](exercises/01-requirements-to-numbers.md) · [lab](labs/01-requirements-to-numbers/)
 
 You will be able to:
 
@@ -39,7 +39,7 @@ You will be able to:
 ### 02 — Anatomy of a request: DNS, TCP, QUIC/HTTP/3, TLS 1.3, proxies, CDN edge
 
 *Requirement:* A first-time Lumen user anywhere in Europe sees the first byte of the app shell within 200 ms at p75, and a returning user within 100 ms  
-*Time:* 2.5h reading + 30 min hands-on with curl · *Status:* `DRAFT` · [lesson](course/01-foundations/02-anatomy-of-a-request.md) · [slides](slides/02-anatomy-of-a-request.md) · [exercises](exercises/02-anatomy-of-a-request.md)
+*Time:* 2.5h reading + 30 min hands-on with curl · *Status:* `SOURCES_CHECKED` · [lesson](course/01-foundations/02-anatomy-of-a-request.md) · [slides](slides/02-anatomy-of-a-request.md) · [exercises](exercises/02-anatomy-of-a-request.md)
 
 You will be able to:
 
@@ -52,7 +52,7 @@ You will be able to:
 ### 03 — Scaling compute: stateless services, L4/L7 load balancing, algorithms, health checks, autoscaling
 
 *Requirement:* Serve 6,000 requests/s at peak with p99 < 300 ms, lose any one instance or one zone without user-visible errors, and deploy 20 times a day without dropping a request  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/01-foundations/03-scaling-compute.md) · [slides](slides/03-scaling-compute.md) · [exercises](exercises/03-scaling-compute.md) · [lab](labs/03-scaling-compute/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/01-foundations/03-scaling-compute.md) · [slides](slides/03-scaling-compute.md) · [exercises](exercises/03-scaling-compute.md) · [lab](labs/03-scaling-compute/)
 
 You will be able to:
 
@@ -134,7 +134,7 @@ You will be able to:
 ### 09 — Coordination & consensus
 
 *Requirement:* Lumen must run exactly one active job scheduler and one ledger writer across three availability zones: fail over in under 5 s, never let two writers act at once, and never lose an acknowledged configuration change.  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/01-foundations/09-coordination-consensus.md) · [slides](slides/09-coordination-consensus.md) · [exercises](exercises/09-coordination-consensus.md) · [lab](labs/09-coordination-consensus/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/01-foundations/09-coordination-consensus.md) · [slides](slides/09-coordination-consensus.md) · [exercises](exercises/09-coordination-consensus.md) · [lab](labs/09-coordination-consensus/)
 
 You will be able to:
 
@@ -162,7 +162,7 @@ You will be able to:
 ### 11 — Reliability engineering
 
 *Requirement:* Lumen's answer API must hold 99.95% monthly availability, survive the loss of one availability zone with no human action, and recover on its own within five minutes after any dependency brownout ends  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/01-foundations/11-reliability-engineering.md) · [slides](slides/11-reliability-engineering.md) · [exercises](exercises/11-reliability-engineering.md) · [lab](labs/11-reliability-engineering/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/01-foundations/11-reliability-engineering.md) · [slides](slides/11-reliability-engineering.md) · [exercises](exercises/11-reliability-engineering.md) · [lab](labs/11-reliability-engineering/)
 
 You will be able to:
 
@@ -177,7 +177,7 @@ You will be able to:
 ### 12 — Observability
 
 *Requirement:* Page a human within minutes when Lumen's answer API is burning its 99.5% monthly availability budget fast, never page for blips, and let the on-call engineer go from alert to the guilty span in under five minutes  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/01-foundations/12-observability.md) · [slides](slides/12-observability.md) · [exercises](exercises/12-observability.md) · [lab](labs/12-observability/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/01-foundations/12-observability.md) · [slides](slides/12-observability.md) · [exercises](exercises/12-observability.md) · [lab](labs/12-observability/)
 
 You will be able to:
 
@@ -191,7 +191,7 @@ You will be able to:
 ### 13 — Data at scale: object storage, lakehouse, batch vs stream, search
 
 *Requirement:* Keep 2 PB of documents durably and cheaply, answer analytics over 90 days of events in seconds, and serve keyword search over 500 M chunks at p99 < 200 ms  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/01-foundations/13-data-at-scale.md) · [slides](slides/13-data-at-scale.md) · [exercises](exercises/13-data-at-scale.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/01-foundations/13-data-at-scale.md) · [slides](slides/13-data-at-scale.md) · [exercises](exercises/13-data-at-scale.md)
 
 You will be able to:
 
@@ -250,7 +250,7 @@ You will be able to:
 ### 17 — Energy- & carbon-aware design
 
 *Requirement:* Report Lumen's carbon per 1,000 chat answers with an auditable method, and cut it by 40% within 12 months without breaking the 2 s time-to-first-token SLO  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/02-modern-requirements/17-energy-carbon-aware.md) · [slides](slides/17-energy-carbon-aware.md) · [exercises](exercises/17-energy-carbon-aware.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/02-modern-requirements/17-energy-carbon-aware.md) · [slides](slides/17-energy-carbon-aware.md) · [exercises](exercises/17-energy-carbon-aware.md)
 
 You will be able to:
 
@@ -277,7 +277,7 @@ You will be able to:
 ### 19 — Privacy, compliance & data sovereignty
 
 *Requirement:* Keep EU tenants' personal data under EU jurisdiction, honour an erasure request across every store (primary DBs, caches, search and vector indexes, logs, streams, backups, training data) inside the one-month GDPR response window, and prove all of it to an auditor  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/02-modern-requirements/19-privacy-compliance-sovereignty.md) · [slides](slides/19-privacy-compliance-sovereignty.md) · [exercises](exercises/19-privacy-compliance-sovereignty.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/02-modern-requirements/19-privacy-compliance-sovereignty.md) · [slides](slides/19-privacy-compliance-sovereignty.md) · [exercises](exercises/19-privacy-compliance-sovereignty.md)
 
 You will be able to:
 
@@ -291,7 +291,7 @@ You will be able to:
 ### 20 — Real-time & streaming systems
 
 *Requirement:* Reflect every document edit in Lumen's search and RAG answers within 5 s (p99), show per-tenant usage dashboards with ≤ 10 s freshness at 50k events/s peak, and never lose or double-count a billable token  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/02-modern-requirements/20-real-time-streaming.md) · [slides](slides/20-real-time-streaming.md) · [exercises](exercises/20-real-time-streaming.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/02-modern-requirements/20-real-time-streaming.md) · [slides](slides/20-real-time-streaming.md) · [exercises](exercises/20-real-time-streaming.md)
 
 You will be able to:
 
@@ -307,7 +307,7 @@ You will be able to:
 ### 21 — Anatomy of LLM inference
 
 *Requirement:* Lumen chat must show the first token within 500 ms (p95) and stream at least 20 tokens/s to every user. How many users can one GPU carry, and what limits it?  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/03-ai-systems/21-llm-inference-anatomy.md) · [slides](slides/21-llm-inference-anatomy.md) · [exercises](exercises/21-llm-inference-anatomy.md) · [lab](labs/21-llm-inference-anatomy/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/21-llm-inference-anatomy.md) · [slides](slides/21-llm-inference-anatomy.md) · [exercises](exercises/21-llm-inference-anatomy.md) · [lab](labs/21-llm-inference-anatomy/)
 
 You will be able to:
 
@@ -321,7 +321,7 @@ You will be able to:
 ### 22 — Serving LLMs at scale
 
 *Requirement:* Serve a 32B-class open model to 10,000 concurrently active Lumen users with TTFT p95 < 2 s and TPOT p95 < 50 ms, at a cost per million tokens finance can sign off.  
-*Time:* 4h reading + 2h lab · *Status:* `DRAFT` · [lesson](course/03-ai-systems/22-serving-llms-at-scale.md) · [slides](slides/22-serving-llms-at-scale.md) · [exercises](exercises/22-serving-llms-at-scale.md) · [lab](labs/22-serving-llms-at-scale/)
+*Time:* 4h reading + 2h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/22-serving-llms-at-scale.md) · [slides](slides/22-serving-llms-at-scale.md) · [exercises](exercises/22-serving-llms-at-scale.md) · [lab](labs/22-serving-llms-at-scale/)
 
 You will be able to:
 
@@ -335,7 +335,7 @@ You will be able to:
 ### 23 — GPU & accelerator infrastructure
 
 *Requirement:* Lumen's platform team must run inference fleets and weekly fine-tuning jobs on a shared pool of 64 GPUs, keep tail latency inside SLO, survive hardware faults, and report cost per token and per training run.  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/03-ai-systems/23-gpu-infrastructure.md) · [slides](slides/23-gpu-infrastructure.md) · [exercises](exercises/23-gpu-infrastructure.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/23-gpu-infrastructure.md) · [slides](slides/23-gpu-infrastructure.md) · [exercises](exercises/23-gpu-infrastructure.md)
 
 You will be able to:
 
@@ -349,7 +349,7 @@ You will be able to:
 ### 24 — Retrieval & vector systems
 
 *Requirement:* Answer questions over 50 million chunks from 2,000 tenant workspaces with p95 retrieval under 150 ms, zero cross-tenant or cross-ACL leakage, and edits visible within 15 minutes  
-*Time:* 3.5h reading + 2h lab · *Status:* `DRAFT` · [lesson](course/03-ai-systems/24-retrieval-vector-systems.md) · [slides](slides/24-retrieval-vector-systems.md) · [exercises](exercises/24-retrieval-vector-systems.md) · [lab](labs/24-retrieval-vector-systems/)
+*Time:* 3.5h reading + 2h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/24-retrieval-vector-systems.md) · [slides](slides/24-retrieval-vector-systems.md) · [exercises](exercises/24-retrieval-vector-systems.md) · [lab](labs/24-retrieval-vector-systems/)
 
 You will be able to:
 
@@ -363,7 +363,7 @@ You will be able to:
 ### 25 — Agentic systems
 
 *Requirement:* Run multi-step research-and-analysis tasks for 10,000 daily users: tasks up to 30 minutes, every tool call least-privileged and audited, risky actions approved by a human, a hard cost cap per task, and no duplicated side effects after a worker crash  
-*Time:* 3.5h reading + 2h lab · *Status:* `DRAFT` · [lesson](course/03-ai-systems/25-agentic-systems.md) · [slides](slides/25-agentic-systems.md) · [exercises](exercises/25-agentic-systems.md) · [lab](labs/25-agentic-systems/)
+*Time:* 3.5h reading + 2h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/25-agentic-systems.md) · [slides](slides/25-agentic-systems.md) · [exercises](exercises/25-agentic-systems.md) · [lab](labs/25-agentic-systems/)
 
 You will be able to:
 
@@ -377,7 +377,7 @@ You will be able to:
 ### 26 — LLM gateways & LLMOps
 
 *Requirement:* Give 40 internal teams one API to four model providers and a self-hosted vLLM fleet at 2,000 requests/s peak, with per-team token quotas, under 10 ms of added gateway latency at p95, cost attributed per team, automatic fallback on provider failure, and every model or prompt change gated by evaluations  
-*Time:* 3h reading + 1.5h lab · *Status:* `DRAFT` · [lesson](course/03-ai-systems/26-llm-gateways-llmops.md) · [slides](slides/26-llm-gateways-llmops.md) · [exercises](exercises/26-llm-gateways-llmops.md) · [lab](labs/26-llm-gateways-llmops/)
+*Time:* 3h reading + 1.5h lab · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/26-llm-gateways-llmops.md) · [slides](slides/26-llm-gateways-llmops.md) · [exercises](exercises/26-llm-gateways-llmops.md) · [lab](labs/26-llm-gateways-llmops/)
 
 You will be able to:
 
@@ -391,7 +391,7 @@ You will be able to:
 ### 27 — ML platforms & data for AI
 
 *Requirement:* Ship a model change from a notebook to production in under a day, serve features at p99 < 10 ms, and prove that what the model saw in training is what it sees in production  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/03-ai-systems/27-ml-platforms.md) · [slides](slides/27-ml-platforms.md) · [exercises](exercises/27-ml-platforms.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/27-ml-platforms.md) · [slides](slides/27-ml-platforms.md) · [exercises](exercises/27-ml-platforms.md)
 
 You will be able to:
 
@@ -405,11 +405,11 @@ You will be able to:
 ### 28 — Trust, safety & governance for AI systems
 
 *Requirement:* Let an LLM assistant read untrusted documents and call tools on customers' behalf without leaking their data, and be able to show a regulator what it did and why  
-*Time:* 3h reading · *Status:* `DRAFT` · [lesson](course/03-ai-systems/28-ai-trust-safety-governance.md) · [slides](slides/28-ai-trust-safety-governance.md) · [exercises](exercises/28-ai-trust-safety-governance.md)
+*Time:* 3h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/03-ai-systems/28-ai-trust-safety-governance.md) · [slides](slides/28-ai-trust-safety-governance.md) · [exercises](exercises/28-ai-trust-safety-governance.md)
 
 You will be able to:
 
-- Build a threat model for an LLM application using the OWASP Top 10 for LLM Applications (2025) and the Agentic Top 10 (2026)
+- Build a threat model for an LLM application using the OWASP Top 10 for LLM Applications (2026) and the Agentic Top 10 (2026)
 - Explain direct and indirect prompt injection and why filtering alone cannot solve it
 - Design a layered guardrail architecture with input/output controls, a policy engine and capability-scoped tools
 - Design PII redaction, content provenance and model supply-chain controls, and state their limits
@@ -421,7 +421,7 @@ You will be able to:
 ### C01 — URL shortener + distributed rate limiter
 
 *Requirement:* Design a public URL shortener that takes 100 million new links a month and serves 10 billion redirects a month with p99 < 50 ms from the edge, plus a rate limiter that enforces per-API-key quotas across three regions and blocks abusive traffic before it reaches the origin.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C01-url-shortener-rate-limiter.md) · [slides](slides/C01-url-shortener-rate-limiter.md) · [exercises](exercises/C01-url-shortener-rate-limiter.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C01-url-shortener-rate-limiter.md) · [slides](slides/C01-url-shortener-rate-limiter.md) · [exercises](exercises/C01-url-shortener-rate-limiter.md)
 
 You will be able to:
 
@@ -434,7 +434,7 @@ You will be able to:
 ### C02 — News feed / timeline
 
 *Requirement:* Design the home feed for a social app with 200 million daily users: the feed loads in under 300 ms at p99, a new post reaches followers' feeds within 5 seconds at p95, some accounts have tens of millions of followers, and the feed is ranked by a model rather than sorted by time.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C02-news-feed.md) · [slides](slides/C02-news-feed.md) · [exercises](exercises/C02-news-feed.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C02-news-feed.md) · [slides](slides/C02-news-feed.md) · [exercises](exercises/C02-news-feed.md)
 
 You will be able to:
 
@@ -447,7 +447,7 @@ You will be able to:
 ### C03 — Chat & presence
 
 *Requirement:* Design a chat service for 100 million daily users with 1:1 and group conversations up to 1,000 members, real-time delivery under 500 ms at p99 to online devices, reliable offline delivery and multi-device sync, ordered history, presence and typing indicators, and an end-to-end-encrypted mode.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C03-chat-presence.md) · [slides](slides/C03-chat-presence.md) · [exercises](exercises/C03-chat-presence.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C03-chat-presence.md) · [slides](slides/C03-chat-presence.md) · [exercises](exercises/C03-chat-presence.md)
 
 You will be able to:
 
@@ -460,7 +460,7 @@ You will be able to:
 ### C04 — Video upload, transcoding & streaming
 
 *Requirement:* Design a video platform that ingests 1 million uploads a day from phones and studios, makes each video playable within minutes, and streams 100 million hours a day worldwide with start-up under 2 seconds and rare rebuffering — at a delivery cost the business can carry.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C04-video-streaming.md) · [slides](slides/C04-video-streaming.md) · [exercises](exercises/C04-video-streaming.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C04-video-streaming.md) · [slides](slides/C04-video-streaming.md) · [exercises](exercises/C04-video-streaming.md)
 
 You will be able to:
 
@@ -473,7 +473,7 @@ You will be able to:
 ### C05 — Ride-hailing & proximity search
 
 *Requirement:* Design the real-time core of a ride-hailing service in 600 cities: 2 million online drivers report location every 4 seconds, riders see nearby cars live, a ride request is matched to a driver within 2 seconds at p99, no driver is ever assigned two rides, and prices react to local supply and demand.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C05-ride-hailing-proximity.md) · [slides](slides/C05-ride-hailing-proximity.md) · [exercises](exercises/C05-ride-hailing-proximity.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C05-ride-hailing-proximity.md) · [slides](slides/C05-ride-hailing-proximity.md) · [exercises](exercises/C05-ride-hailing-proximity.md)
 
 You will be able to:
 
@@ -486,7 +486,7 @@ You will be able to:
 ### C06 — Payments & ledger
 
 *Requirement:* Design the payments core for a marketplace processing 10 million payments a day by card and instant bank transfer: no customer is ever charged twice, every cent is accounted for in a double-entry ledger, sellers are paid out correctly, the books reconcile with payment providers daily, and instant transfers settle in seconds, 24/7.  
-*Time:* 2.5h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C06-payments-ledger.md) · [slides](slides/C06-payments-ledger.md) · [exercises](exercises/C06-payments-ledger.md)
+*Time:* 2.5h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C06-payments-ledger.md) · [slides](slides/C06-payments-ledger.md) · [exercises](exercises/C06-payments-ledger.md)
 
 You will be able to:
 
@@ -499,7 +499,7 @@ You will be able to:
 ### C07 — Distributed key-value store (Dynamo-style)
 
 *Requirement:* Design a key-value store that is always writable, serves 1 million operations per second with p99.9 under 10 ms within a region, holds 100 TB of data across three availability zones, survives the loss of any node or zone without losing acknowledged writes, and lets each application choose its own consistency/latency trade-off.  
-*Time:* 2.5h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C07-distributed-kv-store.md) · [slides](slides/C07-distributed-kv-store.md) · [exercises](exercises/C07-distributed-kv-store.md)
+*Time:* 2.5h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C07-distributed-kv-store.md) · [slides](slides/C07-distributed-kv-store.md) · [exercises](exercises/C07-distributed-kv-store.md)
 
 You will be able to:
 
@@ -512,7 +512,7 @@ You will be able to:
 ### C08 — Web crawler & search engine
 
 *Requirement:* Design a polite web crawler that keeps a 5-billion-page index fresh and a search service that answers 10,000 queries/s with p95 < 300 ms — and that also feeds a retrieval-augmented (RAG) product.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C08-web-crawler-search.md) · [slides](slides/C08-web-crawler-search.md) · [exercises](exercises/C08-web-crawler-search.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C08-web-crawler-search.md) · [slides](slides/C08-web-crawler-search.md) · [exercises](exercises/C08-web-crawler-search.md)
 
 You will be able to:
 
@@ -525,7 +525,7 @@ You will be able to:
 ### C09 — ChatGPT-style LLM chat service
 
 *Requirement:* Design a ChatGPT-style chat service for 10 million daily users: streamed answers that start in under 1 s, multiple models, paid tiers with token quotas, conversation history, EU data residency, and a cost per conversation you can defend.  
-*Time:* 2.5h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C09-llm-chat-service.md) · [slides](slides/C09-llm-chat-service.md) · [exercises](exercises/C09-llm-chat-service.md)
+*Time:* 2.5h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C09-llm-chat-service.md) · [slides](slides/C09-llm-chat-service.md) · [exercises](exercises/C09-llm-chat-service.md)
 
 You will be able to:
 
@@ -538,7 +538,7 @@ You will be able to:
 ### C10 — Enterprise RAG assistant
 
 *Requirement:* Design a multi-tenant assistant that answers employees' questions from their company's documents (wiki, drive, tickets, chat) with citations, never shows a document the asker cannot open, reflects edits within 15 minutes and permission revocations within 5 minutes, keeps EU tenants' data in the EU, and costs under one cent per answer.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C10-enterprise-rag-assistant.md) · [slides](slides/C10-enterprise-rag-assistant.md) · [exercises](exercises/C10-enterprise-rag-assistant.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C10-enterprise-rag-assistant.md) · [slides](slides/C10-enterprise-rag-assistant.md) · [exercises](exercises/C10-enterprise-rag-assistant.md)
 
 You will be able to:
 
@@ -551,7 +551,7 @@ You will be able to:
 ### C11 — AI coding-agent platform
 
 *Requirement:* Design a multi-tenant platform where developers assign issues to autonomous coding agents that run in cloud sandboxes for up to an hour, use tools via MCP, ask a human before risky actions, never leak secrets, stay within per-task budgets, and open a pull request — for 200,000 tasks per day.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C11-coding-agent-platform.md) · [slides](slides/C11-coding-agent-platform.md) · [exercises](exercises/C11-coding-agent-platform.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C11-coding-agent-platform.md) · [slides](slides/C11-coding-agent-platform.md) · [exercises](exercises/C11-coding-agent-platform.md)
 
 You will be able to:
 
@@ -564,7 +564,7 @@ You will be able to:
 ### C12 — Real-time fraud detection (and recommendations)
 
 *Requirement:* Score every card payment for fraud inline in the authorization path, at 15,000 payments/s peak, with a p99 decision latency under 100 ms, and explain every decline  
-*Time:* 2h reading · *Status:* `DRAFT` · [lesson](course/04-case-studies/C12-realtime-fraud-recsys.md) · [slides](slides/C12-realtime-fraud-recsys.md) · [exercises](exercises/C12-realtime-fraud-recsys.md)
+*Time:* 2h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C12-realtime-fraud-recsys.md) · [slides](slides/C12-realtime-fraud-recsys.md) · [exercises](exercises/C12-realtime-fraud-recsys.md)
 
 You will be able to:
 
@@ -578,7 +578,7 @@ You will be able to:
 ### C13 — Telemetry & observability platform for a GPU/HPC cluster
 
 *Requirement:* Collect GPU, node, network and facility telemetry from a 10,240-GPU cluster at 1–10 s resolution, detect failing hardware before it kills jobs, and report energy per job  
-*Time:* 2h reading · *Status:* `DRAFT` · [lesson](course/04-case-studies/C13-gpu-cluster-telemetry.md) · [slides](slides/C13-gpu-cluster-telemetry.md) · [exercises](exercises/C13-gpu-cluster-telemetry.md)
+*Time:* 2h reading · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C13-gpu-cluster-telemetry.md) · [slides](slides/C13-gpu-cluster-telemetry.md) · [exercises](exercises/C13-gpu-cluster-telemetry.md)
 
 You will be able to:
 
@@ -592,7 +592,7 @@ You will be able to:
 ### C14 — Global flash sale
 
 *Requirement:* Sell exactly 100,000 units of a limited item worldwide at 12:00:00 UTC to an audience of 20 million, with zero oversell, one unit per customer, fair access, bots kept out, and a site that stays up for everyone else.  
-*Time:* 2h reading + exercises · *Status:* `DRAFT` · [lesson](course/04-case-studies/C14-global-flash-sale.md) · [slides](slides/C14-global-flash-sale.md) · [exercises](exercises/C14-global-flash-sale.md)
+*Time:* 2h reading + exercises · *Status:* `SOURCES_CHECKED` · [lesson](course/04-case-studies/C14-global-flash-sale.md) · [slides](slides/C14-global-flash-sale.md) · [exercises](exercises/C14-global-flash-sale.md)
 
 You will be able to:
 
@@ -607,7 +607,7 @@ You will be able to:
 ### I01 — The interview playbook: CLARIFY → QUANTIFY → SKETCH → DEEPEN → STRESS → WRAP
 
 *Requirement:* In 45 minutes, with a stranger watching, turn a one-line prompt into a defensible, quantified design and show the interviewer how you think about trade-offs, failure and cost.  
-*Time:* 2.5h reading + 3 timed mock interviews · *Status:* `DRAFT` · [lesson](course/05-interview/I01-interview-playbook.md) · [slides](slides/I01-interview-playbook.md) · [exercises](exercises/I01-interview-playbook.md)
+*Time:* 2.5h reading + 3 timed mock interviews · *Status:* `SOURCES_CHECKED` · [lesson](course/05-interview/I01-interview-playbook.md) · [slides](slides/I01-interview-playbook.md) · [exercises](exercises/I01-interview-playbook.md)
 
 You will be able to:
 
@@ -621,7 +621,7 @@ You will be able to:
 ### I02 — Numbers & cheat sheets: latency, throughput, storage, capacity, cost & GPU numbers
 
 *Requirement:* Produce a defensible order-of-magnitude estimate for any design prompt in under four minutes, using constants you can source and assumptions you label.  
-*Time:* 1.5h reading + 1h drills · *Status:* `DRAFT` · [lesson](course/05-interview/I02-numbers-cheat-sheets.md) · [slides](slides/I02-numbers-cheat-sheets.md) · [exercises](exercises/I02-numbers-cheat-sheets.md)
+*Time:* 1.5h reading + 1h drills · *Status:* `SOURCES_CHECKED` · [lesson](course/05-interview/I02-numbers-cheat-sheets.md) · [slides](slides/I02-numbers-cheat-sheets.md) · [exercises](exercises/I02-numbers-cheat-sheets.md)
 
 You will be able to:
 
@@ -634,7 +634,7 @@ You will be able to:
 ### I03 — Question bank & rubrics: 77 questions by category and level, what good looks like, red flags
 
 *Requirement:* Practice any system design prompt you might be asked in 2026, know which unit of this course prepares you for it, and score your answer the way an interviewer would.  
-*Time:* Reference unit — 1h to read the rubric; 45–60 min per practice question · *Status:* `DRAFT` · [lesson](course/05-interview/I03-question-bank-rubrics.md) · [slides](slides/I03-question-bank-rubrics.md) · [exercises](exercises/I03-question-bank-rubrics.md)
+*Time:* Reference unit — 1h to read the rubric; 45–60 min per practice question · *Status:* `SOURCES_CHECKED` · [lesson](course/05-interview/I03-question-bank-rubrics.md) · [slides](slides/I03-question-bank-rubrics.md) · [exercises](exercises/I03-question-bank-rubrics.md)
 
 You will be able to:
 
@@ -646,7 +646,7 @@ You will be able to:
 ### I04 — ML/LLM system design interviews: how they differ, question bank, worked answers
 
 *Requirement:* Answer an ML or LLM system design prompt so that the interviewer sees product framing, the right metrics, a data and evaluation plan, and serving constraints quantified in tokens, GPU memory and cost.  
-*Time:* 3h reading + 3 timed mocks · *Status:* `DRAFT` · [lesson](course/05-interview/I04-ml-llm-interviews.md) · [slides](slides/I04-ml-llm-interviews.md) · [exercises](exercises/I04-ml-llm-interviews.md)
+*Time:* 3h reading + 3 timed mocks · *Status:* `SOURCES_CHECKED` · [lesson](course/05-interview/I04-ml-llm-interviews.md) · [slides](slides/I04-ml-llm-interviews.md) · [exercises](exercises/I04-ml-llm-interviews.md)
 
 You will be able to:
 

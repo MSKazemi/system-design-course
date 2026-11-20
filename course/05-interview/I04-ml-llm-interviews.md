@@ -3,7 +3,7 @@ id: SYSDESIGN-I04
 title: "ML/LLM system design interviews: how they differ, question bank, worked answers"
 part: "V — Interview track"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-I01, SYSDESIGN-I02, SYSDESIGN-21]
 estimated_time: "3h reading + 3 timed mocks"
 requirement: "Answer an ML or LLM system design prompt so that the interviewer sees product framing, the right metrics, a data and evaluation plan, and serving constraints quantified in tokens, GPU memory and cost."
@@ -32,8 +32,8 @@ optimize. **Metrics** come in a ladder: a business outcome, a product metric you
 can compute offline, and system SLIs such as time to first token. **Data** is a design component in its own right:
 labels, freshness, leakage and feedback loops. **Evaluation** has two halves, offline before launch and online after,
 and for LLMs it usually involves a calibrated LLM judge. **Serving constraints** are counted in tokens, GPU memory and
-cost per answer. This unit adapts the course framework to these interviews, gives a question bank for the eight most
-common prompts with rubrics, and works three answers end to end with numbers: a RAG assistant, a recommendation feed
+cost per answer. This unit adapts the course framework to these interviews, gives a question bank of eight representative
+prompts with rubrics, and works three answers end to end with numbers: a RAG assistant, a recommendation feed
 and an LLM content-moderation system.
 
 ## Why this matters now
@@ -176,8 +176,8 @@ easy launch decisions are when all metrics get better (or at least do not get wo
   agreement (over 80 % in Zheng et al.'s study), but judges show **position, verbosity and self-enhancement biases**
   [3]. So: calibrate each judge against a human-labelled subset, randomize answer order in pairwise comparisons, use
   rubric-based scoring, and track judge–human agreement as a metric in its own right.
-- **Long context.** Models use information at the beginning or end of a long context more reliably than information
-  in the middle [4]. For RAG, that is a reason to retrieve fewer, better chunks and order them deliberately.
+- **Long context.** In 2023 experiments, models used information at the beginning or end of a long context more
+  reliably than information in the middle [4]; re-test the effect with your own model. For RAG, that is a reason to retrieve fewer, better chunks and order them deliberately.
 
 **Online** (after launch):
 
@@ -196,6 +196,19 @@ easy launch decisions are when all metrics get better (or at least do not get wo
 | Memory | Embedding tables, feature caches | Weights plus KV cache; KV usually caps concurrency |
 | Scaling signal | QPS, latency | Waiting requests, KV-cache usage, TTFT (vLLM exposes these as metrics [5]) |
 | Degradation | Fall back to a simpler model or popularity | Route to a smaller model, shorten context, shed low-priority traffic |
+
+Three latency terms that candidates often conflate:
+
+- **TTFT** (time to first token): from request arrival to the first output token, so queueing plus prefill.
+- **ITL** (inter-token latency): the gap between consecutive streamed tokens, which is what the user feels as speed.
+- **TPOT** (time per output token): one request's average, (end-to-end latency − TTFT) ÷ (output tokens − 1).
+
+vLLM exposes ITL and per-request TPOT as separate histograms [5].
+
+The serving techniques named in this unit have primary sources: iteration-level ("continuous") batching from Orca
+[14]; paged KV-cache memory management from PagedAttention, the design behind vLLM [15]; disaggregated prefill and
+decode from DistServe [16]; and weight-only INT4 quantization methods such as GPTQ [17] and AWQ [18]. Quantization
+changes quality, so re-run your evals after applying it.
 
 The quantitative rules (weights = parameters × bytes; KV per token = 2 × layers × KV heads × head dim × bytes; decode
 step ≥ bytes read ÷ HBM bandwidth; prefill ≈ 2 × parameters FLOPs per token) are in
@@ -399,11 +412,12 @@ answer quality, abstention, freshness after policy changes, and **LLM cost**, no
 - *Hosted mid-size model* at $0.50 per M input and $1.50 per M output tokens: 3,400 × 0.5 × 10⁻⁶ + 250 × 1.5 × 10⁻⁶
   ≈ **$0.0021 per answer** → ≈ $3,200/day ≈ **$95k/month**.
 - *Self-hosted 8B-class model on H100s.* Prefill ≈ 2 × 8 × 10⁹ = 16 GFLOP/token; at an assumed 50 % of ≈ 989 dense
-  BF16 TFLOPS [11], that is ≈ 30 k prefill tokens/s per GPU. Peak prefill 238 k tokens/s, or ≈ 195 k after prefix
-  caching the shared 600-token system prompt → **≈ 7 GPUs**. Decode: by Little's law, 70/s × ≈ 7 s per answer ≈ 490
+  BF16 TFLOPS [D] (NVIDIA lists 1,979 with sparsity [11]), that is ≈ 30 k prefill tokens/s per GPU. Peak prefill 238 k tokens/s, or ≈ 195 k after prefix
+  caching the shared 600-token system prompt → **≈ 7 GPUs**. Decode: by Little's law, 70/s × ≈ 7 s per answer (≈ 0.7 s TTFT + 250 output tokens × ≈ 25 ms [A]) ≈ 490
   concurrent streams; at ≈ 100–150 streams per H100 for short chats (the KV-bound estimate in
   [21](../03-ai-systems/21-llm-inference-anatomy.md)) → **≈ 4–5 GPUs**. Colocated, the need is between the larger term
-  and the sum: ≈ 7–12 per region at peak. With two regions (EU and US) and headroom, plan ≈ 18 H100s. At an assumed
+  and the sum: ≈ 7–12 at peak for the full load. With two regions (EU and US), each sized to carry the full load on
+  failover, the range is 14–24; plan ≈ 18 H100s (2 × ≈ 9, the middle of 7–12) [A]. At an assumed
   $3 per GPU-hour, that is ≈ **$39k/month**.
 - *Decision:* "Start on a hosted model to learn the quality bar quickly. Move to self-hosted once evals show an
   8B-class model matches the hosted one on our golden set, since at these assumptions that cuts the cost by more than half. I'd revisit if
@@ -559,8 +573,10 @@ appeals process."
 
 - Policies with severities: high (credible threats, self-harm promotion, doxxing/PII exposure), medium
   (harassment, hate), low (spam, off-topic).
-- High severity: block **before** publish within a 300 ms p95 budget. Medium and low: publish, then review
-  asynchronously within minutes.
+- High severity: block **before** publish. Every item gets a 300 ms p95 decision from the fast inline stages
+  (stage 0 and the stage-1 classifier). Items the classifier is unsure about are **held** (not published) until the
+  stage-2 judge returns a label; the judge's rationale for reviewers is generated asynchronously, off the publish
+  path. Medium and low: publish, then review asynchronously within minutes.
 - Appeals with human decision. Audit log of every decision and the policy version applied.
 - Metrics: per-policy precision and recall (measured by expert sampling), prevalence of violating content seen by
   users, appeal overturn rate, time to action.
@@ -579,8 +595,18 @@ appeals process."
 | Human review | 0.3 % of items | 60 k/day |
 | Reviewer capacity | 400 items per reviewer-day [A] | ≈ 150 reviewers |
 
+**Latency, reconciled [D/A].** The 300 ms p95 budget covers stage 0 and stage 1 only, which every item passes. A
+stage-2 call that wrote a label plus a 50–100-token rationale at 20–30 ms per output token would take ≈ 1–3 s, far
+over budget. So the pre-publish stage-2 call emits a **label only** (≤ 5 output tokens ≈ 100–150 ms of decode, plus
+≈ 5–25 ms of prefill at ≈ 30 k tokens/s for 150–650 uncached tokens). Held items (≈ 10 %) therefore publish after
+≈ 0.5 s p95 including queueing [A]. The rationale is generated in a second, asynchronous call and attached to the
+review-queue entry.
+
 **So what:** GPUs are cheap here, at a handful. **Human review is the dominant cost and the hardest-to-scale
-component**, so escalation thresholds are cost levers as much as quality levers.
+component**: ≈ 4–6 GPUs × $3 × 730 h ≈ $9–13 k/month [A], versus 150 reviewers at an assumed loaded cost of
+$3,000–6,000 per reviewer-month ≈ $450–900 k/month [A]. Reviewer throughput is itself an assumption; 400 items per
+reviewer-day could be 200–1,000 depending on item type and language, which moves the headcount from ≈ 300 to ≈ 60. So
+escalation thresholds are cost levers as much as quality levers.
 
 **SKETCH.**
 
@@ -614,8 +640,9 @@ Every decision is written to an audit log with the policy version.*
    (stratified by policy, language and stage) for expert review. Estimate precision, recall and **prevalence** with
    confidence intervals, and track reviewer agreement. Feed disagreements into the training and eval sets.
 3. **The LLM judge.** A safety-tuned model (Llama Guard is one published approach [9]) receives the policy text and
-   the item, and outputs a label plus a short rationale for reviewers. Its prompt and policy text are versioned, and
-   it is evaluated on the same labelled set before any change.
+   the item. On the publish path it outputs a label only, to stay inside the latency budget; a second,
+   asynchronous call writes a short rationale for reviewers. Its prompt and policy text are versioned, and it is
+   evaluated on the same labelled set before any change.
 
 **STRESS.** Adversarial obfuscation (misspellings, images of text) → update stage 0 and stage 1 from review findings
 weekly; red-team set. LLM judge down → items in the uncertain band default to "hold for review" for high-severity
@@ -640,7 +667,7 @@ cost model of human review, governance and audit ([28](../03-ai-systems/28-ai-tr
 | Full fine-tune model state | ≈ 16 B per parameter | ZeRO [7] |
 | HNSW memory per vector | d × 4 + M × 2 × 4 B | FAISS [10] |
 | LLM-judge agreement with humans | > 80 % in one study, with known biases | Zheng et al. [3] |
-| H100 SXM | 80 GB, 3.35 TB/s, ≈ 989 dense BF16 TFLOPS | NVIDIA [11] |
+| H100 SXM | 80 GB, 3.35 TB/s, ≈ 989 dense BF16 TFLOPS | NVIDIA [11] for memory and bandwidth; 989 is derived [D] from the listed 1,979 with sparsity |
 
 ## Design choices and trade-offs
 
@@ -777,3 +804,13 @@ No lab for this unit. For hands-on grounding, use [labs/21-llm-inference-anatomy
 12. NVIDIA, *L4 Tensor Core GPU*. https://www.nvidia.com/en-us/data-center/l4/ (accessed 2026-11-20)
 13. Yu. A. Malkov, D. A. Yashunin, *Efficient and robust approximate nearest neighbor search using Hierarchical
     Navigable Small World graphs*, arXiv:1603.09320. https://arxiv.org/abs/1603.09320
+14. G.-I. Yu et al., *Orca: A Distributed Serving System for Transformer-Based Generative Models*, OSDI 2022
+    (iteration-level scheduling). https://www.usenix.org/conference/osdi22/presentation/yu (accessed 2026-11-20)
+15. W. Kwon et al., *Efficient Memory Management for Large Language Model Serving with PagedAttention*, SOSP 2023.
+    arXiv:2309.06180. https://arxiv.org/abs/2309.06180
+16. Y. Zhong et al., *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model
+    Serving*, OSDI 2024. arXiv:2401.09670. https://arxiv.org/abs/2401.09670
+17. E. Frantar et al., *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*,
+    arXiv:2210.17323 (preprint). https://arxiv.org/abs/2210.17323
+18. J. Lin et al., *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*, arXiv:2306.00978
+    (preprint). https://arxiv.org/abs/2306.00978

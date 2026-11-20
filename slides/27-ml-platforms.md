@@ -104,7 +104,7 @@ in-batch negatives and sampling-bias correction. Candidate counts are illustrati
 - Data drift: P(x) changes
 - Concept drift: P(y|x) changes
 - Prediction drift: cheap, label-free, often the first signal
-- Check data quality first: most "the model got worse" incidents are bugs
+- Check data quality first: bugs are a frequent cause of sudden drops
 
 **Visual:** Three small histogram pairs (before/after).
 **Speaker notes:** Rabanser et al. found that two-sample tests on classifier-reduced representations worked

@@ -2,7 +2,7 @@
 
 **Status:** Draft, text-first outline, not a rendered deck.
 
-Not legal advice: every slide describes engineering consequences of EU law as verified in 2026-11.
+Not legal advice: every slide describes engineering consequences of EU law as of 2026-11, as checked in the lesson.
 
 ## Slide 1 — The requirement
 
@@ -56,8 +56,8 @@ much as the data centre's address.
 
 - C-311/18 (16 July 2020): Privacy Shield invalid; SCCs valid with a transfer assessment
 - EU–US DPF adopted 10 July 2023; upheld in Latombe (T-553/23, 3 Sept 2025); appeal C-703/25 P pending
-- EDPB Rec. 01/2020: keys kept in the EEA can help for storage-only; no fix when the provider needs plaintext
-- Meta: EUR 1.2 bn fine (May 2023) for an architecture decision
+- EDPB Rec. 01/2020: keys kept in the EEA can help for storage-only; no technical fix envisaged when the provider needs plaintext and destination-state access exceeds what is necessary and proportionate
+- Meta: EUR 1.2 bn fine (May 2023, Irish DPC after an EDPB binding decision) for an architecture decision
 
 **Visual:** Decision tree: adequacy → safeguards → impact assessment → supplementary measures → no transfer. Icons: `pattern-geo-distribution`, `security-encryption`.
 
@@ -89,7 +89,7 @@ Shred first, then delete physically.
 
 ## Slide 8 — The erasure pipeline
 
-- Verify identity, check legal holds (Art. 17(3))
+- Verify identity, check Art. 17(3) exceptions (e.g. legal claims)
 - Shred key → query data map → fan out idempotent per-store tasks
 - Signed receipt in audit log, without personal data
 - Restores must replay the erasure ledger (EDPB CEF 2025)
@@ -108,8 +108,8 @@ Shred first, then delete physically.
 
 **Visual:** Kafka log segments with a tombstone; one old segment still holding the value. Icons: `messaging-kafka`, `arch-event-stream`, `ops-logs`.
 
-**Speaker notes:** The EDPB's 2025 coordinated action found backups and weak anonymisation to be the recurring
-problems. Hashing an email is not anonymisation.
+**Speaker notes:** Among the seven recurring issues in the EDPB's 2025 coordinated action, backups and weak
+anonymisation are the two engineering problems. Hashing an email is not anonymisation.
 
 ## Slide 10 — AI artefacts
 
@@ -120,8 +120,9 @@ problems. Hashing an email is not anonymisation.
 
 **Visual:** Difficulty ladder from vector delete to model retrain. Icons: `domain-ai`, `arch-data-pipeline`.
 
-**Speaker notes:** Prefer retrieval over fine-tuning for personal or tenant data. EDPB Opinion 28/2024: authorities
-can order erasure of datasets or retraining.
+**Speaker notes:** Prefer retrieval over fine-tuning for personal or tenant data. EDPB Opinion 28/2024: where an
+infringement is found, authorities may order erasure up to the whole dataset and/or the model, weighing retraining
+when judging proportionality.
 
 ## Slide 11 — Regional cells
 
@@ -138,7 +139,7 @@ can order erasure of datasets or retraining.
 
 - Hash chain: h_i = H(h_{i-1} || entry_i)
 - Merkle tree + signed tree heads (RFC 9162 style)
-- Inclusion proof ≈ 960 B for 10⁹ entries (30 × 32 B)
+- Inclusion proof ≈ 960 B for 10⁹ entries (30 × 32 B, our arithmetic)
 - Anchor tree heads outside your control; no personal data in entries
 
 **Visual:** Merkle tree with a highlighted proof path. Icons: `arch-blockchain-ledger`, `security-encryption`.
@@ -160,7 +161,7 @@ each quarter.
 
 ## Slide 14 — Interview wrap
 
-- CLARIFY residency vs sovereignty and legal holds
+- CLARIFY residency vs sovereignty and Art. 17(3) exceptions
 - QUANTIFY erasure rate × stores; backup retention vs one month
 - SKETCH cells, keys, data map, erasure saga, audit log
 - STRESS restores, key backups, DR region, adequacy plan B

@@ -102,5 +102,7 @@ Week 1: [I01](../course/05-interview/I01-interview-playbook.md), [I02](../course
 Week 2: [23](../course/03-ai-systems/23-gpu-infrastructure.md), [26](../course/03-ai-systems/26-llm-gateways-llmops.md),
 [I04](../course/05-interview/I04-ml-llm-interviews.md); mocks AI-03, AI-05, AI-04, plus a repeat of AI-01 with a changed
 constraint (EU-only, or 4× longer contexts). Score every mock; spend the remaining time on your two weakest rubric
-dimensions.
+dimensions. Load check with the I03 rules (unit reading time, 1 h per mock): week 1 ≈ 13.5 h of reading + 2 h of
+mocks ≈ 15.5 h, week 2 ≈ 9 h + 4 h ≈ 13 h. That is above the bank's 8–11 h/week plans, which is acceptable for a
+two-week crash plan; to cut it, skim 22 and C09 instead of reading them (≈ 4.5 h saved).
 </details>

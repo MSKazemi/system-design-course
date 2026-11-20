@@ -3,7 +3,7 @@
 Every source cited by the lessons, grouped by unit. Generated from each lesson's `## References` section by
 `scripts/build_references.py`; do not edit by hand. Citation numbers match the numbers used inside each lesson.
 
-**935 distinct URLs** across **1066 references** in **47 units**. Source status per unit: `SOURCES_CHECKED` = every source was opened and checked against the claim it supports; `DRAFT` = written but sources not fully verified yet. Fast-moving facts carry an “as of 2026-11” marker in the lesson text. Nothing here is legal advice.
+**1039 distinct URLs** across **1149 references** in **47 units**. Source status per unit: `SOURCES_CHECKED` = every source was opened and checked against the claim it supports; `DRAFT` = written but sources not fully verified yet. Fast-moving facts carry an “as of 2026-11” marker in the lesson text. Nothing here is legal advice.
 
 ## Most widely used sources
 
@@ -12,59 +12,59 @@ Cited by three or more units.
 | Source | Units |
 |---|---|
 | <https://www.nvidia.com/en-us/data-center/h100/> | 00, 21, 22, 23, C09, I02, I04 |
-| <https://arxiv.org/abs/2407.21783> | 21, 23, 27, C13, I02 |
-| <https://docs.vllm.ai/en/latest/design/metrics.html> | 21, 22, C09, I02, I04 |
+| <https://arxiv.org/abs/2407.21783> | 21, 23, 27, C09, C13, I02 |
+| <https://eur-lex.europa.eu/eli/reg/2016/679/oj> | 19, C05, C06, C09, C10, C12 |
+| <https://eur-lex.europa.eu/eli/reg/2026/1744/oj> | 19, 28, C09, C10, C12, I03 |
+| <https://arxiv.org/abs/2309.06180> | 00, 21, 22, C09, I04 |
 | <https://eur-lex.europa.eu/eli/reg/2024/1689/oj> | 19, 28, C09, C10, C12 |
 | <https://github.com/vllm-project/vllm/releases/tag/v0.34.0> | 00, 21, 22, 23, I02 |
+| <https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf> | 06, 07, 09, C07, I03 |
 | <https://www.usenix.org/conference/osdi12/technical-sessions/presentation/corbett> | 05, 06, 07, 09, 15 |
 | <https://arxiv.org/abs/1910.02054> | 23, 27, I02, I04 |
-| <https://arxiv.org/abs/2309.06180> | 00, 21, 22, C09 |
 | <https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/> | 10, C01, C06, C14 |
 | <https://docs.stripe.com/api/idempotent_requests> | 08, 10, C06, C14 |
-| <https://eur-lex.europa.eu/eli/reg/2016/679/oj> | 19, C09, C10, C12 |
 | <https://gateway-api-inference-extension.sigs.k8s.io/> | 03, 14, 26, C09 |
 | <https://github.com/open-telemetry/semantic-conventions-genai> | 12, 25, 26, C11 |
+| <https://modelcontextprotocol.io/specification/2026-07-28> | 25, C10, C11, I03 |
 | <https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/> | 27, C02, C12, I04 |
-| <https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf> | 06, 07, 09, C07 |
 | <https://www.usenix.org/conference/nsdi20/presentation/agache> | 14, 18, 25, C11 |
+| <https://www.usenix.org/conference/osdi22/presentation/yu> | 21, 22, C09, I04 |
+| <https://arxiv.org/abs/1603.09320> | 24, C10, I04 |
 | <https://arxiv.org/abs/2106.09685> | 27, I02, I04 |
+| <https://arxiv.org/abs/2210.17323> | 21, 22, I04 |
 | <https://arxiv.org/abs/2302.12173> | 25, 28, C10 |
+| <https://arxiv.org/abs/2306.00978> | 21, 22, I04 |
 | <https://arxiv.org/abs/2312.06674> | 28, C09, I04 |
 | <https://developers.google.com/machine-learning/guides/rules-of-ml> | 27, C12, I04 |
-| <https://docs.vllm.ai/en/latest/configuration/optimization.html> | 21, 22, C09 |
-| <https://docs.vllm.ai/en/latest/design/prefix_caching.html> | 04, 22, C09 |
-| <https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html> | 21, 22, 26 |
-| <https://github.com/pgvector/pgvector> | 05, 24, C10 |
-| <https://gvisor.dev/docs/> | 18, 25, C11 |
 
 ## Most-cited hosts
 
 | Host | Distinct URLs |
 |---|---|
-| arxiv.org | 83 |
-| github.com | 73 |
-| rfc-editor.org | 52 |
-| doi.org | 43 |
-| docs.aws.amazon.com | 29 |
+| arxiv.org | 84 |
+| github.com | 82 |
+| rfc-editor.org | 54 |
+| doi.org | 44 |
+| docs.aws.amazon.com | 32 |
 | kubernetes.io | 24 |
 | usenix.org | 23 |
 | aws.amazon.com | 22 |
-| docs.vllm.ai | 16 |
-| eur-lex.europa.eu | 14 |
+| docs.vllm.ai | 20 |
+| eur-lex.europa.eu | 16 |
+| web.archive.org | 14 |
+| nvidia.com | 12 |
+| opentelemetry.io | 12 |
 | huggingface.co | 11 |
-| nvidia.com | 11 |
-| opentelemetry.io | 10 |
-| cncf.io | 9 |
-| kafka.apache.org | 9 |
+| cncf.io | 10 |
 
 ## Part 0 — Orientation
 
 ### 00 — How to use this course: paths, the requirement loop, what changed in system design
 
-Lesson: [`course/00-orientation/00-how-to-use-this-course.md`](course/00-orientation/00-how-to-use-this-course.md) · source status: `DRAFT`
+Lesson: [`course/00-orientation/00-how-to-use-this-course.md`](course/00-orientation/00-how-to-use-this-course.md) · source status: `SOURCES_CHECKED`
 
 1. A. Vaswani et al., *Attention Is All You Need*, arXiv:1706.03762, June 2017 (NeurIPS 2017). https://arxiv.org/abs/1706.03762
-2. OpenAI, *Introducing ChatGPT*, 30 November 2022. https://openai.com/index/chatgpt/
+2. OpenAI, *Introducing ChatGPT*, 30 November 2022. https://openai.com/index/chatgpt/ (unverified as of 2026-11: the page blocked automated fetching, so the date was checked only through search-engine extracts and secondary reports)
 3. W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. H. Yu, J. E. Gonzalez, H. Zhang, I. Stoica, *Efficient Memory Management for Large Language Model Serving with PagedAttention*, Proc. ACM SOSP 2023; arXiv:2309.06180. https://arxiv.org/abs/2309.06180
 4. vLLM project, *Release v0.34.0*, GitHub, 16 November 2026. https://github.com/vllm-project/vllm/releases/tag/v0.34.0
 5. NVIDIA, *NVIDIA Tesla P100 Data Sheet* (732 GB/s HBM2; 300 W max power). https://images.nvidia.com/content/tesla/pdf/nvidia-tesla-p100-datasheet.pdf
@@ -77,7 +77,7 @@ Lesson: [`course/00-orientation/00-how-to-use-this-course.md`](course/00-orienta
 12. European Commission, *Data Act* policy page. https://digital-strategy.ec.europa.eu/en/policies/data-act
 13. European Commission, *Cyber Resilience Act* policy page. https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act
 14. European Commission, *AI Act — Regulatory framework for AI* policy page. https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
-15. Regulation (EU) 2026/1744 (Digital Omnibus amendments to the AI Act), Official Journal of the EU, 24 July 2026; amended Article 113. https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng
+15. Regulation (EU) 2026/1744 (the AI Omnibus, amending the AI Act), Official Journal of the EU, L series, OJ:L_202601744 (the Commission page [14] links to this OJ reference). https://eur-lex.europa.eu/eli/reg/2026/1744/oj/eng
 16. CISA, *Emergency Directive 21-01: Mitigate SolarWinds Orion Code Compromise*, 13 December 2020 (since closed). https://www.cisa.gov/news-events/directives/ed-21-01-mitigate-solarwinds-orion-code-compromise
 17. Executive Order 14028, *Improving the Nation's Cybersecurity*, 12 May 2021, published in the Federal Register on 17 May 2021. https://www.federalregister.gov/documents/2021/05/17/2021-10460/improving-the-nations-cybersecurity
 18. NIST National Vulnerability Database, *CVE-2021-44228*, published 10 December 2021. https://nvd.nist.gov/vuln/detail/CVE-2021-44228
@@ -85,12 +85,13 @@ Lesson: [`course/00-orientation/00-how-to-use-this-course.md`](course/00-orienta
 20. NIST National Vulnerability Database, *CVE-2024-3094*, published 29 March 2024. https://nvd.nist.gov/vuln/detail/CVE-2024-3094
 21. Kubernetes blog, *10 Years of Kubernetes*, 6 June 2024 (v1.0 released 21 July 2015). https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/
 22. Kubernetes, *Releases*. https://kubernetes.io/releases/
-23. CNCF TAG App Delivery, *Platforms White Paper*, v1, 2023. https://tag-app-delivery.cncf.io/whitepapers/platforms/
-24. W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026. https://w3techs.com/technologies/details/ce-http3
+23. CNCF TAG App Delivery, *Platforms White Paper*, v1.0 (PDF `platforms-def-v1.0.pdf`). https://tag-app-delivery.cncf.io/whitepapers/platforms/; announced in J. Gavant and A. Bangser, *Announcing a white paper on platforms for cloud native computing*, CNCF blog, 11 April 2023. https://www.cncf.io/blog/2023/04/11/announcing-a-white-paper-on-platforms-for-cloud-native-computing/
+24. W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026 (41.2% read on 2026-11-20). https://w3techs.com/technologies/details/ce-http3
+25. E. Rescorla, K. Oku, N. Sullivan, C. A. Wood, RFC 9849, *TLS Encrypted Client Hello*, March 2026. https://www.rfc-editor.org/info/rfc9849
 
 ### 01 — Requirements to numbers: SLIs/SLOs, estimation, latency numbers, Little's law, queueing
 
-Lesson: [`course/00-orientation/01-requirements-to-numbers.md`](course/00-orientation/01-requirements-to-numbers.md) · source status: `DRAFT`
+Lesson: [`course/00-orientation/01-requirements-to-numbers.md`](course/00-orientation/01-requirements-to-numbers.md) · source status: `SOURCES_CHECKED`
 
 1. B. Beyer, C. Jones, J. Petoff, N. R. Murphy (eds.), *Site Reliability Engineering*, O'Reilly, 2016, ch. 4 *Service Level Objectives* (SLI and SLO definitions). https://sre.google/sre-book/service-level-objectives/
 2. Ibid., ch. 3 *Embracing Risk* (error budgets). https://sre.google/sre-book/embracing-risk/
@@ -99,14 +100,14 @@ Lesson: [`course/00-orientation/01-requirements-to-numbers.md`](course/00-orient
 5. J. D. C. Little, *Little's Law as Viewed on Its 50th Anniversary*, Operations Research 59(3):536–549, 2011. https://doi.org/10.1287/opre.1110.0940
 6. J. Dean, *Designs, Lessons and Advice from Building Large Distributed Systems*, keynote, LADIS 2009 ("Numbers Everyone Should Know"). https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf
 7. C. Scott, *Latency Numbers Every Programmer Should Know* (interactive, with per-year extrapolation; based on P. Norvig's 2002 numbers). https://colin-scott.github.io/personal_website/research/interactive_latency.html
-8. I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 204,000 km/s). https://arxiv.org/abs/1811.10737
+8. I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 204,000 km/s, stated in the paper's text). https://arxiv.org/pdf/1811.10737
 9. Samsung Electronics, *Samsung NVMe SSD 990 PRO Data Sheet*, Rev. 2.0 (sequential read 7,450 MB/s; random read QD1 22K IOPS). https://download.semiconductor.samsung.com/resources/data-sheet/samsung_nvme_ssd_990_pro_datasheet_rev.2.0.pdf
 10. WonderNetwork, *Global Ping Statistics: London to New York* (daily averages ≈ 70–71 ms, 5–19 Nov 2026). https://wondernetwork.com/pings/London/New%20York
 11. M. Harchol-Balter, *Performance Modeling and Design of Computer Systems: Queueing Theory in Action*, Cambridge University Press, 2013 (M/M/1 response-time distribution; M/M/k). https://doi.org/10.1017/CBO9781139226424
 12. J. F. C. Kingman, *The single server queue in heavy traffic*, Mathematical Proceedings of the Cambridge Philosophical Society 57(4):902–904, 1961. https://doi.org/10.1017/S0305004100036094
 13. J. Dean, L. A. Barroso, *The Tail at Scale*, Communications of the ACM 56(2):74–80, February 2013. https://www.barroso.org/publications/TheTailAtScale.pdf
 14. Grafana Labs, *Open and closed models*, k6 documentation (coordinated omission; `constant-arrival-rate` and `ramping-arrival-rate` executors). https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/
-15. OpenAI, *What are tokens and how to count them?*, OpenAI Help Center (1 token ≈ 4 characters ≈ ¾ word in English). https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them
+15. OpenAI, *What are tokens and how to count them?*, OpenAI Help Center (1 token ≈ 4 characters ≈ ¾ word in English). https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them (unverified as of 2026-11: the page blocked automated fetching, so its wording was checked through search-engine extracts only; treat the ratio as a rule of thumb)
 16. L. Kleinrock, *Queueing Systems, Volume 1: Theory*, Wiley, 1975 (the G/M/1 queue; D/M/1 as a special case). https://www.wiley.com/en-us/Queueing+Systems%2C+Volume+1%3A+Theory-p-9780471491101
 17. Y. Zhong, S. Liu, J. Chen, J. Hu, Y. Zhu, X. Liu, X. Jin, H. Zhang, *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*, Proc. USENIX OSDI 2024. https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin
 18. International Energy Agency, *Energy and AI*, April 2025, Executive summary. https://www.iea.org/reports/energy-and-ai/executive-summary
@@ -115,7 +116,7 @@ Lesson: [`course/00-orientation/01-requirements-to-numbers.md`](course/00-orient
 
 ### 02 — Anatomy of a request: DNS, TCP, QUIC/HTTP/3, TLS 1.3, proxies, CDN edge
 
-Lesson: [`course/01-foundations/02-anatomy-of-a-request.md`](course/01-foundations/02-anatomy-of-a-request.md) · source status: `DRAFT`
+Lesson: [`course/01-foundations/02-anatomy-of-a-request.md`](course/01-foundations/02-anatomy-of-a-request.md) · source status: `SOURCES_CHECKED`
 
 1. P. Mockapetris, RFC 1034, *Domain Names — Concepts and Facilities*, 1987. https://www.rfc-editor.org/rfc/rfc1034
 2. P. Mockapetris, RFC 1035, *Domain Names — Implementation and Specification*, 1987. https://www.rfc-editor.org/rfc/rfc1035
@@ -136,25 +137,28 @@ Lesson: [`course/01-foundations/02-anatomy-of-a-request.md`](course/01-foundatio
 17. Amazon Web Services, *Edit attributes for your Application Load Balancer — Connection idle timeout*, Elastic Load Balancing documentation. https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html
 18. A. Petersson, M. Nilsson, RFC 7239, *Forwarded HTTP Extension*, June 2014, https://www.rfc-editor.org/info/rfc7239 ; W. Tarreau, *The PROXY protocol*, HAProxy Technologies, https://www.haproxy.org/download/3.4/doc/proxy-protocol.txt
 19. J. Abley, K. Lindqvist, RFC 4786, *Operation of Anycast Services* (BCP 126), December 2006. https://www.rfc-editor.org/info/rfc4786
-20. W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026. https://w3techs.com/technologies/details/ce-http3
+20. W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026 (41.2% read on 2026-11-20). https://w3techs.com/technologies/details/ce-http3
 21. Cloudflare, *The 2025 Cloudflare Radar Year in Review*, December 2025. https://blog.cloudflare.com/radar-2025-year-in-review/
-22. I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 2/3 c ≈ 204,000 km/s). https://arxiv.org/abs/1811.10737
+22. I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 2/3 c ≈ 204,000 km/s, stated in the paper's text). https://arxiv.org/pdf/1811.10737
 23. X. Zhang, S. Jin, Y. He, A. Hassan, Z. M. Mao, F. Qian, Z.-L. Zhang, *QUIC is not Quick Enough over Fast Internet*, Proc. ACM Web Conference (WWW) 2024, pp. 2713–2722; arXiv:2310.09423. https://arxiv.org/abs/2310.09423
 24. S. Janardhan, *More details about the October 4 outage*, Engineering at Meta, 5 October 2021. https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/
 25. Amazon Web Services, *Summary of the Amazon DynamoDB Service Disruption in the Northern Virginia (US-EAST-1) Region*, October 2025. https://aws.amazon.com/message/101925/
+26. M. Nottingham, RFC 5861, *HTTP Cache-Control Extensions for Stale Content*, May 2010 (§3 defines `stale-while-revalidate`). https://www.rfc-editor.org/info/rfc5861
+27. B. Schwartz, M. Bishop, E. Nygren, RFC 9848, *Bootstrapping TLS Encrypted ClientHello with DNS Service Bindings*, March 2026. https://www.rfc-editor.org/info/rfc9848
+28. NIST, FIPS 203, *Module-Lattice-Based Key-Encapsulation Mechanism Standard*, 13 August 2024. https://csrc.nist.gov/pubs/fips/203/final
 
 ### 03 — Scaling compute: stateless services, L4/L7 load balancing, algorithms, health checks, autoscaling
 
-Lesson: [`course/01-foundations/03-scaling-compute.md`](course/01-foundations/03-scaling-compute.md) · source status: `DRAFT`
+Lesson: [`course/01-foundations/03-scaling-compute.md`](course/01-foundations/03-scaling-compute.md) · source status: `SOURCES_CHECKED`
 
 1. M. Mitzenmacher, *The Power of Two Choices in Randomized Load Balancing*, IEEE Transactions on Parallel and Distributed Systems 12(10):1094–1104, October 2001. https://www.eecs.harvard.edu/~michaelm/postscripts/tpds2001.pdf
 2. Y. Azar, A. Z. Broder, A. R. Karlin, E. Upfal, *Balanced Allocations*, SIAM Journal on Computing 29(1):180–200, 1999. https://homes.cs.washington.edu/~karlin/papers/AzarBKU99.pdf
 3. M. Mitzenmacher, *How Useful Is Old Information?*, IEEE Transactions on Parallel and Distributed Systems 11(1):6–20, January 2000. https://doi.org/10.1109/71.824633
-4. D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, *Consistent Hashing and Random Trees*, Proc. STOC 1997, pp. 654–663, https://doi.org/10.1145/258533.258660 ; V. Mirrokni, M. Thorup, M. Zadimoghaddam, *Consistent Hashing with Bounded Loads*, Proc. SODA 2018, pp. 587–604, arXiv:1608.01350, https://arxiv.org/abs/1608.01350
+4. D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, *Consistent Hashing and Random Trees*, Proc. STOC 1997, pp. 654–663, https://doi.org/10.1145/258533.258660 (ACM page blocked automated fetching; title and pages verified via Crossref metadata); V. Mirrokni, M. Thorup, M. Zadimoghaddam, *Consistent Hashing with Bounded Loads*, Proc. SODA 2018, pp. 587–604 (pages verified via Crossref, DOI 10.1137/1.9781611975031.39), arXiv:1608.01350, https://arxiv.org/abs/1608.01350
 5. D. E. Eisenbud et al., *Maglev: A Fast and Reliable Software Network Load Balancer*, Proc. USENIX NSDI 2016, pp. 523–535. https://www.usenix.org/conference/nsdi16/technical-sessions/presentation/eisenbud
 6. Envoy project, *Supported load balancers* and *Panic threshold*, Envoy documentation (latest). https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/load_balancers and https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold
 7. HAProxy, *Configuration Manual*, version 3.4 (`balance random(<draws>)`, `hash-type`, `hash-balance-factor`, `slowstart`, environment variables). https://git.haproxy.org/?p=haproxy-3.4.git;a=blob_plain;f=doc/configuration.txt
-8. N. J. Gunther, *Guerrilla Capacity Planning: A Tactical Approach to Planning for Highly Scalable Applications and Services*, Springer, 2007 (Universal Scalability Law). https://doi.org/10.1007/978-3-540-31010-5
+8. N. J. Gunther, *Guerrilla Capacity Planning: A Tactical Approach to Planning for Highly Scalable Applications and Services*, Springer, 2007 (Universal Scalability Law). https://doi.org/10.1007/978-3-540-31010-5 The same law, with contention σ and coherency κ, is stated as eq. (5) of N. J. Gunther, *A General Theory of Computational Scalability Based on Rational Functions*, arXiv:0808.1431 (preprint), 2008. https://arxiv.org/abs/0808.1431
 9. NGINX, *Module ngx_http_upstream_module* (`random [two [method]]`, `least_conn`) and *Module ngx_http_upstream_hc_module* ("available as part of our commercial subscription"). https://nginx.org/en/docs/http/ngx_http_upstream_module.html and https://nginx.org/en/docs/http/ngx_http_upstream_hc_module.html
 10. Kubernetes, *Horizontal Pod Autoscaling* (algorithm, 15 s sync period, 0.1 tolerance, 300 s downscale stabilisation; per-HPA tolerance stable since v1.37). https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/
 11. Kubernetes, *Releases* (latest minor 1.37). https://kubernetes.io/releases/
@@ -162,7 +166,7 @@ Lesson: [`course/01-foundations/03-scaling-compute.md`](course/01-foundations/03
 13. Kubernetes, *Pod termination* (default `terminationGracePeriodSeconds` 30 s). https://kubernetes.io/docs/concepts/workloads/pods/pod-termination/
 14. Kubernetes, *EndpointSlices — Conditions* (ready, serving, terminating). https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/
 15. Amazon Web Services, *Edit target group attributes for your Application Load Balancer* (deregistration delay default 300 s; slow start mode). https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html
-16. Amazon Web Services, *Predictive scaling for Amazon EC2 Auto Scaling*. https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-predictive-scaling.html
+16. Amazon Web Services, *Predictive scaling for Amazon EC2 Auto Scaling*, https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-predictive-scaling.html ; the cited figures (24 hours, 14 days, 48 hours, 6 hours) are on the sub-page *How predictive scaling works*, https://docs.aws.amazon.com/autoscaling/ec2/userguide/predictive-scaling-policy-overview.html
 17. Google Cloud, *Scaling based on predictions* (Compute Engine predictive autoscaling). https://docs.cloud.google.com/compute/docs/autoscaler/predictive-autoscaling
 18. M. Brooker, *Exponential Backoff And Jitter*, AWS Architecture Blog, 4 March 2015. https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
 19. *Handling Overload*, in B. Beyer, C. Jones, J. Petoff, N. R. Murphy (eds.), *Site Reliability Engineering*, O'Reilly, 2016, ch. 21; and *Addressing Cascading Failures*, ch. 22. https://sre.google/sre-book/handling-overload/ and https://sre.google/sre-book/addressing-cascading-failures/
@@ -310,14 +314,14 @@ Lesson: [`course/01-foundations/08-async-event-driven.md`](course/01-foundations
 
 ### 09 — Coordination & consensus
 
-Lesson: [`course/01-foundations/09-coordination-consensus.md`](course/01-foundations/09-coordination-consensus.md) · source status: `DRAFT`
+Lesson: [`course/01-foundations/09-coordination-consensus.md`](course/01-foundations/09-coordination-consensus.md) · source status: `SOURCES_CHECKED`
 
-1. M. J. Fischer, N. A. Lynch, M. S. Paterson. "Impossibility of Distributed Consensus with One Faulty Process." *Journal of the ACM* 32(2):374–382, 1985. https://doi.org/10.1145/3149.214121 (full text: https://www.cs.princeton.edu/courses/archive/spring22/cos418/papers/flp.pdf)
+1. M. J. Fischer, N. A. Lynch, M. S. Paterson. "Impossibility of Distributed Consensus with One Faulty Process." *Journal of the ACM* 32(2):374–382, 1985. https://doi.org/10.1145/3149.214121 (DOI returns HTTP 403 to scripts; bibliographic data checked via Crossref; full text: https://www.cs.princeton.edu/courses/archive/spring22/cos418/papers/flp.pdf)
 2. L. Lamport. "The Part-Time Parliament." *ACM Transactions on Computer Systems* 16(2):133–169, 1998. https://www.microsoft.com/en-us/research/publication/part-time-parliament/
 3. L. Lamport. "Paxos Made Simple." 2001. https://lamport.azurewebsites.net/pubs/paxos-simple.pdf
 4. D. Ongaro, J. Ousterhout. "In Search of an Understandable Consensus Algorithm." USENIX ATC 2014, pp. 305–319. https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro (extended version: https://raft.github.io/raft.pdf)
 5. D. Ongaro. "Consensus: Bridging Theory and Practice." PhD dissertation, Stanford University, 2014. https://purl.stanford.edu/qr033xr6097 (PDF: https://github.com/ongardie/dissertation)
-6. etcd-io/raft. README: features and notable users. https://github.com/etcd-io/raft
+6. etcd-io/raft. README: features and notable users. https://github.com/etcd-io/raft (joint-consensus `ConfChangeV2` transitions: https://github.com/etcd-io/raft/blob/main/raftpb/raft.proto)
 7. etcd documentation v3.6. "Tuning." https://etcd.io/docs/v3.6/tuning/
 8. etcd documentation v3.6. "Frequently Asked Questions (FAQ)." https://etcd.io/docs/v3.6/faq/
 9. etcd documentation v3.7. "Configuration options" (`--pre-vote`). https://etcd.io/docs/v3.7/op-guide/configuration/
@@ -329,7 +333,7 @@ Lesson: [`course/01-foundations/09-coordination-consensus.md`](course/01-foundat
 15. M. Burrows. "The Chubby lock service for loosely-coupled distributed systems." OSDI 2006. https://www.usenix.org/legacy/event/osdi06/tech/full_papers/burrows/burrows.pdf
 16. M. Kleppmann. "How to do distributed locking." 8 February 2016. https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html
 17. Jepsen (K. Kingsbury). "etcd 3.4.3." 30 January 2020. https://jepsen.io/analyses/etcd-3.4.3
-18. L. Lamport. "Time, Clocks, and the Ordering of Events in a Distributed System." *Communications of the ACM* 21(7):558–565, 1978. https://doi.org/10.1145/359545.359563 (PDF: https://lamport.azurewebsites.net/pubs/time-clocks.pdf)
+18. L. Lamport. "Time, Clocks, and the Ordering of Events in a Distributed System." *Communications of the ACM* 21(7):558–565, 1978. https://doi.org/10.1145/359545.359563 (DOI returns HTTP 403 to scripts; bibliographic data checked via Crossref; PDF: https://lamport.azurewebsites.net/pubs/time-clocks.pdf)
 19. F. Mattern. "Virtual Time and Global States of Distributed Systems." 1989. https://pages.cs.wisc.edu/~remzi/Classes/739/Fall2018/Papers/mattern89.pdf
 20. G. DeCandia et al. "Dynamo: Amazon's Highly Available Key-value Store." SOSP 2007. https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
 21. S. Kulkarni, M. Demirbas, D. Madappa, B. Avva, M. Leone. "Logical Physical Clocks." OPODIS 2014, LNCS 8878. https://doi.org/10.1007/978-3-319-14472-6_2 (tech report: https://cse.buffalo.edu/tech-reports/2014-04.pdf)
@@ -350,6 +354,7 @@ Lesson: [`course/01-foundations/09-coordination-consensus.md`](course/01-foundat
 36. Apache ZooKeeper. "ZooKeeper Recipes and Solutions." https://zookeeper.apache.org/doc/current/recipes.html
 37. etcd-io/etcd. GitHub releases (v3.7.4, v3.6.17, v3.5.36, November 2026). https://github.com/etcd-io/etcd/releases
 38. L. Lamport, R. Shostak, M. Pease. "The Byzantine Generals Problem." *ACM TOPLAS* 4(3):382–401, 1982. https://www.microsoft.com/en-us/research/publication/byzantine-generals-problem/
+39. TiKV. raft-rs README ("This Raft implementation in Rust..."). https://github.com/tikv/raft-rs
 
 ### 10 — APIs & communication
 
@@ -394,11 +399,11 @@ Lesson: [`course/01-foundations/10-apis-communication.md`](course/01-foundations
 
 ### 11 — Reliability engineering
 
-Lesson: [`course/01-foundations/11-reliability-engineering.md`](course/01-foundations/11-reliability-engineering.md) · source status: `DRAFT`
+Lesson: [`course/01-foundations/11-reliability-engineering.md`](course/01-foundations/11-reliability-engineering.md) · source status: `SOURCES_CHECKED`
 
-1. F. Cristian, "Understanding fault-tolerant distributed systems," *Communications of the ACM* 34(2):56–78, 1991. https://doi.org/10.1145/102792.102801
+1. F. Cristian, "Understanding fault-tolerant distributed systems," *Communications of the ACM* 34(2):56–78, 1991. https://doi.org/10.1145/102792.102801 (DOI returns HTTP 403 to scripts; bibliographic data checked via Crossref; full text: https://pop-art.inrialpes.fr/people/ayav/bib/cristian91.pdf, accessed 2026-11)
 2. L. Lamport, R. Shostak, M. Pease, "The Byzantine Generals Problem," *ACM TOPLAS* 4(3):382–401, 1982. https://www.microsoft.com/en-us/research/publication/byzantine-generals-problem/
-3. P. Huang, C. Guo, L. Zhou, J. R. Lorch, Y. Dang, M. Chintalapati, R. Yao, "Gray Failure: The Achilles' Heel of Cloud-Scale Systems," HotOS '17, 2017. https://www.microsoft.com/en-us/research/publication/gray-failure-achilles-heel-cloud-scale-systems/
+3. P. Huang, C. Guo, L. Zhou, J. R. Lorch, Y. Dang, M. Chintalapati, R. Yao, "Gray Failure: The Achilles' Heel of Cloud-Scale Systems," HotOS '17, 2017. https://www.microsoft.com/en-us/research/publication/gray-failure-achilles-heel-cloud-scale-systems/ ; full text: https://pages.cs.wisc.edu/~ra/Classes/739-sp20/papers/grayfailure-hotos17.pdf
 4. N. Bronson, A. Aghayev, A. Charapko, T. Zhu, "Metastable Failures in Distributed Systems," HotOS '21, 2021. https://sigops.org/s/conferences/hotos/2021/papers/hotos21-s11-bronson.pdf
 5. L. Huang, M. Magnusson, A. B. Muralikrishna, S. Estyak, R. Isaacs, A. Aghayev, T. Zhu, A. Charapko, "Metastable Failures in the Wild," OSDI '22, 2022. https://www.usenix.org/conference/osdi22/presentation/huang-lexiang
 6. M. Brooker, "Exponential Backoff And Jitter," AWS Architecture Blog, 2015 (updated 2023). https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
@@ -411,10 +416,10 @@ Lesson: [`course/01-foundations/11-reliability-engineering.md`](course/01-founda
 13. Envoy Proxy, "Adaptive Concurrency" HTTP filter documentation (latest). https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/adaptive_concurrency_filter
 14. M. Fowler, "CircuitBreaker," bliki, 6 March 2014. https://martinfowler.com/bliki/CircuitBreaker.html
 15. M. T. Nygard, *Release It! Design and Deploy Production-Ready Software*, 2nd ed., Pragmatic Bookshelf, 2018. https://pragprog.com/titles/mnee2/release-it-second-edition/
-16. B. Weiss, M. Furr, "Static stability using Availability Zones," Amazon Builders' Library. https://aws.amazon.com/builders-library/static-stability-using-availability-zones/
-17. AWS, *Disaster Recovery of Workloads on AWS: Recovery in the Cloud* (whitepaper), sections "Business Continuity Plan" and "Disaster recovery options in the cloud." https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html
+16. M. Furr, "Static stability using Availability Zones," Amazon Builders' Library, 2019 (the current page bylines only Mike Furr; some third-party summaries also credit Becky Weiss). https://aws.amazon.com/builders-library/static-stability-using-availability-zones/ (now served at builder.aws.com; accessed 2026-11)
+17. AWS, *Disaster Recovery of Workloads on AWS: Recovery in the Cloud* (whitepaper), sections "Business Continuity Plan" and "Disaster recovery options in the cloud." https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html ; Business Continuity Plan section: https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/business-continuity-plan-bcp.html
 18. Principles of Chaos Engineering. https://principlesofchaos.org/
-19. A. Basiri, N. Behnam, R. de Rooij, L. Hochstein, L. Kosewski, J. Reynolds, C. Rosenthal, "Chaos Engineering," *IEEE Software* 33(3):35–41, 2016. https://doi.org/10.1109/MS.2016.60
+19. A. Basiri, N. Behnam, R. de Rooij, L. Hochstein, L. Kosewski, J. Reynolds, C. Rosenthal, "Chaos Engineering," *IEEE Software* 33(3):35–41, 2016. https://doi.org/10.1109/MS.2016.60 (DOI not fetchable by script; bibliographic data checked via Crossref; preprint: https://arxiv.org/abs/1702.05843, accessed 2026-11)
 20. AWS, "Summary of the AWS Service Event in the Northern Virginia (US-EAST-1) Region" (7 December 2021). https://aws.amazon.com/message/12721/
 21. AWS, "Summary of the Amazon DynamoDB Service Disruption in the Northern Virginia (US-EAST-1) Region" (19–20 October 2025). https://aws.amazon.com/message/101925/
 22. Cloudflare, "Cloudflare outage on November 18, 2025." https://blog.cloudflare.com/18-november-2025-outage/
@@ -423,43 +428,46 @@ Lesson: [`course/01-foundations/11-reliability-engineering.md`](course/01-founda
 25. R. Fielding, M. Nottingham, J. Reschke (eds.), RFC 9110 *HTTP Semantics*, §10.2.3 Retry-After, 2022. https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after
 26. M. Nottingham, R. Fielding, RFC 6585 *Additional HTTP Status Codes*, §4 429 Too Many Requests, 2012. https://www.rfc-editor.org/rfc/rfc6585.html
 27. Shopify, Toxiproxy (v2.13.0). https://github.com/Shopify/toxiproxy
+28. Anthropic, "Rate limits" (Claude API documentation: HTTP 429 `rate_limit_error`, with a `retry-after` header when the response carries one), https://platform.claude.com/docs/en/api/rate-limits
 
 ### 12 — Observability
 
-Lesson: [`course/01-foundations/12-observability.md`](course/01-foundations/12-observability.md) · source status: `DRAFT`
+Lesson: [`course/01-foundations/12-observability.md`](course/01-foundations/12-observability.md) · source status: `SOURCES_CHECKED`
 
 1. OpenTelemetry, "Specification Status Summary," https://opentelemetry.io/docs/specs/status/
 2. OpenTelemetry, "OpenTelemetry Profiles Enters Public Alpha," blog, 2026, https://opentelemetry.io/blog/2026/profiles-alpha/ ; and "Profiles" concept page (Status: Alpha), https://opentelemetry.io/docs/concepts/signals/profiles/
 3. OpenTelemetry, "OpenTelemetry eBPF Instrumentation reaches v1.0.0," blog, 2026, https://opentelemetry.io/blog/2026/obi-v1-release/ ; release v1.0.0 (2026-10-30), https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation/releases
-4. Grafana Labs, "OpenTelemetry eBPF Instrumentation: why we donated Grafana Beyla to OpenTelemetry," 2025-05-07, https://grafana.com/blog/2025/05/07/opentelemetry-ebpf-instrumentation-beyla-donation/
+4. N. Grcevski (Grafana Labs), "Introducing OpenTelemetry eBPF Instrumentation: Why we donated Grafana Beyla to OpenTelemetry," dateline 2025-05-08, https://grafana.com/blog/opentelemetry-ebpf-instrumentation-beyla-donation/
 5. OpenTelemetry, "Elastic Contributes its Continuous Profiling Agent to OpenTelemetry," blog, 2024, https://opentelemetry.io/blog/2024/elastic-contributes-continuous-profiling-agent/
 6. OpenTelemetry, GenAI semantic conventions (docs/gen-ai/: gen-ai-spans.md, gen-ai-metrics.md, gen-ai-token-metrics.md; all "Status: Development"), https://github.com/open-telemetry/semantic-conventions-genai (main branch, accessed 2026-11).
 7. Prometheus, "Metric and label naming," https://prometheus.io/docs/practices/naming/
 8. OpenTelemetry, "Metrics Data Model" (temporality, exponential histograms, exemplars), https://opentelemetry.io/docs/specs/otel/metrics/data-model/
 9. OpenTelemetry, "Logs" specification overview (Logs Bridge API, trace context in log records), https://opentelemetry.io/docs/specs/otel/logs/
-10. B. H. Sigelman et al., "Dapper, a Large-Scale Distributed Systems Tracing Infrastructure," Google Technical Report dapper-2010-1, 2010, https://research.google/pubs/pub36356/
+10. B. H. Sigelman et al., "Dapper, a Large-Scale Distributed Systems Tracing Infrastructure," Google Technical Report dapper-2010-1, 2010, https://research.google/pubs/pub36356/ ; full text https://static.googleusercontent.com/media/research.google.com/en//archive/papers/dapper-2010-1.pdf
 11. W3C, "Trace Context" (Level 1), W3C Recommendation, 23 November 2021 (first Recommendation 6 February 2020), https://www.w3.org/TR/trace-context/
 12. G. Ren et al., "Google-Wide Profiling: A Continuous Profiling Infrastructure for Data Centers," IEEE Micro, 2010, https://research.google/pubs/google-wide-profiling-a-continuous-profiling-infrastructure-for-data-centers/
-13. OpenTelemetry, Resource semantic conventions, https://opentelemetry.io/docs/specs/semconv/resource/
+13. OpenTelemetry, Resource semantic conventions, https://opentelemetry.io/docs/specs/semconv/resource/ ; `deployment.environment.name`: https://opentelemetry.io/docs/specs/semconv/resource/deployment-environment/ ; `k8s.pod.name`: https://opentelemetry.io/docs/specs/semconv/resource/k8s/
 14. OpenTelemetry, "Semantic conventions for HTTP metrics" (`http.server.request.duration`), https://opentelemetry.io/docs/specs/semconv/http/http-metrics/
 15. B. Beyer et al. (eds.), *Site Reliability Engineering*, ch. 6 "Monitoring Distributed Systems," O'Reilly/Google, 2016, https://sre.google/sre-book/monitoring-distributed-systems/
-16. T. Wilkie, "The RED Method: How to instrument your services," Grafana Labs blog, 2018-08-02, https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/ ; slides, GrafanaCon EU 2018, https://grafana.com/files/grafanacon_eu_2018/Tom_Wilkie_GrafanaCon_EU_2018.pdf
+16. J. Dam (Grafana Labs), "The RED Method: How to instrument your services" (write-up of Tom Wilkie's talk), Grafana Labs blog, 2018-08-03, https://grafana.com/blog/the-red-method-how-to-instrument-your-services/ ; slides, GrafanaCon EU 2018, https://grafana.com/files/grafanacon_eu_2018/Tom_Wilkie_GrafanaCon_EU_2018.pdf
 17. B. Gregg, "The USE Method," https://www.brendangregg.com/usemethod.html
 18. S. Murphy et al. (eds.), *The Site Reliability Workbook*, ch. 5 "Alerting on SLOs," O'Reilly/Google, 2018, https://sre.google/workbook/alerting-on-slos/
 19. T. Pelkonen et al., "Gorilla: A Fast, Scalable, In-Memory Time Series Database," PVLDB 8(12), 2015, https://www.vldb.org/pvldb/vol8/p1816-teller.pdf
 20. OpenTelemetry, "Collector" documentation (agent and gateway deployment patterns), https://opentelemetry.io/docs/collector/
 21. OpenTelemetry Collector Contrib, "Tail Sampling Processor" README (stability beta; decision_wait 30 s; num_traces 50,000), https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/tailsamplingprocessor
 22. OpenTelemetry Collector Contrib, "Load Balancing Exporter" README (routing by traceID), https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/loadbalancingexporter
-23. C. Majors, L. Fong-Jones, G. Miranda, *Observability Engineering*, O'Reilly, 2022, ISBN 9781492076438, https://www.oreilly.com/library/view/observability-engineering/9781492076438/ (publisher page; not fetchable by script, accessed 2026-11).
+23. C. Majors, L. Fong-Jones, G. Miranda, *Observability Engineering*, 1st ed., O'Reilly, 2022, https://www.oreilly.com/library/view/observability-engineering/9781492076438/ ; a 2nd edition appeared in 2026 (https://www.oreilly.com/library/view/observability-engineering-2nd/9781098179915/). Publisher pages return HTTP 403 to scripts: unverified as of 2026-11 beyond search listings; the lesson only cites the book's general thesis.
 24. Prometheus, CHANGELOG — 3.8.0 (2025-11-28) "Native histograms are now a stable, but optional feature"; 3.9.0 (2026-01-06) feature flag made a no-op, https://github.com/prometheus/prometheus/blob/main/CHANGELOG.md
 25. eBPF.io, "What is eBPF?", https://ebpf.io/what-is-ebpf/
 26. OpenTelemetry, semantic-conventions releases (v1.45.0, 2026-11-02), https://github.com/open-telemetry/semantic-conventions/releases
 27. T. Ahmed et al., "Recommending Root-Cause and Mitigation Steps for Cloud Incidents using Large Language Models," ICSE 2023, arXiv:2301.03797, https://arxiv.org/abs/2301.03797
 28. grafana/docker-otel-lgtm, v0.41.0 (2026-11-13), https://github.com/grafana/docker-otel-lgtm
+29. Prometheus, "Using Prometheus as your OpenTelemetry backend" (`--web.enable-otlp-receiver`), https://prometheus.io/docs/guides/opentelemetry/
+30. Prometheus, "Histograms and summaries" (quantiles cannot be aggregated; histogram buckets can be summed across instances), https://prometheus.io/docs/practices/histograms/
 
 ### 13 — Data at scale: object storage, lakehouse, batch vs stream, search
 
-Lesson: [`course/01-foundations/13-data-at-scale.md`](course/01-foundations/13-data-at-scale.md) · source status: `DRAFT`
+Lesson: [`course/01-foundations/13-data-at-scale.md`](course/01-foundations/13-data-at-scale.md) · source status: `SOURCES_CHECKED`
 
 1. Amazon Web Services, "Amazon S3 now delivers strong read-after-write consistency automatically for all applications," What's New, 2020-12-01. https://aws.amazon.com/about-aws/whats-new/2020/12/amazon-s3-now-delivers-strong-read-after-write-consistency-automatically-for-all-applications/
 2. Amazon Web Services, "Data protection in Amazon S3," Amazon S3 User Guide. https://docs.aws.amazon.com/AmazonS3/latest/userguide/DataDurability.html
@@ -471,20 +479,20 @@ Lesson: [`course/01-foundations/13-data-at-scale.md`](course/01-foundations/13-d
 8. M. Armbrust, A. Ghodsi, R. Xin, M. Zaharia, "Lakehouse: A New Generation of Open Platforms that Unify Data Warehousing and Advanced Analytics," CIDR 2021. https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf
 9. M. Armbrust et al., "Delta Lake: High-Performance ACID Table Storage over Cloud Object Stores," PVLDB 13(12): 3411–3424, 2020. https://www.vldb.org/pvldb/vol13/p3411-armbrust.pdf
 10. Apache Iceberg, "Iceberg Table Spec" (format versions 1–3 adopted; v4 in development). https://iceberg.apache.org/spec/ — source: https://github.com/apache/iceberg/blob/main/format/spec.md
-11. Apache Iceberg, GitHub releases (1.10.0 2025-09-11; 1.12.0 2026-09-30). https://github.com/apache/iceberg/releases
+11. Apache Iceberg, releases (1.10.0 released 2025-09-11, notes include "Spec: Mark version 3 as completed"; 1.12.0 released 2026-09-29 per the project page, GitHub timestamp 2026-09-30 UTC). https://iceberg.apache.org/releases/ ; https://github.com/apache/iceberg/releases/tag/apache-iceberg-1.10.0
 12. Apache Hudi, "Table & Query Types." https://hudi.apache.org/docs/table_types
 13. V. Chandar, P. Rajaperumal, "Hudi: Uber Engineering's Incremental Processing Framework on Apache Hadoop," Uber Engineering blog, 2017-03-11. https://www.uber.com/blog/hoodie/
 14. Apache Parquet, "File Format." https://parquet.apache.org/docs/file-format/
 15. Apache Parquet, "Configurations." https://parquet.apache.org/docs/file-format/configurations/
 16. J. Dean, S. Ghemawat, "MapReduce: Simplified Data Processing on Large Clusters," OSDI 2004, pp. 137–150. https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/
 17. M. Zaharia et al., "Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing," NSDI 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia
-18. N. Marz, "How to beat the CAP theorem," 2011. http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
+18. N. Marz, "How to beat the CAP theorem," October 2011. https://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
 19. J. Kreps, "Questioning the Lambda Architecture," O'Reilly Radar, 2014-07-02. https://www.oreilly.com/radar/questioning-the-lambda-architecture/
-20. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," Foundations and Trends in Information Retrieval 3(4), 2009. https://doi.org/10.1561/1500000019 (DOI not fetchable by automated client this session; bibliographic details from the publisher record)
+20. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," Foundations and Trends in Information Retrieval 3(4):333–389, 2009. https://doi.org/10.1561/1500000019 (the DOI now redirects to a page that returns HTTP 403 to scripts; volume and pages checked on the authors' copy: https://staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf, accessed 2026-11)
 21. Apache Lucene, "Lucene 10.3 file format / index structure" (package summary). https://lucene.apache.org/core/10_3_0/core/org/apache/lucene/codecs/lucene103/package-summary.html
 22. Elastic, "Similarity settings," Elasticsearch reference. https://www.elastic.co/docs/reference/elasticsearch/index-settings/similarity
 23. Elastic, "Index settings / index modules," Elasticsearch reference. https://www.elastic.co/docs/reference/elasticsearch/index-settings/index-modules
-24. Elastic, "Elastic Announces Open Source License for Elasticsearch and Kibana Source Code," press release, 2024-08-29. https://www.businesswire.com/news/home/20240829537786/en
+24. Elastic, "Elastic Announces Open Source License for Elasticsearch and Kibana Source Code," press release, 2024-08-29. https://www.businesswire.com/news/home/20240829537786/en (reachable in a browser, not fetchable by script; content checked on a syndicated copy: https://www.apmdigest.com/elastic-announces-open-source-license-elasticsearch-and-kibana-source-code, accessed 2026-11)
 25. The Linux Foundation, "Linux Foundation Announces OpenSearch Software Foundation to Foster Open Collaboration in Search and Analytics," press release, 2024-09-16. https://www.linuxfoundation.org/press/linux-foundation-announces-opensearch-software-foundation-to-foster-open-collaboration-in-search-and-analytics
 26. Apache Kafka, "KIP-405: Kafka Tiered Storage." https://cwiki.apache.org/confluence/display/KAFKA/KIP-405%3A+Kafka+Tiered+Storage
 27. WarpStream, "Architecture overview," WarpStream documentation. https://docs.warpstream.com/warpstream/overview/architecture
@@ -494,6 +502,8 @@ Lesson: [`course/01-foundations/13-data-at-scale.md`](course/01-foundations/13-d
 31. Amazon Web Services, "Announcing Amazon S3 Tables," What's New, 2024-12-03. https://aws.amazon.com/about-aws/whats-new/2024/12/amazon-s3-tables-apache-iceberg-tables-analytics-workloads/
 32. Elastic, "Size your shards," Elasticsearch documentation. https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards
 33. Amazon Web Services, "Amazon S3 adds new functionality for conditional writes," What's New, 2024-11-25. https://aws.amazon.com/about-aws/whats-new/2024/11/amazon-s3-functionality-conditional-writes/
+34. S. Banon, "Elasticsearch Is Open Source. Again!," Elastic blog, 2024-08-29. https://www.elastic.co/blog/elasticsearch-is-open-source-again
+35. Delta Lake, GitHub releases (v4.4.1 marked Latest, 2026-10-05). https://github.com/delta-io/delta/releases
 
 ## Part II — Modern requirements
 
@@ -595,7 +605,7 @@ Lesson: [`course/02-modern-requirements/16-cost-as-requirement.md`](course/02-mo
 
 ### 17 — Energy- & carbon-aware design
 
-Lesson: [`course/02-modern-requirements/17-energy-carbon-aware.md`](course/02-modern-requirements/17-energy-carbon-aware.md) · source status: `DRAFT`
+Lesson: [`course/02-modern-requirements/17-energy-carbon-aware.md`](course/02-modern-requirements/17-energy-carbon-aware.md) · source status: `SOURCES_CHECKED`
 
 1. Green Software Foundation, *Software Carbon Intensity (SCI) Specification*, v1.1.0, 2024. https://sci.greensoftware.foundation/
 2. ISO/IEC, *ISO/IEC 21031:2024 Information technology — Software Carbon Intensity (SCI) specification*, 1st ed., 2024. https://webstore.iec.ch/publication/93436
@@ -613,7 +623,7 @@ Lesson: [`course/02-modern-requirements/17-energy-carbon-aware.md`](course/02-mo
 14. T. Sukprasert, A. Souza, N. Bashir, D. Irwin, P. Shenoy, "On the Limitations of Carbon-Aware Temporal and Spatial Workload Shifting in the Cloud", EuroSys 2024. https://arxiv.org/abs/2306.06502
 15. A. Radovanović et al., "Carbon-Aware Computing for Datacenters", arXiv:2106.11750, 2021 (preprint). https://arxiv.org/abs/2106.11750
 16. U. Gupta et al., "Chasing Carbon: The Elusive Environmental Footprint of Computing", IEEE HPCA 2021. https://arxiv.org/abs/2011.02839
-17. L. A. Barroso, U. Hölzle, "The Case for Energy-Proportional Computing", IEEE Computer 40(12), 2007. https://research.google/pubs/the-case-for-energy-proportional-computing/
+17. L. A. Barroso, U. Hölzle, "The Case for Energy-Proportional Computing", IEEE Computer 40(12), 2007. https://www.barroso.org/publications/ieee_computer07.pdf (full text; abstract at https://research.google/pubs/the-case-for-energy-proportional-computing/)
 18. A. S. Luccioni, Y. Jernite, E. Strubell, "Power Hungry Processing: Watts Driving the Cost of AI Deployment?", ACM FAccT 2024. https://arxiv.org/abs/2311.16863
 19. A. S. Luccioni, S. Viguier, A.-L. Ligozat, "Estimating the Carbon Footprint of BLOOM, a 176B Parameter Language Model", JMLR 24(253), 2023. https://www.jmlr.org/papers/v24/23-0069.html
 20. D. Patterson et al., "Carbon Emissions and Large Neural Network Training", arXiv:2104.10350, 2021 (preprint). https://arxiv.org/abs/2104.10350
@@ -621,7 +631,7 @@ Lesson: [`course/02-modern-requirements/17-energy-carbon-aware.md`](course/02-mo
 22. S. Samsi et al., "From Words to Watts: Benchmarking the Energy Costs of Large Language Model Inference", IEEE HPEC 2023. https://arxiv.org/abs/2310.03003
 23. J. You, J.-W. Chung, M. Chowdhury, "Zeus: Understanding and Optimizing GPU Energy Consumption of DNN Training", USENIX NSDI 2023. https://www.usenix.org/conference/nsdi23/presentation/you
 24. Linux kernel documentation, "Power Capping Framework". https://docs.kernel.org/power/powercap/powercap.html
-25. Intel, "Running Average Power Limit Energy Reporting / CVE-2020-8694, CVE-2020-8695 / INTEL-SA-00389". https://www.intel.com/content/www/us/en/develop/articles/software-security-guidance/advisory-guidance/running-average-power-limit-energy-reporting.html
+25. Intel, "Running Average Power Limit Energy Reporting / CVE-2020-8694, CVE-2020-8695 / INTEL-SA-00389". https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/running-average-power-limit-energy-reporting.html
 26. Kepler maintainers, *Kepler (Kubernetes-based Efficient Power Level Exporter)*, GitHub repository. https://github.com/sustainable-computing-io/kepler
 27. CNCF blog, "Kepler re-architected: improved power accuracy and a community call to action", 30 June 2026. https://www.cncf.io/blog/2026/06/30/kepler-re-architected-improved-power-accuracy-and-a-community-call-to-action/
 28. NVIDIA, *DCGM Exporter Metrics* (DCGM documentation). https://docs.nvidia.com/datacenter/dcgm/latest/reference/dcgm-exporter-metrics.html
@@ -634,6 +644,10 @@ Lesson: [`course/02-modern-requirements/17-energy-carbon-aware.md`](course/02-mo
 35. Green Software Foundation, "SCI for AI specification ratified", 17 December 2025. https://greensoftware.foundation/articles/sci-ai-specification-ratified-standard-for-measuring-ai-emissions-across-the/
 36. Green Software Foundation, *Carbon Aware SDK* documentation. https://carbon-aware-sdk.greensoftware.foundation/docs/overview
 37. Z. Yang, K. Adámek, W. Armour, "Part-time Power Measurements: nvidia-smi's Lack of Attention", arXiv:2312.02741, v3 2024 (preprint). https://arxiv.org/abs/2312.02741
+38. European Commission, Delegated Regulation C(2026) 3472 final of 21.9.2026 establishing a common Union rating scheme for data centres, Annexes I–III, as transmitted to the Council (Council doc. 13444/26 ADD 1). https://data.consilium.europa.eu/doc/document/ST-13444-2026-ADD-1/en/pdf
+39. ExaMon project, *ExaMon* GitHub repository README (MQTT broker, KairosDB, Cassandra services). https://github.com/ExamonHPC/examon
+40. ML.ENERGY Initiative, *Zeus* GitHub repository README ("Zeus is a project of The ML.ENERGY Initiative"). https://github.com/ml-energy/zeus
+41. J.-W. Chung et al., "The ML.ENERGY Benchmark: Toward Automated Inference Energy Measurement and Optimization", arXiv:2505.06371, 2025 (NeurIPS 2025 Datasets and Benchmarks). https://arxiv.org/abs/2505.06371
 
 ### 18 — Security by design
 
@@ -682,7 +696,7 @@ Lesson: [`course/02-modern-requirements/18-security-by-design.md`](course/02-mod
 
 ### 19 — Privacy, compliance & data sovereignty
 
-Lesson: [`course/02-modern-requirements/19-privacy-compliance-sovereignty.md`](course/02-modern-requirements/19-privacy-compliance-sovereignty.md) · source status: `DRAFT`
+Lesson: [`course/02-modern-requirements/19-privacy-compliance-sovereignty.md`](course/02-modern-requirements/19-privacy-compliance-sovereignty.md) · source status: `SOURCES_CHECKED`
 
 1. European Parliament and Council, Regulation (EU) 2016/679 (General Data Protection Regulation), OJ L 119, 4.5.2016. https://eur-lex.europa.eu/eli/reg/2016/679/oj
 2. EDPB, Guidelines 4/2019 on Article 25 Data Protection by Design and by Default, version 2.0, adopted 20 October
@@ -693,8 +707,8 @@ Lesson: [`course/02-modern-requirements/19-privacy-compliance-sovereignty.md`](c
 6. General Court of the EU, Judgment of 3 September 2025, *Latombe v Commission*, T-553/23, ECLI:EU:T:2025:831. https://curia.europa.eu/juris/liste.jsf?num=T-553/23
 7. Appeal brought on 31 October 2025 by Philippe Latombe, Case C-703/25 P, OJ C, 22.12.2025. https://eur-lex.europa.eu/eli/C/2025/6610/oj
 8. European Commission, Report on the first periodic review of the functioning of the adequacy decision on the EU–US Data Privacy Framework, 9 October 2024. https://commission.europa.eu/document/25695177-8073-4ce3-bf81-eb816dc6b468_en
-9. EDPB, "1.2 billion euro fine for Facebook as a result of EDPB binding decision", 22 May 2023. https://www.edpb.europa.eu/node/6052_en
-10. European Parliament and Council, Regulation (EU) 2023/2854 (Data Act), OJ L, 22.12.2023 — Art. 29, 32, 50. https://eur-lex.europa.eu/eli/reg/2023/2854/oj
+9. Data Protection Commission (Ireland), "Data Protection Commission announces conclusion of inquiry into Meta Ireland", press release, 22 May 2023. https://www.dataprotection.ie/en/news-media/press-releases/Data-Protection-Commission-announces-conclusion-of-inquiry-into-Meta-Ireland ; EDPB, Binding Decision 1/2023 (Art. 65 GDPR) on data transfers by Meta Platforms Ireland Limited, 13 April 2023. https://www.edpb.europa.eu/documents/edpb-binding-decisions/binding-decision-12023-on-the-dispute-submitted-by-the-irish-sa-on_en
+10. European Parliament and Council, Regulation (EU) 2023/2854 (Data Act), OJ L, 22.12.2023 — Art. 3, 29, 32, 50. https://eur-lex.europa.eu/eli/reg/2023/2854/oj
 11. European Parliament and Council, Regulation (EU) 2024/1689 (Artificial Intelligence Act), OJ L, 12.7.2024 — Art. 4, 5, 10, 12, 19, 26, 113. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
 12. European Parliament and Council, Regulation (EU) 2026/1744 of 8 July 2026 amending Regulations (EU) 2024/1689, (EU) 2018/1139 and (EU) 2023/1230 (Digital Omnibus on AI), OJ L, 24.7.2026. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
 13. European Parliament, Legislative Train Schedule, "Digital Omnibus Regulation Proposal", procedure 2025/0360(COD), page updated 25 October 2026. https://www.europarl.europa.eu/legislative-train/theme-a-new-plan-for-europe-s-sustainable-prosperity-and-competitiveness/file-digital-package
@@ -706,17 +720,20 @@ Lesson: [`course/02-modern-requirements/19-privacy-compliance-sovereignty.md`](c
 19. Google Cloud, "Data deletion on Google Cloud". https://docs.cloud.google.com/docs/security/deletion
 20. Apache Kafka 4.2 documentation, Topic Configs (`retention.ms`, `delete.retention.ms`, `cleanup.policy`, `max.compaction.lag.ms`). https://kafka.apache.org/42/configuration/topic-configs/
 21. S. A. Crosby and D. S. Wallach, "Efficient Data Structures for Tamper-Evident Logging", USENIX Security 2009. https://www.usenix.org/legacy/event/sec09/tech/full_papers/crosby.pdf
-22. B. Laurie, E. Messeri, R. Stradling, RFC 9162, *Certificate Transparency Version 2.0*, IETF, December 2021. https://www.rfc-editor.org/rfc/rfc9162
+22. B. Laurie, E. Messeri, R. Stradling, RFC 9162, *Certificate Transparency Version 2.0*, IETF (Experimental), December 2021. https://www.rfc-editor.org/rfc/rfc9162
 23. L. Bourtoule et al., "Machine Unlearning", IEEE Symposium on Security and Privacy 2021 (arXiv:1912.03817). https://arxiv.org/abs/1912.03817
 24. N. Carlini et al., "Extracting Training Data from Large Language Models", USENIX Security 2021 (arXiv:2012.07805). https://arxiv.org/abs/2012.07805
-25. OpenLineage project (LF AI & Data), OpenLineage specification. https://openlineage.io/
+25. OpenLineage project, OpenLineage specification. https://openlineage.io/ ; project page at the LF AI & Data Foundation: https://lfaidata.foundation/projects/openlineage/
 26. European Commission, "Commission advances cloud sovereignty through strategic procurement", 17 April 2026. https://commission.europa.eu/news-and-media/news/commission-advances-cloud-sovereignty-through-strategic-procurement-2026-04-17_en
 27. 18 U.S.C. § 2713, Required preservation and disclosure of communications and records (CLOUD Act). https://www.law.cornell.edu/uscode/text/18/2713
 28. Nextgov/FCW, "House passes 45-day FISA extension after senators secure declassification deal", April 2026 (news report; perspective only). https://www.nextgov.com/policy/2026/04/house-passes-45-day-fisa-extension-after-senators-secure-declassification-deal/413250/
+29. EDPB and EDPS, Joint Opinion 2/2026 on the Proposal for a Regulation as regards the simplification of the digital legislative framework (Digital Omnibus), adopted 10 February 2026. https://www.edpb.europa.eu/system/files/2026-02/edpb_edps_jointopinion_202602_digitalomnibus_en.pdf
+30. NPR, E. McDaniel, "A key U.S. spy tool has lapsed — now what?", 12 June 2026 (news report). https://www.npr.org/2026/06/12/nx-s1-5856291/fisa-702-surveillance-expiration-bill-pulte
+31. Brennan Center for Justice, "Section 702 Surveillance Authority Will Not Lapse if Reauthorized by March 2027", one-pager, 22 September 2026 (advocacy organisation; perspective only). https://www.brennancenter.org/media/16217/download/bcj-702-march-2027-deadline-one-pager-9.22.26.pdf
 
 ### 20 — Real-time & streaming systems
 
-Lesson: [`course/02-modern-requirements/20-real-time-streaming.md`](course/02-modern-requirements/20-real-time-streaming.md) · source status: `DRAFT`
+Lesson: [`course/02-modern-requirements/20-real-time-streaming.md`](course/02-modern-requirements/20-real-time-streaming.md) · source status: `SOURCES_CHECKED`
 
 1. T. Akidau, R. Bradshaw, C. Chambers, S. Chernyak, R. J. Fernández-Moctezuma, R. Lax, S. McVeety, D. Mills, F. Perry, E. Schmidt, S. Whittle. "The Dataflow Model: A Practical Approach to Balancing Correctness, Latency, and Cost in Massive-Scale, Unbounded, Out-of-Order Data Processing." PVLDB 8(12):1792–1803, 2015. https://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf
 2. P. Carbone, G. Fóra, S. Ewen, S. Haridi, K. Tzoumas. "Lightweight Asynchronous Snapshots for Distributed Dataflows." arXiv:1506.08603, 2015 (preprint). https://arxiv.org/abs/1506.08603
@@ -735,8 +752,8 @@ Lesson: [`course/02-modern-requirements/20-real-time-streaming.md`](course/02-mo
 14. Y. Mei, Z. Lan, L. Huang, Y. Lei, H. Yin, R. Xia, K. Hu, P. Carbone, V. Kalavri, F. Wang. "Disaggregated State Management in Apache Flink 2.0." PVLDB 18(12), 2025. https://www.vldb.org/pvldb/vol18/p4846-mei.pdf
 15. Debezium 3.7 documentation. "Debezium connector for PostgreSQL." https://debezium.io/documentation/reference/stable/connectors/postgresql.html
 16. Debezium documentation. "Outbox Event Router." https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html
-17. Debezium. "Releases" (3.7 latest stable series; 3.7.1.Final, 2026-11-06). https://debezium.io/releases/
-18. PostgreSQL documentation (current). "Server Configuration — Replication" (`max_slot_wal_keep_size`, `idle_replication_slot_timeout`). https://www.postgresql.org/docs/current/runtime-config-replication.html
+17. Debezium. "Releases" (3.7 latest stable series; 3.7.1.Final, early November 2026). https://debezium.io/releases/
+18. PostgreSQL 18 documentation. "Server Configuration — Replication" (`max_slot_wal_keep_size`, `idle_replication_slot_timeout`). https://www.postgresql.org/docs/18/runtime-config-replication.html
 19. A. Andreakis, I. Papapanagiotou. "DBLog: A Watermark Based Change-Data-Capture Framework." arXiv:2010.12597, 2020 (preprint). https://arxiv.org/abs/2010.12597
 20. J. Kreps. "Questioning the Lambda Architecture." O'Reilly Radar, 2014-07-02. https://www.oreilly.com/radar/questioning-the-lambda-architecture/
 21. Apache Druid documentation (latest). "Introduction to Apache Druid" / design. https://druid.apache.org/docs/latest/design/
@@ -749,23 +766,26 @@ Lesson: [`course/02-modern-requirements/20-real-time-streaming.md`](course/02-mo
 28. Apache Kafka. "Downloads" (4.4.0, 2026-10-22). https://kafka.apache.org/community/downloads/
 29. Apache Kafka 4.1 documentation. "Upgrading" (4.0 supports only KRaft mode; ZooKeeper mode removed). https://kafka.apache.org/41/getting-started/upgrade/
 30. Apache Kafka. "Apache Kafka 4.1.0 Release Announcement" (KIP-932 Queues for Kafka in preview), 2025-09-04. https://kafka.apache.org/blog/2025/09/04/apache-kafka-4.1.0-release-announcement/
+31. Apache Spark 4.3 documentation. "Structured Streaming Programming Guide — Real-time Mode." https://spark.apache.org/docs/latest/streaming/real-time-mode.html
+32. Feast documentation. "Feature view" (section "[Alpha] Stream feature views"). https://docs.feast.dev/getting-started/concepts/feature-view
+33. Apache Druid documentation (latest). "Architecture" (service types). https://druid.apache.org/docs/latest/design/architecture/
 
 ## Part III — AI-native systems
 
 ### 21 — Anatomy of LLM inference
 
-Lesson: [`course/03-ai-systems/21-llm-inference-anatomy.md`](course/03-ai-systems/21-llm-inference-anatomy.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/21-llm-inference-anatomy.md`](course/03-ai-systems/21-llm-inference-anatomy.md) · source status: `SOURCES_CHECKED`
 
 1. Qwen Team, *Qwen3-8B model card*, Hugging Face, 2025. https://huggingface.co/Qwen/Qwen3-8B
 2. Qwen Team, *Qwen3-8B config.json* (num_hidden_layers 36, num_attention_heads 32, num_key_value_heads 8, head_dim 128, vocab_size 151936). https://huggingface.co/Qwen/Qwen3-8B/blob/main/config.json
 3. Qwen Team, *Qwen3-32B model card and config.json* (64 layers, 64 Q / 8 KV heads, 32.8 B parameters). https://huggingface.co/Qwen/Qwen3-32B
 4. W. Kwon et al., *Efficient Memory Management for Large Language Model Serving with PagedAttention*, SOSP 2023. arXiv:2309.06180. https://arxiv.org/abs/2309.06180
-5. vLLM project, *Metrics (design doc)*, docs.vllm.ai. https://docs.vllm.ai/en/latest/design/metrics.html
+5. vLLM project, *Metrics (design doc)*, docs.vllm.ai. https://docs.vllm.ai/en/v0.34.0/design/metrics/
 6. vLLM project, *vllm/benchmarks/serve.py* (TTFT, TPOT, ITL, request_goodput definitions), v0.34.0. https://github.com/vllm-project/vllm/blob/v0.34.0/vllm/benchmarks/serve.py
 7. vLLM Team, *vLLM V1: A Major Upgrade to vLLM's Core Architecture*, 2025-01-27. https://vllm.ai/blog/2025-01-27-v1-alpha-release
-8. vLLM project, *OpenAI-Compatible Server*. https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+8. vLLM project, *OpenAI-Compatible Server*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/online_serving/
 9. vLLM project, *Disaggregated Prefilling (experimental)*, docs/features/disagg_prefill.md, v0.34.0. https://github.com/vllm-project/vllm/blob/v0.34.0/docs/features/disagg_prefill.md
-10. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), docs/configuration/optimization.md, v0.34.0; and *Quantization* docs. https://docs.vllm.ai/en/latest/configuration/optimization.html
+10. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), docs/configuration/optimization.md, v0.34.0; and *Quantization* docs (hardware support matrix). https://docs.vllm.ai/en/v0.34.0/configuration/optimization/ and https://docs.vllm.ai/en/v0.34.0/features/quantization/
 11. Y. Zhong et al., *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*, OSDI 2024. arXiv:2401.09670. https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin
 12. P. Patel et al., *Splitwise: Efficient Generative LLM Inference Using Phase Splitting*, ISCA 2024. arXiv:2311.18677. https://arxiv.org/abs/2311.18677
 13. R. Sennrich, B. Haddow, A. Birch, *Neural Machine Translation of Rare Words with Subword Units*, ACL 2016. arXiv:1508.07909. https://arxiv.org/abs/1508.07909
@@ -786,12 +806,12 @@ Lesson: [`course/03-ai-systems/21-llm-inference-anatomy.md`](course/03-ai-system
 28. E. Frantar et al., *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*, ICLR 2023. arXiv:2210.17323. https://arxiv.org/abs/2210.17323
 29. OpenAI, *gpt-oss-120b config.json* (num_local_experts 128, num_experts_per_tok 4, sliding_window 128). https://huggingface.co/openai/gpt-oss-120b/blob/main/config.json
 30. A. Agrawal et al., *SARATHI: Efficient LLM Inference by Piggybacking Decodes with Chunked Prefills*, 2023. arXiv:2308.16369 (preprint). https://arxiv.org/abs/2308.16369
-31. vLLM project, *Speculative Decoding*. https://docs.vllm.ai/en/latest/features/speculative_decoding/
-32. vLLM project, *Release v0.34.0* (2026-11-16): default block size 64, extensible KV cache on by default. https://github.com/vllm-project/vllm/releases/tag/v0.34.0
+31. vLLM project, *Speculative Decoding*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/
+32. vLLM project, *Release v0.34.0* (2026-11-16): default block size 64, extensible KV cache on by default, `gpu_memory_utilization` defaults to 1.0 when unset. https://github.com/vllm-project/vllm/releases/tag/v0.34.0
 
 ### 22 — Serving LLMs at scale
 
-Lesson: [`course/03-ai-systems/22-serving-llms-at-scale.md`](course/03-ai-systems/22-serving-llms-at-scale.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/22-serving-llms-at-scale.md`](course/03-ai-systems/22-serving-llms-at-scale.md) · source status: `SOURCES_CHECKED`
 
 1. Qwen Team, *Qwen3-32B model card and config.json*, Hugging Face. https://huggingface.co/Qwen/Qwen3-32B
 2. vLLM Team, *vLLM V1: A Major Upgrade to vLLM's Core Architecture*, 2025-01-27. https://vllm.ai/blog/2025-01-27-v1-alpha-release
@@ -808,40 +828,43 @@ Lesson: [`course/03-ai-systems/22-serving-llms-at-scale.md`](course/03-ai-system
 13. Hugging Face, *text-generation-inference README* (maintenance mode; repository archived; v3.3.7, 2025-12-19). https://github.com/huggingface/text-generation-inference
 14. W. Kwon et al., *Efficient Memory Management for Large Language Model Serving with PagedAttention*, SOSP 2023. arXiv:2309.06180. https://arxiv.org/abs/2309.06180
 15. G.-I. Yu, J. S. Jeong, G.-W. Kim, S. Kim, B.-G. Chun, *Orca: A Distributed Serving System for Transformer-Based Generative Models*, OSDI 2022. https://www.usenix.org/conference/osdi22/presentation/yu
-16. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), v0.34.0. https://docs.vllm.ai/en/latest/configuration/optimization.html
-17. vLLM project, *Automatic Prefix Caching (design)*. https://docs.vllm.ai/en/latest/design/prefix_caching.html
+16. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), v0.34.0. https://docs.vllm.ai/en/v0.34.0/configuration/optimization/
+17. vLLM project, *Automatic Prefix Caching (design)*. https://docs.vllm.ai/en/v0.34.0/design/prefix_caching/
 18. L. Zheng et al., *SGLang: Efficient Execution of Structured Language Model Programs*, NeurIPS 2024. arXiv:2312.07104. https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html
 19. A. Agrawal et al., *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*, OSDI 2024. arXiv:2403.02310. https://www.usenix.org/conference/osdi24/presentation/agrawal
-20. vLLM project, *Architecture Overview* (V1 process architecture), v0.34.0. https://docs.vllm.ai/en/latest/design/arch_overview.html
-21. vLLM project, *OpenAI-Compatible Server*. https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
-22. vLLM project, *Structured Outputs*, v0.34.0. https://docs.vllm.ai/en/latest/features/structured_outputs.html
+20. vLLM project, *Architecture Overview* (V1 process architecture), v0.34.0. https://docs.vllm.ai/en/v0.34.0/design/arch_overview/
+21. vLLM project, *OpenAI-Compatible Server*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/online_serving/
+22. vLLM project, *Structured Outputs*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/structured_outputs/
 23. L. Chen et al., *Punica: Multi-Tenant LoRA Serving*, MLSys 2024. arXiv:2310.18547. https://proceedings.mlsys.org/paper_files/paper/2024/hash/054de805fcceb78a201f5e9d53c85908-Abstract-Conference.html
-24. Y. Sheng et al., *S-LoRA: Serving Thousands of Concurrent LoRA Adapters*, 2023. arXiv:2311.03285. https://arxiv.org/abs/2311.03285
-25. vLLM project, *LoRA Adapters*, v0.34.0. https://docs.vllm.ai/en/latest/features/lora.html
-26. vLLM project, *Metrics (design doc)*. https://docs.vllm.ai/en/latest/design/metrics.html
+24. Y. Sheng et al., *S-LoRA: Serving Thousands of Concurrent LoRA Adapters* (proceedings title: *SLoRA: Scalable Serving of Thousands of LoRA Adapters*), Proceedings of Machine Learning and Systems 6 (MLSys 2024). arXiv:2311.03285. https://proceedings.mlsys.org/paper_files/paper/2024/hash/906419cd502575b617cc489a1a696a67-Abstract-Conference.html
+25. vLLM project, *LoRA Adapters*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/lora/
+26. vLLM project, *Metrics (design doc)*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/design/metrics/
 27. NVIDIA, *NIXL — NVIDIA Inference Xfer Library, README* (v1.5.2, 2026-10-29). https://github.com/ai-dynamo/nixl
 28. LMCache project, *README*. https://github.com/LMCache/LMCache
 29. NVIDIA, *H100 Tensor Core GPU — product specifications*. https://www.nvidia.com/en-us/data-center/h100/
 30. Y. Leviathan, M. Kalman, Y. Matias, *Fast Inference from Transformers via Speculative Decoding*, ICML 2023. arXiv:2211.17192. https://arxiv.org/abs/2211.17192
-31. vLLM project, *Speculative Decoding*. https://docs.vllm.ai/en/latest/features/speculative_decoding/
+31. vLLM project, *Speculative Decoding*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/
 32. SGLang project, *README* (v0.5.23, 2026-11-02). https://github.com/sgl-project/sglang
-33. NVIDIA, *TensorRT-LLM README* (v1.4.0rc4, 2026-11-18). https://github.com/NVIDIA/TensorRT-LLM
+33. NVIDIA, *TensorRT-LLM README and releases* (latest stable v1.2.1, 2026-04-20; v1.4.0rc4 pre-release, 2026-11-18). https://github.com/NVIDIA/TensorRT-LLM
 34. ggml-org, *llama.cpp server README*. https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md
 35. vLLM project, *production-stack README* (vllm-stack-0.1.14, 2026-11-07). https://github.com/vllm-project/production-stack
-36. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/latest/serving/parallelism_scaling.html
-37. vLLM project, *Quantization* (supported methods; LLM Compressor; NVFP4), v0.34.0. https://docs.vllm.ai/en/latest/features/quantization/
+36. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/parallelism_scaling/
+37. vLLM project, *Quantization* (supported methods; LLM Compressor; NVFP4), v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/quantization/
 38. J. Lin et al., *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*, MLSys 2024 (Best Paper). arXiv:2306.00978. https://arxiv.org/abs/2306.00978
 39. E. Frantar, S. Ashkboos, T. Hoefler, D. Alistarh, *GPTQ*, ICLR 2023. arXiv:2210.17323. https://arxiv.org/abs/2210.17323
-40. vLLM project, *Quantized KV Cache*, v0.34.0. https://docs.vllm.ai/en/latest/features/quantization/quantized_kvcache.html
-41. Y. Li, F. Wei, C. Zhang, H. Zhang, *EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty*, 2024. arXiv:2401.15077. https://arxiv.org/abs/2401.15077
-42. Y. Li et al., *EAGLE-3: Scaling up Inference Acceleration of Large Language Models via Training-Time Test*, 2025. arXiv:2503.01840 (preprint). https://arxiv.org/abs/2503.01840
-43. vLLM project, *Loading models with Run:ai Model Streamer*, v0.34.0. https://docs.vllm.ai/en/latest/models/extensions/runai_model_streamer.html
-44. vLLM project, *Sleep Mode*, v0.34.0. https://docs.vllm.ai/en/latest/features/sleep_mode.html
+40. vLLM project, *Quantized KV Cache*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/quantization/quantized_kvcache/
+41. Y. Li, F. Wei, C. Zhang, H. Zhang, *EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty*, ICML 2024 (PMLR 235:28935–28948). arXiv:2401.15077. https://proceedings.mlr.press/v235/li24bt.html
+42. Y. Li et al., *EAGLE-3: Scaling up Inference Acceleration of Large Language Models via Training-Time Test*, NeurIPS 2025. arXiv:2503.01840. https://proceedings.neurips.cc/paper_files/paper/2025/hash/c7b5a35ea98b62512a869c19ea7b03cb-Abstract-Conference.html
+43. vLLM project, *Loading models with Run:ai Model Streamer*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/models/extensions/runai_model_streamer/
+44. vLLM project, *Sleep Mode*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/sleep_mode/
 45. Ollama project, *GitHub releases* (v0.40.16, 2026-11-09). https://github.com/ollama/ollama/releases
+46. Y. Tang, R. Shaw, S. Cabrinha, S. Krishna (Red Hat, Tesla), *Production-Grade LLM Inference at Scale with KServe, llm-d, and vLLM*, llm-d blog (Llama 3.1 70B, 4 × AMD MI300X, TP 4, `--max-model-len=65536`). https://llm-d.ai/blog/production-grade-llm-inference-at-scale-kserve-llm-d-vllm
+47. llm-d project, *llm-d 0.5: Sustaining Performance at Scale*, llm-d blog (Figure 3: Llama-3.1-70B, 4 × H100 with IBM Storage Scale, 16K-token requests, 13.9× at 250 users vs GPU-only). https://llm-d.ai/blog/llm-d-v0.5-sustaining-performance-at-scale
+48. vLLM project, *vllm/entrypoints/openai/completion/protocol.py* and *chat_completion/protocol.py* (`ignore_eos`, `min_tokens` request fields), v0.34.0. https://github.com/vllm-project/vllm/tree/v0.34.0/vllm/entrypoints/openai
 
 ### 23 — GPU & accelerator infrastructure
 
-Lesson: [`course/03-ai-systems/23-gpu-infrastructure.md`](course/03-ai-systems/23-gpu-infrastructure.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/23-gpu-infrastructure.md`](course/03-ai-systems/23-gpu-infrastructure.md) · source status: `SOURCES_CHECKED`
 
 1. NVIDIA, *H100 Tensor Core GPU — product specifications* (80 GB, 3.35 TB/s, sparsity footnote, NVLink 900 GB/s, PCIe Gen5 128 GB/s, MIG up to 7). https://www.nvidia.com/en-us/data-center/h100/
 2. NVIDIA, *H200 Tensor Core GPU — specifications* (141 GB, 4.8 TB/s; preliminary). https://www.nvidia.com/en-us/data-center/h200/
@@ -851,9 +874,9 @@ Lesson: [`course/03-ai-systems/23-gpu-infrastructure.md`](course/03-ai-systems/2
 6. AMD, *Instinct MI355X — specifications* (288 GB, 8 TB/s, 2.5 PFLOPs FP16, 1,400 W). https://www.amd.com/en/products/accelerators/instinct/mi350/mi355x.html
 7. Google Cloud, *TPU7x (Ironwood)* documentation (192 GiB, 7,380 GB/s, 2,307 BF16 / 4,614 FP8 TFLOPS, 9,216 chips per pod). https://docs.cloud.google.com/tpu/docs/tpu7x
 8. AWS, *AWS Trainium* product page (Trainium3: 144 GB HBM3e, 4.9 TB/s, UltraServers up to 144 chips). https://aws.amazon.com/ai/machine-learning/trainium/
-9. Kubernetes, *Kubernetes v1.34: DRA has graduated to GA*, 2025-09-01; and *Dynamic Resource Allocation* concept page. https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/ ; https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/
+9. Kubernetes, *Kubernetes v1.34: DRA has graduated to GA*, 2025-09-01; and *Dynamic Resource Allocation* concept page ("Stable since Kubernetes v1.35"). https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/ ; https://kubernetes.io/docs/concepts/resource-management/dynamic-resource-allocation/
 10. Kubernetes, *Gang Scheduling* concept page (beta since v1.37, disabled by default; CompositePodGroup alpha in v1.37). https://kubernetes.io/docs/concepts/scheduling-eviction/gang-scheduling/
-11. PyTorch, *torch.cuda.utilization* ("percent of time over the past sample period during which one or more kernels was executing on the GPU as given by nvidia-smi"). https://docs.pytorch.org/docs/stable/generated/torch.cuda.utilization.html
+11. PyTorch, *torch.cuda.utilization* ("percent of time over the past sample period during which one or more kernels was executing on the GPU as given by nvidia-smi"). https://docs.pytorch.org/docs/2.15/generated/torch.cuda.utilization.html
 12. Kubernetes SIGs, *Kueue README* (v0.20.7, 2026-11-19). https://github.com/kubernetes-sigs/kueue
 13. Volcano project, *README* (CNCF incubating; v1.16.0, 2026-10-14). https://github.com/volcano-sh/volcano
 14. SchedMD / Slinky project, *slurm-operator README* (v1.3.0, 2026-11-19). https://github.com/SlinkyProject/slurm-operator
@@ -861,25 +884,28 @@ Lesson: [`course/03-ai-systems/23-gpu-infrastructure.md`](course/03-ai-systems/2
 16. A. Grattafiori et al. (Llama Team, Meta), *The Llama 3 Herd of Models*, arXiv:2407.21783, 2024 (Table 3; §3.3.4 reliability, Table 5). https://arxiv.org/abs/2407.21783
 17. T. Dao et al., *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness*, NeurIPS 2022. arXiv:2205.14135. https://arxiv.org/abs/2205.14135
 18. NVIDIA, *Quantum-X800 InfiniBand platform* (144 ports of 800 Gb/s). https://www.nvidia.com/en-us/networking/products/infiniband/quantum-x800/
-19. Ultra Ethernet Consortium, *UEC Specification 1.0* (2025-06-11) and Linux Foundation press release. https://ultraethernet.org/specification ; https://www.linuxfoundation.org/press/uec-launches-spec-1.0
+19. Ultra Ethernet Consortium, *UEC Specification 1.0* (2025-06-11) and *Specification history* (1.0.1 2025-09-05, 1.0.2 2026-01-28, 1.0.3 2026-07-16, 1.1 2026-10-12, current); Linux Foundation press release. https://ultraethernet.org/specification-history/ ; https://www.linuxfoundation.org/press/uec-launches-spec-1.0
 20. NVIDIA, *GPU Operator overview* and releases (v26.7.3, 2026-11-17). https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/overview.html ; https://github.com/NVIDIA/gpu-operator/releases
 21. Kubernetes, *GitHub releases* (v1.37.2, v1.36.6, v1.35.10 on 2026-10-28). https://github.com/kubernetes/kubernetes/releases
 22. Kubernetes SIGs / NVIDIA, *DRA Driver for NVIDIA GPUs README* (v0.5.1, 2026-10-12). https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu
-23. NVIDIA, *MIG User Guide — Introduction*. https://docs.nvidia.com/datacenter/tesla/mig-user-guide/introduction.html
+23. NVIDIA, *MIG User Guide — Introduction*. https://docs.nvidia.com/datacenter/tesla/mig-user-guide/latest/introduction.html
 24. NVIDIA, *k8s-device-plugin README* (time-slicing, MPS, MIG strategies; v0.20.2). https://github.com/NVIDIA/k8s-device-plugin
-25. NVIDIA, *MIG User Guide — Supported MIG Profiles* (H100 80GB). https://docs.nvidia.com/datacenter/tesla/mig-user-guide/supported-mig-profiles.html
+25. NVIDIA, *MIG User Guide — Supported MIG Profiles* (H100 80GB). https://docs.nvidia.com/datacenter/tesla/mig-user-guide/latest/supported-mig-profiles.html
 26. NVIDIA, *DCGM User Guide — Feature Overview* (profiling metrics). https://docs.nvidia.com/datacenter/dcgm/latest/user-guide/feature-overview.html
 27. NVIDIA, *dcgm-exporter releases* (4.9.0, 2026-11-06). https://github.com/NVIDIA/dcgm-exporter/releases
-28. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/latest/serving/parallelism_scaling.html
-29. NVIDIA, *Xid Errors — Analyzing Xid Errors with the Xid Catalog*. https://docs.nvidia.com/deploy/xid-errors/analyzing-xid-catalog.html
+28. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/parallelism_scaling/
+29. NVIDIA, *Xid Errors — Analyzing Xid Errors with the Xid Catalog*. https://docs.nvidia.com/deploy/xid-errors/latest/analyzing-xid-catalog.html
 30. vLLM project, *Release v0.34.0* (ROCm 10.0 images; quantisation changes). https://github.com/vllm-project/vllm/releases/tag/v0.34.0
 31. SGLang project, *README* (hardware platforms). https://github.com/sgl-project/sglang
 32. llm-d project, *README* (adopters and AMD MI300X results). https://github.com/llm-d/llm-d
 33. S. Rajbhandari, J. Rasley, O. Ruwase, Y. He, *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*, SC 2020. arXiv:1910.02054 ("2Ψ + 2Ψ + KΨ = 16Ψ bytes", K = 12 for mixed-precision Adam). https://arxiv.org/abs/1910.02054
+34. NVIDIA, *NVIDIA DGX B200 User Guide — Introduction to NVIDIA DGX B200 Systems* (power table: "Maximum Power per GPU" 1,000 W, as reported by `nvidia-smi`, with at least five of six PSUs operating). https://docs.nvidia.com/dgx/dgxb200-user-guide/introduction-to-dgxb200.html
+35. NVIDIA, *NVIDIA HGX Platform — specifications* (HGX B200: NVLink GPU-to-GPU bandwidth 1.8 TB/s). https://www.nvidia.com/en-us/data-center/hgx/
+36. NVIDIA, *DCGM API — Field Identifiers* (field 203 `DCGM_FI_DEV_GPU_UTIL_RATIO`, "GPU Utilization") and *dcgm-exporter default-counters.csv* at 4.9.0 ("GPU utilization as a ratio") vs 4.8.4 (`DCGM_FI_DEV_GPU_UTIL`, "GPU utilization (in %)"). https://docs.nvidia.com/datacenter/dcgm/latest/dcgm-api/dcgm-api-field-ids.html ; https://github.com/NVIDIA/dcgm-exporter/blob/4.9.0/etc/default-counters.csv
 
 ### 24 — Retrieval & vector systems
 
-Lesson: [`course/03-ai-systems/24-retrieval-vector-systems.md`](course/03-ai-systems/24-retrieval-vector-systems.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/24-retrieval-vector-systems.md`](course/03-ai-systems/24-retrieval-vector-systems.md) · source status: `SOURCES_CHECKED`
 
 1. Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." NeurIPS 2020. arXiv:2005.11401. https://arxiv.org/abs/2005.11401
 2. Malkov, Yu. A., Yashunin, D. A. "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs." arXiv:1603.09320 (2016); IEEE TPAMI 42(4), 2020 (online 2018), doi:10.1109/TPAMI.2018.2889473. https://arxiv.org/abs/1603.09320
@@ -887,8 +913,8 @@ Lesson: [`course/03-ai-systems/24-retrieval-vector-systems.md`](course/03-ai-sys
 4. Subramanya, S. J., Devvrit, F., Simhadri, H. V., Krishnaswamy, R., Kadekodi, R. "DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node." NeurIPS 2019. https://papers.nips.cc/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html
 5. Kusupati, A. et al. "Matryoshka Representation Learning." NeurIPS 2022. arXiv:2205.13147. https://arxiv.org/abs/2205.13147
 6. Guo, R. et al. "Accelerating Large-Scale Inference with Anisotropic Vector Quantization." ICML 2020. arXiv:1908.10396; code: https://github.com/google-research/google-research/tree/master/scann
-7. Robertson, S., Zaragoza, H. "The Probabilistic Relevance Framework: BM25 and Beyond." Foundations and Trends in IR 3(4), 2009. doi:10.1561/1500000019
-8. Cormack, G. V., Clarke, C. L. A., Büttcher, S. "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods." SIGIR 2009. doi:10.1145/1571941.1572114
+7. Robertson, S., Zaragoza, H. "The Probabilistic Relevance Framework: BM25 and Beyond." Foundations and Trends in IR 3(4), 333–389, 2009 (the commonly cited form; Crossref metadata gives 4(1–2), and the publisher page blocks automated fetches, so the volume is unverified as of 2026-11). doi:10.1561/1500000019
+8. Cormack, G. V., Clarke, C. L. A., Büttcher, S. "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods." SIGIR 2009. doi:10.1145/1571941.1572114 ; author copy https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf
 9. Gollapudi, S. et al. "Filtered-DiskANN: Graph Algorithms for Approximate Nearest Neighbor Search with Filters." ACM Web Conference 2023. doi:10.1145/3543507.3583552
 10. Patel, L., Kraft, P., Guestrin, C., Zaharia, M. "ACORN: Performant and Predicate-Agnostic Search Over Vector Embeddings and Structured Data." SIGMOD 2024. arXiv:2403.04871. https://arxiv.org/abs/2403.04871
 11. Liu, N. F. et al. "Lost in the Middle: How Language Models Use Long Contexts." TACL 2024. arXiv:2307.03172. https://arxiv.org/abs/2307.03172
@@ -897,8 +923,8 @@ Lesson: [`course/03-ai-systems/24-retrieval-vector-systems.md`](course/03-ai-sys
 14. Aumüller, M., Bernhardsson, E., Faithfull, A. "ANN-Benchmarks: A Benchmarking Tool for Approximate Nearest Neighbor Algorithms." arXiv:1807.05614; https://ann-benchmarks.com
 15. hnswlib maintainers. "HNSW algorithm parameters" (ALGO_PARAMS.md). https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
 16. pgvector maintainers. pgvector README, v0.8.7. https://github.com/pgvector/pgvector
-17. Qdrant. "Filtering" and "Indexing" documentation (v1.20). https://qdrant.tech/documentation/concepts/filtering/ ; https://qdrant.tech/documentation/manage-data/indexing/
-18. Milvus. "Index" documentation (v3.0.x). https://milvus.io/docs/index.md
+17. Qdrant. "Filtering" and "Indexing" documentation (v1.20; ACORN mode since v1.16.0). https://qdrant.tech/documentation/search/filtering/ ; https://qdrant.tech/documentation/manage-data/indexing/
+18. Milvus. "Index" and "On-disk Index" documentation (v3.0.x). https://milvus.io/docs/index.md ; https://milvus.io/docs/disk_index.md
 19. Weaviate. "Hybrid search" concepts. https://docs.weaviate.io/weaviate/concepts/search/hybrid-search
 20. OpenSearch. "Methods and engines" (k-NN vector). https://docs.opensearch.org/latest/mappings/supported-field-types/knn-methods-engines/
 21. Elastic. "dense_vector field type" reference (index_options defaults by version). https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/dense-vector
@@ -906,8 +932,8 @@ Lesson: [`course/03-ai-systems/24-retrieval-vector-systems.md`](course/03-ai-sys
 23. sentence-transformers. "all-MiniLM-L6-v2" model card (384 dimensions, 256 word-piece limit). https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 24. Nogueira, R., Cho, K. "Passage Re-ranking with BERT." arXiv:1901.04085 (2019). https://arxiv.org/abs/1901.04085
 25. Khattab, O., Zaharia, M. "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT." SIGIR 2020. arXiv:2004.12832
-26. Anthropic. "Introducing Contextual Retrieval" (vendor engineering blog, 2024). https://www.anthropic.com/news/contextual-retrieval
-27. LanceDB documentation. https://docs.lancedb.com/
+26. Anthropic. "Introducing Contextual Retrieval" (vendor research post, 2024). https://www.anthropic.com/research/contextual-retrieval
+27. LanceDB maintainers. lancedb repository README ("embedded retrieval library", built on the Lance columnar format). https://github.com/lancedb/lancedb
 28. Douze, M. et al. "The Faiss library." arXiv:2401.08281 (2024). https://arxiv.org/abs/2401.08281
 29. Edge, D. et al. "From Local to Global: A Graph RAG Approach to Query-Focused Summarization." arXiv:2404.16130 (2024). https://arxiv.org/abs/2404.16130
 30. Järvelin, K., Kekäläinen, J. "Cumulated gain-based evaluation of IR techniques." ACM TOIS 20(4), 2002. doi:10.1145/582415.582418
@@ -917,20 +943,21 @@ Lesson: [`course/03-ai-systems/24-retrieval-vector-systems.md`](course/03-ai-sys
 34. ragas maintainers. "Available metrics" (ragas v0.4.4). https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/
 35. Microsoft. GraphRAG (v3.3.0). https://github.com/microsoft/graphrag ; https://microsoft.github.io/graphrag/
 36. Weaviate. "Multi-tenancy" and "Vector indexing" docs. https://docs.weaviate.io/weaviate/manage-collections/multi-tenancy ; https://docs.weaviate.io/weaviate/concepts/vector-index
+37. Formal, T., Piwowarski, B., Clinchant, S. "SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking." SIGIR 2021 (short paper). arXiv:2107.05720. https://arxiv.org/abs/2107.05720
 
 ### 25 — Agentic systems
 
-Lesson: [`course/03-ai-systems/25-agentic-systems.md`](course/03-ai-systems/25-agentic-systems.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/25-agentic-systems.md`](course/03-ai-systems/25-agentic-systems.md) · source status: `SOURCES_CHECKED`
 
 1. Yao, S. et al. "ReAct: Synergizing Reasoning and Acting in Language Models." ICLR 2023. arXiv:2210.03629. https://arxiv.org/abs/2210.03629
 2. Schick, T. et al. "Toolformer: Language Models Can Teach Themselves to Use Tools." NeurIPS 2023. arXiv:2302.04761. https://arxiv.org/abs/2302.04761
-3. Model Context Protocol. "Versioning" (current revision 2026-07-28). https://modelcontextprotocol.io/specification/versioning
+3. Model Context Protocol. "Versioning" (current revision 2026-07-28). https://modelcontextprotocol.io/docs/2026-07-28/learn/versioning
 4. Model Context Protocol. Specification, revision 2026-07-28 (server features: tools, resources, prompts). https://modelcontextprotocol.io/specification/2026-07-28 ; https://modelcontextprotocol.io/specification/2026-07-28/server/tools
 5. MCP maintainers. "MCP 2026-07-28" release post (stateless core, Tasks extension, deprecations, authorization changes). https://blog.modelcontextprotocol.io/posts/2026-07-28/
 6. Linux Foundation. "Linux Foundation Announces the Formation of the Agentic AI Foundation" (press release, 9 Dec 2025). https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation
-7. A2A project. Releases v1.0.0 (2026-03-12), v1.0.1 (2026-05-28). https://github.com/a2aproject/A2A/releases
-8. A2A project. Documentation and "Key concepts". https://a2a-protocol.org/latest/ ; https://a2a-protocol.org/latest/topics/key-concepts/ ; specification https://a2a-protocol.org/latest/specification/
-9. OpenTelemetry. GenAI semantic conventions (agent spans, execute_tool, MCP), status Development. https://github.com/open-telemetry/semantic-conventions-genai
+7. A2A project. Releases v1.0.0 (2026-03-12), v1.0.1 (2026-05-28); tag v1.1.0-rc. https://github.com/a2aproject/A2A/releases
+8. A2A project. Documentation and "Key concepts". https://a2a-protocol.org/latest/ ; https://a2a-protocol.org/latest/topics/key-concepts/ ; specification v1.0.0 (§3.6.1 version header; §§9–12 JSON-RPC, gRPC, HTTP+JSON/REST and custom bindings) https://a2a-protocol.org/latest/specification/
+9. OpenTelemetry. GenAI semantic conventions (agent spans, execute_tool, MCP, A2A), status Development. https://github.com/open-telemetry/semantic-conventions-genai
 10. LangChain. LangGraph "Persistence" and "Interrupts" docs (LangGraph 1.2.x). https://docs.langchain.com/oss/python/langgraph/persistence ; https://docs.langchain.com/oss/python/langgraph/interrupts
 11. Temporal. "Workflow Execution" and "Understanding Temporal". https://docs.temporal.io/workflow-execution ; https://docs.temporal.io/evaluate/understanding-temporal
 12. Yao, S., Shinn, N., Razavi, P., Narasimhan, K. "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains." arXiv:2406.12045 (2024). https://arxiv.org/abs/2406.12045
@@ -941,7 +968,7 @@ Lesson: [`course/03-ai-systems/25-agentic-systems.md`](course/03-ai-systems/25-a
 17. Greshake, K. et al. "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection." AISec 2023. arXiv:2302.12173. https://arxiv.org/abs/2302.12173
 18. Debenedetti, E. et al. "Defeating Prompt Injections by Design" (CaMeL). arXiv:2503.18813 (2025). https://arxiv.org/abs/2503.18813
 19. Debenedetti, E. et al. "AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents." NeurIPS 2024 Datasets & Benchmarks. arXiv:2406.13352
-20. Anthropic. "Building effective agents" (engineering blog, Dec 2024; perspective). https://www.anthropic.com/engineering/building-effective-agents
+20. Anthropic. "Building effective agents" (engineering blog, Dec 2024; perspective). https://www.anthropic.com/research/building-effective-agents
 21. Packer, C. et al. "MemGPT: Towards LLMs as Operating Systems." arXiv:2310.08560 (2023). https://arxiv.org/abs/2310.08560
 22. Park, J. S. et al. "Generative Agents: Interactive Simulacra of Human Behavior." UIST 2023. arXiv:2304.03442
 23. OWASP GenAI Security Project. "LLM06:2025 Excessive Agency." https://genai.owasp.org/llmrisk/llm062025-excessive-agency/
@@ -953,12 +980,14 @@ Lesson: [`course/03-ai-systems/25-agentic-systems.md`](course/03-ai-systems/25-a
 29. Kong. "AI Gateway" documentation (LLM, MCP and A2A traffic). https://developer.konghq.com/ai-gateway/
 30. Agent Router (formerly Envoy AI Gateway), README, v1.3.0. https://github.com/theagentrouter/agent-router
 31. Linux Foundation. "A2A protocol surpasses 150 organizations…" (press release, Apr 2026). https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year
+32. Model Context Protocol. "Deprecated Features" registry, revision 2026-07-28 (HTTP+SSE deprecated in 2025-03-26). https://modelcontextprotocol.io/specification/2026-07-28/deprecated
+33. OWASP GenAI Security Project. "OWASP Top 10 for LLM Applications 2026" (LLM03:2026 Excessive Agency), 2026-08-04. https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/
 
 ### 26 — LLM gateways & LLMOps
 
-Lesson: [`course/03-ai-systems/26-llm-gateways-llmops.md`](course/03-ai-systems/26-llm-gateways-llmops.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/26-llm-gateways-llmops.md`](course/03-ai-systems/26-llm-gateways-llmops.md) · source status: `SOURCES_CHECKED`
 
-1. vLLM project. "OpenAI-Compatible Server." https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+1. vLLM project. "OpenAI-Compatible Server." https://docs.vllm.ai/en/latest/serving/online_serving/openai_compatible_server/
 2. BerriAI. LiteLLM releases (v1.108.12 LTS image `docker.litellm.ai/berriai/litellm:v1.108.12-lts`). https://github.com/BerriAI/litellm/releases ; Docker quick start https://docs.litellm.ai/docs/proxy/docker_quick_start
 3. Agent Router (formerly Envoy AI Gateway). README and docs, v1.3.0 (2026-11-18). https://github.com/theagentrouter/agent-router ; https://theagentrouter.ai/docs/
 4. Kong. "AI Gateway" documentation (AI Semantic Cache, AI Rate Limiting Advanced, AI Prompt Guard, AI Semantic Prompt Guard, MCP). https://developer.konghq.com/ai-gateway/
@@ -978,7 +1007,7 @@ Lesson: [`course/03-ai-systems/26-llm-gateways-llmops.md`](course/03-ai-systems/
 
 ### 27 — ML platforms & data for AI
 
-Lesson: [`course/03-ai-systems/27-ml-platforms.md`](course/03-ai-systems/27-ml-platforms.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/27-ml-platforms.md`](course/03-ai-systems/27-ml-platforms.md) · source status: `SOURCES_CHECKED`
 
 1. D. Sculley et al., "Hidden Technical Debt in Machine Learning Systems," NeurIPS 28, 2015. https://papers.nips.cc/paper/5656-hidden-technical-debt-in-machine-learning-systems
 2. M. Zinkevich, "Rules of Machine Learning: Best Practices for ML Engineering," Google for Developers. https://developers.google.com/machine-learning/guides/rules-of-ml
@@ -986,7 +1015,7 @@ Lesson: [`course/03-ai-systems/27-ml-platforms.md`](course/03-ai-systems/27-ml-p
 4. Feast documentation, "Point-in-time joins." https://docs.feast.dev/getting-started/concepts/point-in-time-joins
 5. J. Hermann and M. Del Balso, "Meet Michelangelo: Uber's Machine Learning Platform," Uber Engineering, 2017. https://www.uber.com/blog/michelangelo-machine-learning-platform/
 6. feast-dev/feast, GitHub releases (v0.68.0, 2026-11-10). https://github.com/feast-dev/feast/releases
-7. MLflow documentation, "MLflow Model Registry," and GitHub releases (3.18.0). https://mlflow.org/docs/latest/ml/model-registry/ ; https://github.com/mlflow/mlflow/releases
+7. MLflow documentation, "MLflow Model Registry" and "GenAI" overview, and GitHub releases (3.18.0, 2026-11-04). https://mlflow.org/docs/latest/ml/model-registry/ ; https://mlflow.org/docs/latest/genai/ ; https://github.com/mlflow/mlflow/releases
 8. Feast documentation, "Feature view." https://docs.feast.dev/getting-started/concepts/feature-view
 9. E. J. Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models," arXiv:2106.09685, 2021. https://arxiv.org/abs/2106.09685
 10. T. Dettmers et al., "QLoRA: Efficient Finetuning of Quantized LLMs," arXiv:2305.14314, 2023. https://arxiv.org/abs/2305.14314
@@ -997,7 +1026,7 @@ Lesson: [`course/03-ai-systems/27-ml-platforms.md`](course/03-ai-systems/27-ml-p
 15. J. Lu et al., "Learning under Concept Drift: A Review," IEEE TKDE 31(12), 2018; arXiv:2004.05785. https://arxiv.org/abs/2004.05785
 16. S. Rabanser, S. Günnemann, Z. C. Lipton, "Failing Loudly: An Empirical Study of Methods for Detecting Dataset Shift," NeurIPS 2019; arXiv:1810.11953. https://arxiv.org/abs/1810.11953
 17. Linux Foundation / PyTorch Foundation, "PyTorch Foundation Welcomes Ray to Deliver a Unified Open Source AI Compute Stack," 2025-10-22. https://pytorch.org/blog/pytorch-foundation-welcomes-ray-to-deliver-a-unified-open-source-ai-compute-stack/
-18. Kubeflow, "Kubeflow AI reference platform 26.03" and "Kubeflow Trainer v2.2" release blog. https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-26.03 ; https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/
+18. Kubeflow, "Kubeflow AI reference platform 26.03", "Kubeflow Trainer v2.2" release blog (2026-03-20), and Trainer GitHub releases (v2.4.0, 2026-11-06). https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-26.03 ; https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/ ; https://github.com/kubeflow/trainer/releases
 19. CNCF, "KServe becomes a CNCF incubating project," 2025-11-11. https://www.cncf.io/blog/2025/11/11/kserve-becomes-a-cncf-incubating-project/
 20. Bitol, "Open Data Contract Standard (ODCS)." https://bitol-io.github.io/open-data-contract-standard/latest/
 21. S. Rajbhandari, J. Rasley, O. Ruwase, Y. He, "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models," arXiv:1910.02054, 2019. https://arxiv.org/abs/1910.02054
@@ -1011,14 +1040,14 @@ Lesson: [`course/03-ai-systems/27-ml-platforms.md`](course/03-ai-systems/27-ml-p
 
 ### 28 — Trust, safety & governance for AI systems
 
-Lesson: [`course/03-ai-systems/28-ai-trust-safety-governance.md`](course/03-ai-systems/28-ai-trust-safety-governance.md) · source status: `DRAFT`
+Lesson: [`course/03-ai-systems/28-ai-trust-safety-governance.md`](course/03-ai-systems/28-ai-trust-safety-governance.md) · source status: `SOURCES_CHECKED`
 
-1. OWASP GenAI Security Project, "Top 10 for LLM Applications 2025." https://genai.owasp.org/llm-top-10/
+1. OWASP GenAI Security Project, "OWASP Top 10 for LLM Applications 2026," 2026-08-04 (resource page dated 2026-08-03). https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/ The 2025 edition remains at https://genai.owasp.org/llm-top-10/ (archive).
 2. OWASP GenAI Security Project, "OWASP Top 10 for Agentic Applications for 2026," 2025-12-09. https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
 3. S. Willison, "The lethal trifecta for AI agents: private data, untrusted content, and external communication," 2025-06-16. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/ *(blog; perspective)*
-4. Regulation (EU) 2024/1689 (Artificial Intelligence Act), OJ L, 12.7.2024. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-5. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), OJ L, 24.7.2026. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
-6. E. Debenedetti et al., "Defeating Prompt Injections by Design," arXiv:2503.18813, 2025 (preprint). https://arxiv.org/abs/2503.18813
+4. Regulation (EU) 2024/1689 (Artificial Intelligence Act), OJ L, 12.7.2024. https://eur-lex.europa.eu/eli/reg/2024/1689/oj, 99, 101, 111(3), 113 checked in the EUR-Lex HTML text)
+5. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), OJ L, 24.7.2026. https://eur-lex.europa.eu/eli/reg/2026/1744/oj, 111(4), 113 checked in the EUR-Lex HTML text)
+6. E. Debenedetti et al., "Defeating Prompt Injections by Design," arXiv:2503.18813v2 (24 Jun 2025), preprint. https://arxiv.org/abs/2503.18813
 7. L. Beurer-Kellner et al., "Design Patterns for Securing LLM Agents against Prompt Injections," arXiv:2506.08837, 2025 (preprint). https://arxiv.org/abs/2506.08837
 8. K. Greshake et al., "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection," arXiv:2302.12173, 2023. https://arxiv.org/abs/2302.12173
 9. A. Wei, N. Haghtalab, J. Steinhardt, "Jailbroken: How Does LLM Safety Training Fail?," arXiv:2307.02483,
@@ -1027,8 +1056,8 @@ Lesson: [`course/03-ai-systems/28-ai-trust-safety-governance.md`](course/03-ai-s
 11. H. Inan et al., "Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations," arXiv:2312.06674, 2023. https://arxiv.org/abs/2312.06674
 12. T. Rebedea et al., "NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with Programmable Rails," arXiv:2310.10501, 2023. https://arxiv.org/abs/2310.10501
 13. Presidio documentation (Data Privacy Stack). https://presidio.dataprivacystack.org/
-14. C2PA, "C2PA Technical Specification" v2.2, §§1.2, 1.3, 2.4.2, 9.1. https://spec.c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html
-15. C2PA Specifications site (current version listing 2.5). https://spec.c2pa.org/specifications/
+14. C2PA, "C2PA Technical Specification" v2.5 (October 2026), §§1.2, 1.3, 2.3.13, 2.4.2, 12.2.2. https://spec.c2pa.org/specifications/specifications/2.5/specs/C2PA_Specification.html
+15. C2PA Specifications index, v2.5. https://spec.c2pa.org/specifications/specifications/2.5/index.html
 16. Hugging Face Hub documentation, "Pickle Scanning." https://huggingface.co/docs/hub/security-pickle
 17. OpenSSF, "Launch of Model Signing v1.0: OpenSSF AI/ML Working Group Secures the Machine Learning Supply Chain," 2025-04-04. https://openssf.org/blog/2025/04/04/launch-of-model-signing-v1-0-openssf-ai-ml-working-group-secures-the-machine-learning-supply-chain/
 18. sigstore/model-transparency (model_signing library and CLI). https://github.com/sigstore/model-transparency
@@ -1036,12 +1065,13 @@ Lesson: [`course/03-ai-systems/28-ai-trust-safety-governance.md`](course/03-ai-s
 20. T. Gebru et al., "Datasheets for Datasets," arXiv:1803.09010, 2018 (rev. 2021). https://arxiv.org/abs/1803.09010
 21. NIST, "AI Risk Management Framework" (AI RMF 1.0, NIST AI 100-1, 2023-01-26). https://www.nist.gov/itl/ai-risk-management-framework
 22. NIST, "Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile," NIST AI 600-1, 2024-07-26. https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+23. European Commission, "AI Act" policy page (guidelines on transparency obligations, 20 July 2026) and "Code of Practice on Transparency of AI-generated Content" page (final code published 10 June 2026). https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai and https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content
 
 ## Part IV — Case studies
 
 ### C01 — URL shortener + distributed rate limiter
 
-Lesson: [`course/04-case-studies/C01-url-shortener-rate-limiter.md`](course/04-case-studies/C01-url-shortener-rate-limiter.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C01-url-shortener-rate-limiter.md`](course/04-case-studies/C01-url-shortener-rate-limiter.md) · source status: `SOURCES_CHECKED`
 
 1. R. Fielding, M. Nottingham, J. Reschke (eds.), "HTTP Semantics," RFC 9110, June 2022 — §15.4.2 (301), §15.4.3 (302), §15.4.8 (307), §15.4.9 (308), §10.2.3 (Retry-After). https://www.rfc-editor.org/rfc/rfc9110
 2. P. Tarjan, "Scaling your API with rate limiters," Stripe blog, 2017-03-30. https://stripe.com/blog/rate-limiters
@@ -1056,10 +1086,11 @@ Lesson: [`course/04-case-studies/C01-url-shortener-rate-limiter.md`](course/04-c
 11. M. Elhemali et al., "Amazon DynamoDB: A Scalable, Predictably Performant, and Fully Managed NoSQL Database Service," USENIX ATC 2022 — §4 global admission control with token buckets. https://www.usenix.org/conference/atc22/presentation/elhemali
 12. Google Cloud, "Web Risk overview" (Lookup API vs Update API with local hashed lists). https://docs.cloud.google.com/web-risk/docs/overview
 13. Cloudflare, "Rate limiting rules" (counting characteristics incl. JA3/JA4; per-data-center counter scope). https://developers.cloudflare.com/waf/rate-limiting-rules/
+14. Apache Cassandra documentation, "Guarantees" (lightweight transactions implemented with Paxos). https://cassandra.apache.org/doc/latest/cassandra/architecture/guarantees.html
 
 ### C02 — News feed / timeline
 
-Lesson: [`course/04-case-studies/C02-news-feed.md`](course/04-case-studies/C02-news-feed.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C02-news-feed.md`](course/04-case-studies/C02-news-feed.md) · source status: `SOURCES_CHECKED`
 
 1. A. Silberstein, J. Terrace, B. F. Cooper, R. Ramakrishnan, "Feeding Frenzy: Selectively Materializing Users' Event Feeds," SIGMOD 2010. https://sns.cs.princeton.edu/assets/papers/2010-sigmod-silberstein.pdf (DOI 10.1145/1807167.1807257)
 2. P. Covington, J. Adams, E. Sargin, "Deep Neural Networks for YouTube Recommendations," RecSys 2016 (two-stage candidate generation + ranking). https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/
@@ -1067,11 +1098,12 @@ Lesson: [`course/04-case-studies/C02-news-feed.md`](course/04-case-studies/C02-n
 4. A. Lada, M. Wang, T. Yan, "How machine learning powers Facebook's News Feed ranking algorithm," Engineering at Meta, 2021-01-26. https://engineering.fb.com/2021/01/26/core-infra/news-feed-ranking/
 5. X Corp., `twitter/the-algorithm`, Home Mixer README (stages; "~6000 features"). https://github.com/twitter/the-algorithm/blob/main/home-mixer/README.md
 6. xAI / X Corp., `xai-org/x-algorithm` README, "X For You Feed Algorithm" (Thunder, Phoenix retrieval and ranking, candidate isolation, hash-based embeddings; notable updates through 2026-10-26). https://github.com/xai-org/x-algorithm
-7. Regulation (EU) 2022/2065 (Digital Services Act), Art. 38 "Recommender systems"; obligation also restated in the Commission's answer to parliamentary question E-003424/2023. https://eur-lex.europa.eu/eli/reg/2022/2065/oj and https://www.europarl.europa.eu/doceo/document/E-9-2023-003424-ASW_EN.html
+7. Regulation (EU) 2022/2065 (Digital Services Act), Art. 38 "Recommender systems"; obligation also restated in the Commission's answer to parliamentary question E-003424/2023 (the europarl.europa.eu page blocks automated clients; read via the Wayback Machine copy of 2024-07-15). https://eur-lex.europa.eu/eli/reg/2022/2065/oj and https://www.europarl.europa.eu/doceo/document/E-9-2023-003424-ASW_EN.html
+8. Twitter Engineering, "Twitter's Recommendation Algorithm," 2023-03-31 (~1500 candidates per request; 50 % in-network on average; Fanout Service, which served in-network Tweets "from a cache of Tweets for each user", no longer used). Original https://blog.twitter.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm blocks automated clients; read via https://web.archive.org/web/20240102032358/https://blog.twitter.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm
 
 ### C03 — Chat & presence
 
-Lesson: [`course/04-case-studies/C03-chat-presence.md`](course/04-case-studies/C03-chat-presence.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C03-chat-presence.md`](course/04-case-studies/C03-chat-presence.md) · source status: `SOURCES_CHECKED`
 
 1. S. Vishnevskiy, "How Discord Stores Billions of Messages," Discord blog, 2017-01-13. https://discord.com/blog/how-discord-stores-billions-of-messages
 2. B. Ingram, "How Discord Stores Trillions of Messages," Discord blog, 2023-03-06. https://discord.com/blog/how-discord-stores-trillions-of-messages
@@ -1084,13 +1116,15 @@ Lesson: [`course/04-case-studies/C03-chat-presence.md`](course/04-case-studies/C
 9. T. Van Pelt, "RCS Encryption: A Leap Towards Secure and Interoperable Messaging," GSMA Newsroom, 2025-03-14. https://www.gsma.com/newsroom/article/rcs-encryption-a-leap-towards-secure-and-interoperable-messaging/
 10. Signal, "Specifications" (XEdDSA, X3DH, PQXDH, Double Ratchet, Sesame, ML-KEM Braid). https://signal.org/docs/
 11. M. Thomson, C. A. Wood, "Oblivious HTTP," RFC 9458, January 2024. https://www.rfc-editor.org/rfc/rfc9458
+12. Android Developers, "Optimize for Doze and App Standby" (Doze restrictions: "Suspends network access"). https://developer.android.com/training/monitoring-device-state/doze-standby
+13. Apple Developer Documentation, "About the background execution sequence" (UIKit; a backgrounded app "may be suspended"). https://developer.apple.com/documentation/uikit/about-the-background-execution-sequence
 
 ### C04 — Video upload, transcoding & streaming
 
-Lesson: [`course/04-case-studies/C04-video-streaming.md`](course/04-case-studies/C04-video-streaming.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C04-video-streaming.md`](course/04-case-studies/C04-video-streaming.md) · source status: `SOURCES_CHECKED`
 
-1. Netflix Technology Blog, "Per-Title Encode Optimization," 2015-12-14. https://netflixtechblog.com/per-title-encode-optimization-7e99442b62a2
-2. I. Katsavounidis, "Dynamic optimizer — a perceptual video encoding optimization framework," Netflix Technology Blog, 2018-03-05. https://netflixtechblog.com/dynamic-optimizer-a-perceptual-video-encoding-optimization-framework-e19f1e3a277f
+1. Netflix Technology Blog, "Per-Title Encode Optimization," 2015-12-14. https://netflixtechblog.com/per-title-encode-optimization-7e99442b62a2 (read via https://web.archive.org/web/20170107062725/http://techblog.netflix.com/2015/12/per-title-encode-optimization.html)
+2. I. Katsavounidis, "Dynamic optimizer — a perceptual video encoding optimization framework," Netflix Technology Blog, 2018-03-05. https://netflixtechblog.com/dynamic-optimizer-a-perceptual-video-encoding-optimization-framework-e19f1e3a277f (read via https://web.archive.org/web/20241231233211/https://netflixtechblog.com/dynamic-optimizer-a-perceptual-video-encoding-optimization-framework-e19f1e3a277f)
 3. Netflix, "Open Connect" (embedded appliances in ISP networks, IXP interconnection; 1,000+ ISP partners). https://openconnect.netflix.com/en/
 4. Netflix, VMAF — Video Multi-Method Assessment Fusion (open-source repository). https://github.com/Netflix/vmaf
 5. R. Pantos, W. May, "HTTP Live Streaming," RFC 8216, August 2017 (Informational). https://www.rfc-editor.org/rfc/rfc8216
@@ -1100,53 +1134,59 @@ Lesson: [`course/04-case-studies/C04-video-streaming.md`](course/04-case-studies
 9. IETF httpbis WG, "Resumable Uploads for HTTP," draft-ietf-httpbis-resumable-upload-15, 2026-11-02 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-httpbis-resumable-upload/
 10. P. Ranganathan et al., "Warehouse-Scale Video Acceleration: Co-design and Deployment in the Wild," ASPLOS 2021. https://research.google/pubs/warehouse-scale-video-acceleration-co-design-and-deployment-in-the-wild/
 11. Meta, "MSVP: Meta's first ASIC for video transcoding," 2023-05-18. https://ai.meta.com/blog/meta-scalable-video-processor-MSVP/
-12. Netflix Technology Blog, "AV1 — Now Powering 30% of Netflix Streaming," 2025-12-01 (snapshot 2025-11-13). https://netflixtechblog.com/av1-now-powering-30-of-netflix-streaming-02f592242d80
-13. Netflix Technology Blog, "Bringing AV1 Streaming to Netflix Members' TVs," 2021-11-09. https://netflixtechblog.com/bringing-av1-streaming-to-netflix-members-tvs-b7fc88e42320
+12. Netflix Technology Blog, "AV1 — Now Powering 30% of Netflix Streaming," 2025-12-01 (snapshot 2025-11-13). https://netflixtechblog.com/av1-now-powering-30-of-netflix-streaming-02f592242d80 (read via https://web.archive.org/web/20261024092619/https://netflixtechblog.com/av1-now-powering-30-of-netflix-streaming-02f592242d80)
+13. Netflix Technology Blog, "Bringing AV1 Streaming to Netflix Members' TVs," 2021-11-09. https://netflixtechblog.com/bringing-av1-streaming-to-netflix-members-tvs-b7fc88e42320 (read via https://web.archive.org/web/20241231233046/https://netflixtechblog.com/bringing-av1-streaming-to-netflix-members-tvs-b7fc88e42320)
 14. Alliance for Open Media, "Alliance for Open Media Releases AV2 Codec," press release, June 2026. https://aomedia.org/press%20releases/Alliance-for-Open-Media-Releases-AV2-Codec/
-15. Directive (EU) 2019/882 (European Accessibility Act) — measures apply from 28 June 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32019L0882
-16. European Commission, "European Accessibility Act" (products and services covered, incl. access to audiovisual media services). https://commission.europa.eu/strategy-and-policy/policies/justice-and-fundamental-rights/disability/union-equality-strategy-rights-persons-disabilities-2021-2030/european-accessibility-act_en
+15. Directive (EU) 2019/882 (European Accessibility Act) — measures apply from 28 June 2025. Art. 2 and recital on services providing access to audiovisual media services. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32019L0882 (read via https://web.archive.org/web/20260109005550/https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A32019L0882)
+16. Amazon Web Services, "Add preconditions to S3 operations with conditional requests" (`If-None-Match` on PutObject, CompleteMultipartUpload, CopyObject). https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html
+17. Amazon Web Services, "Amazon S3 multipart upload limits" (part numbers 1–10,000; part size 5 MiB to 5 GiB, no minimum for the last part). https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html
 
 ### C05 — Ride-hailing & proximity search
 
-Lesson: [`course/04-case-studies/C05-ride-hailing-proximity.md`](course/04-case-studies/C05-ride-hailing-proximity.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C05-ride-hailing-proximity.md`](course/04-case-studies/C05-ride-hailing-proximity.md) · source status: `SOURCES_CHECKED`
 
-1. I. Brodsky, "H3: Uber's Hexagonal Hierarchical Spatial Index," Uber Engineering blog, 2018-06-27. https://www.uber.com/blog/h3/
+1. I. Brodsky, "H3: Uber's Hexagonal Hierarchical Spatial Index," Uber Engineering blog, 2018-06-27. https://www.uber.com/blog/h3/ (read via https://web.archive.org/web/20260101053035/https://www.uber.com/en-CA/blog/h3/)
 2. H3 project, "Tables of Cell Statistics Across Resolutions." https://h3geo.org/docs/core-library/restable/
 3. H3 project, "Overview of the H3 Geospatial Indexing System" (122 base cells; 12 pentagons per resolution; version 4.x) and "Indexing" (aperture 7; exact logical containment). https://h3geo.org/docs/core-library/overview and https://h3geo.org/docs/highlights/indexing/
 4. S2 Geometry, "S2 Cells" developer guide (cube faces, Hilbert curve, levels 0–30, 64-bit cell IDs). http://s2geometry.io/devguide/s2cell_hierarchy
-5. Uber Engineering, "DeepETA: How Uber Predicts Arrival Times Using Deep Learning," 2022-02-10. https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/
+5. Uber Engineering, "DeepETA: How Uber Predicts Arrival Times Using Deep Learning," 2022-02-10. https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/ (read via https://web.archive.org/web/20260214071427/https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/)
 6. Redis documentation, "GEOSEARCH" (since 6.2.0; O(N + log M); 52-bit geohash scores). https://redis.io/docs/latest/commands/geosearch/
 7. H3 project, "Grid traversal functions" (`gridDisk`, `gridRing`, pentagon behavior). https://h3geo.org/docs/api/traversal
 8. Uber, H3 source repository. https://github.com/uber/h3
+9. Regulation (EU) 2016/679 (GDPR), Art. 4(1) definition of personal data ("location data" listed among identifiers). https://eur-lex.europa.eu/eli/reg/2016/679/oj (read via https://web.archive.org/web/20241230232003/https://eur-lex.europa.eu/eli/reg/2016/679/oj)
 
 ### C06 — Payments & ledger
 
-Lesson: [`course/04-case-studies/C06-payments-ledger.md`](course/04-case-studies/C06-payments-ledger.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C06-payments-ledger.md`](course/04-case-studies/C06-payments-ledger.md) · source status: `SOURCES_CHECKED`
 
 1. Stripe, "Idempotent requests," API reference. https://docs.stripe.com/api/idempotent_requests
 2. B. Leach, "Designing robust and predictable APIs with idempotency," Stripe blog, 2017-02-22. https://stripe.com/blog/idempotency
-3. J. Chew, "Avoiding Double Payments in a Distributed Payments System," The Airbnb Tech Blog, 2019-04-16. https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb
+3. J. Chew, "Avoiding Double Payments in a Distributed Payments System," The Airbnb Tech Blog, 2019-04-16. https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb (read via https://web.archive.org/web/20251114215405/https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb)
 4. Ł. Strzałkowski, "Books, an immutable double-entry accounting database service," Square Developer blog, 2019-10-16. https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/
 5. TigerBeetle, "Debit / Credit" concepts documentation. https://docs.tigerbeetle.com/concepts/debit-credit/
-6. K. Devarajaiah, "How LedgerStore Supports Trillions of Indexes at Uber," Uber Engineering blog, 2024-04-04. https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/
-7. Regulation (EU) 2024/886 of 13 March 2024 on instant credit transfers in euro (Arts. 5a–5d). https://eur-lex.europa.eu/eli/reg/2024/886/oj/eng
+6. K. Devarajaiah, "How LedgerStore Supports Trillions of Indexes at Uber," Uber Engineering blog, 2024-04-04. https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/ (read via https://web.archive.org/web/20260412221006/https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/)
+7. Regulation (EU) 2024/886 of 13 March 2024 on instant credit transfers in euro (Arts. 5a–5d). https://eur-lex.europa.eu/eli/reg/2024/886/oj/eng (read via https://web.archive.org/web/20251116103636/https://eur-lex.europa.eu/eli/reg/2024/886/oj/eng)
 8. Board of Governors of the Federal Reserve System, "FedNow Service" (went live July 20, 2023; 24x7x365). https://www.federalreserve.gov/paymentsystems/fednow_about.htm
-9. Council of the EU, "Payment services: Council and Parliament agree to step up the fight against fraud and increase transparency," press release, 2025-11-27 (verified via search index; page blocked automated fetch). https://www.consilium.europa.eu/en/press/press-releases/2025/11/27/payment-services-council-and-parliament-agree-to-step-up-the-fight-against-fraud-and-increase-transparency/
+9. Council of the EU, "Payment services: Council and Parliament agree to step up the fight against fraud and increase transparency," press release, 2025-11-27 (read via https://web.archive.org/web/20251215082601/https://www.consilium.europa.eu/en/press/press-releases/2025/11/27/payment-services-council-and-parliament-agree-to-step-up-the-fight-against-fraud-and-increase-transparency/). https://www.consilium.europa.eu/en/press/press-releases/2025/11/27/payment-services-council-and-parliament-agree-to-step-up-the-fight-against-fraud-and-increase-transparency/
 10. IETF httpapi WG, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header-08, 2026-10-22 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
 11. European Parliament, Legislative Train Schedule, "Revision of EU rules on payment services" (status "close to adoption", updated 2026-10-25). https://www.europarl.europa.eu/legislative-train/theme-an-economy-that-works-for-people/file-revision-of-eu-rules-on-payment-services
-12. PCI Security Standards Council, Document Library (PCI DSS v4.0.1). https://www.pcisecuritystandards.org/document_library/
+12. PCI Security Standards Council, Document Library (landing page listing PCI DSS v4.0.1 among featured documents; the standard's PDF did not download for automated clients). https://www.pcisecuritystandards.org/document_library/
+13. Stripe, "Receive Stripe events in your webhook endpoint" (automatic retries with exponential backoff for up to three days; track event IDs to identify duplicates; do not use `created` to order events). https://docs.stripe.com/webhooks
+14. TigerBeetle, "Correcting Transfers" recipe ("more transfers to reverse or adjust"). https://docs.tigerbeetle.com/coding/recipes/correcting-transfers/
+15. Regulation (EU) 2016/679 (GDPR), Art. 17(3)(b) (erasure does not apply where processing is required by a legal obligation). https://eur-lex.europa.eu/eli/reg/2016/679/oj (read via https://web.archive.org/web/20241230232003/https://eur-lex.europa.eu/eli/reg/2016/679/oj)
+16. Stripe, "How PaymentIntents and SetupIntents work" (status `requires_action` when, for example, 3D Secure authentication is needed). https://docs.stripe.com/payments/paymentintents/lifecycle
 
 ### C07 — Distributed key-value store (Dynamo-style)
 
-Lesson: [`course/04-case-studies/C07-distributed-kv-store.md`](course/04-case-studies/C07-distributed-kv-store.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C07-distributed-kv-store.md`](course/04-case-studies/C07-distributed-kv-store.md) · source status: `SOURCES_CHECKED`
 
 1. G. DeCandia et al., "Dynamo: Amazon's Highly Available Key-value Store," SOSP 2007. https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
 2. M. Elhemali et al., "Amazon DynamoDB: A Scalable, Predictably Performant, and Fully Managed NoSQL Database Service," USENIX ATC 2022. https://www.usenix.org/conference/atc22/presentation/elhemali (PDF: https://www.usenix.org/system/files/atc22-elhemali.pdf)
 3. Apache Cassandra documentation, "Dynamo" architecture page (5.0 docs: vnodes, NetworkTopologyStrategy, consistency levels, hints, read repair, Merkle-tree repair, gossip, phi accrual, LWW). https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html
 4. Apache Cassandra documentation, "Storage engine" (commit log sync modes, memtables, SSTables, Bloom filters, compaction). https://cassandra.apache.org/doc/latest/cassandra/architecture/storage-engine.html
 5. Apache Cassandra documentation, "Tombstones" (gc_grace_seconds default 864,000 s; zombie data). https://cassandra.apache.org/doc/latest/cassandra/managing/operating/compaction/tombstones.html
-6. D. Ongaro, J. Ousterhout, "In Search of an Understandable Consensus Algorithm (Extended Version)" (Raft), USENIX ATC 2014. https://raft.github.io/
-7. TiKV documentation, "Architecture overview" (Regions as Raft groups, Placement Driver, RocksDB). https://tikv.org/docs/latest/reference/architecture/overview/
+6. D. Ongaro, J. Ousterhout, "In Search of an Understandable Consensus Algorithm" (Raft), USENIX ATC 2014. https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro (project site: https://raft.github.io/)
+7. TiKV documentation v7.1, "Architecture overview" (Regions as Raft groups, Placement Driver, RocksDB; `/docs/latest/` redirects to v7.1). https://tikv.org/docs/7.1/reference/architecture/overview/
 8. Cockroach Labs, "Replication Layer" (Raft per range, leaseholders, leader leases). https://docs.cockroachlabs.com/docs/stable/architecture/replication-layer
 9. ScyllaDB documentation, "Data Distribution with Tablets" (tablets by default; load balancing; Raft-based consistent topology). https://docs.scylladb.com/manual/stable/architecture/tablets.html
 10. Apache Cassandra, "CEP-21: Transactional Cluster Metadata" (state: Accepted). https://cwiki.apache.org/confluence/display/CASSANDRA/CEP-21%3A+Transactional+Cluster+Metadata
@@ -1157,92 +1197,106 @@ Lesson: [`course/04-case-studies/C07-distributed-kv-store.md`](course/04-case-st
 15. R. Artoul, "Kafka is dead, long live Kafka," WarpStream blog, 2023-07-25 (vendor-reported latencies). https://www.warpstream.com/blog/kafka-is-dead-long-live-kafka
 16. Amazon Web Services, "Amazon S3 now supports conditional writes," 2024-08-20. https://aws.amazon.com/about-aws/whats-new/2024/08/amazon-s3-conditional-writes/
 17. Amazon Web Services, "Amazon S3 Express One Zone" (single-digit-millisecond latency; up to 10× faster than S3 Standard). https://aws.amazon.com/s3/storage-classes/express-one-zone/
+18. Apache Cassandra documentation, "Hints" (`max_hint_window` default 3 h). https://cassandra.apache.org/doc/latest/cassandra/managing/operating/hints.html
+19. Apache Cassandra, NEWS.txt on the `cassandra-6.0` branch (Cluster Metadata Service from CEP-21; upgrade steps). https://github.com/apache/cassandra/blob/cassandra-6.0/NEWS.txt
+20. ASF Release Catalog, "Apache Cassandra 6.0-alpha1" (archived 21 Mar 2026). https://release-catalog.apache.org/cassandra/6.0-alpha1/index.html
+21. Apache Software Foundation, Cassandra distribution archive (directories `6.0-alpha1/` and `6.0-alpha2/`, the latter dated 2026-08-07). https://archive.apache.org/dist/cassandra/
 
 ### C08 — Web crawler & search engine
 
-Lesson: [`course/04-case-studies/C08-web-crawler-search.md`](course/04-case-studies/C08-web-crawler-search.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C08-web-crawler-search.md`](course/04-case-studies/C08-web-crawler-search.md) · source status: `SOURCES_CHECKED`
 
 1. Common Crawl, "June 2026 Crawl Archive Now Available" (2.10 B pages, 354.59 TiB uncompressed). https://commoncrawl.org/blog/june-2026-crawl-archive-now-available
 2. M. Koster, G. Illyes, H. Zeller, L. Sassman, "Robots Exclusion Protocol," RFC 9309, September 2022. https://www.rfc-editor.org/rfc/rfc9309.html
-3. A. Heydon, M. Najork, "Mercator: A scalable, extensible Web crawler," *World Wide Web* 2(4), 1999. https://doi.org/10.1023/A:1019213109274
-4. M. S. Charikar, "Similarity estimation techniques from rounding algorithms," STOC 2002. https://doi.org/10.1145/509907.509965
-5. G. S. Manku, A. Jain, A. Das Sarma, "Detecting near-duplicates for web crawling," WWW 2007. https://doi.org/10.1145/1242572.1242592
-6. C. D. Manning, P. Raghavan, H. Schütze, *Introduction to Information Retrieval*, Cambridge University Press, 2008, ch. 4 "Index construction." https://nlp.stanford.edu/IR-book/
-7. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," *Foundations and Trends in IR* 3(4), 2009. https://doi.org/10.1561/1500000019
-8. S. Brin, L. Page, "The anatomy of a large-scale hypertextual Web search engine," *Computer Networks and ISDN Systems* 30, 1998. https://doi.org/10.1016/S0169-7552(98)00110-X
-9. J. Cho, H. Garcia-Molina, "Estimating frequency of change," *ACM Transactions on Internet Technology* 3(3), 2003. https://doi.org/10.1145/857166.857170
-10. OpenAI, "Overview of OpenAI Crawlers." https://developers.openai.com/api/docs/bots
-11. Google Search Central, "Google's common crawlers" (Google-Extended). https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers
-12. Anthropic, "Does Anthropic crawl data from the web, and how can site owners block the crawler?" https://support.claude.com/en/articles/8896518-does-anthropic-crawl-the-web
-13. Common Crawl, "CCBot." https://commoncrawl.org/ccbot
-14. IETF, AI Preferences (aipref) working group: charter and documents (draft-ietf-aipref-vocab, draft-ietf-aipref-attach). https://datatracker.ietf.org/wg/aipref/about/
-15. G. V. Cormack, C. L. A. Clarke, S. Büttcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," SIGIR 2009. https://doi.org/10.1145/1571941.1572114
-16. J. Cho, H. Garcia-Molina, "Synchronizing a database to improve freshness," SIGMOD 2000. https://doi.org/10.1145/342009.335391
+3. A. Heydon, M. Najork, "Mercator: A scalable, extensible Web crawler," *World Wide Web* 2(4), 1999. https://doi.org/10.1023/A:1019213109274 (unverified as of 2026-11: abstract only; frontier details checked in [4])
+4. M. Najork, A. Heydon, "High-Performance Web Crawling," SRC Research Report 173, Compaq Systems Research Center, 2001. https://www.cs.cornell.edu/courses/cs685/2002fa/mercator.pdf
+5. M. S. Charikar, "Similarity estimation techniques from rounding algorithms," STOC 2002. https://doi.org/10.1145/509907.509965 (copy: https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf)
+6. G. S. Manku, A. Jain, A. Das Sarma, "Detecting near-duplicates for web crawling," WWW 2007. https://doi.org/10.1145/1242572.1242592 (author copy: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/33026.pdf)
+7. K. Lee et al., "Deduplicating Training Data Makes Language Models Better," ACL 2022. https://aclanthology.org/2022.acl-long.577/
+8. C. D. Manning, P. Raghavan, H. Schütze, *Introduction to Information Retrieval*, Cambridge University Press, 2008, ch. 4 "Index construction." https://nlp.stanford.edu/IR-book/ (host unreachable on 2026-11-20; Wayback copy of ch. 4 read)
+9. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," *Foundations and Trends in IR* 3(4), 2009. https://doi.org/10.1561/1500000019 (author copy: https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf)
+10. A. Z. Broder, D. Carmel, M. Herscovici, A. Soffer, J. Zien, "Efficient query evaluation using a two-level retrieval process," CIKM 2003. https://doi.org/10.1145/956863.956944 (abstract: https://research.ibm.com/publications/efficient-query-evaluation-using-a-two-level-retrieval-process)
+11. S. Brin, L. Page, "The anatomy of a large-scale hypertextual Web search engine," *Computer Networks and ISDN Systems* 30, 1998. https://doi.org/10.1016/S0169-7552(98)00110-X (copy: https://snap.stanford.edu/class/cs224w-readings/Brin98Anatomy.pdf)
+12. J. Cho, H. Garcia-Molina, "Estimating frequency of change," *ACM Transactions on Internet Technology* 3(3), 2003. https://doi.org/10.1145/857166.857170 (unverified as of 2026-11: no fetchable copy; the Poisson change model is also used in [13])
+13. J. Cho, H. Garcia-Molina, "Synchronizing a database to improve freshness," SIGMOD 2000. https://doi.org/10.1145/342009.335391 (copy: https://www.kth.se/social/files/554f1d5bf27654514fd00393/synchronizing-a-database-to-improve-freshness.pdf)
+14. OpenAI, "Overview of OpenAI Crawlers." https://developers.openai.com/api/docs/bots
+15. Google, "Google's common crawlers" (Google-Extended). https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers
+16. Anthropic, "Does Anthropic crawl data from the web, and how can site owners block the crawler?" https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler
+17. Common Crawl, "CCBot." https://commoncrawl.org/ccbot
+18. IETF, AI Preferences (aipref) working group: charter and documents (draft-ietf-aipref-vocab-08, draft-ietf-aipref-attach-05). https://datatracker.ietf.org/wg/aipref/documents/
+19. G. V. Cormack, C. L. A. Clarke, S. Büttcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," SIGIR 2009. https://doi.org/10.1145/1571941.1572114 (author copy: https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf)
+20. S. J. Subramanya et al., "DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node," NeurIPS 2019. https://papers.nips.cc/paper_files/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html
 
 ### C09 — ChatGPT-style LLM chat service
 
-Lesson: [`course/04-case-studies/C09-llm-chat-service.md`](course/04-case-studies/C09-llm-chat-service.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C09-llm-chat-service.md`](course/04-case-studies/C09-llm-chat-service.md) · source status: `SOURCES_CHECKED`
 
-1. W. Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention," SOSP 2023. https://arxiv.org/abs/2309.06180
-2. G.-I. Yu, J. S. Jeong et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models," OSDI 2022. https://www.usenix.org/conference/osdi22/presentation/yu
-3. vLLM project, "Automatic Prefix Caching" (design doc: block hashing, LRU eviction, cache salt). https://docs.vllm.ai/en/latest/design/prefix_caching.html
-4. vLLM project, "Optimization and Tuning" (chunked prefill default in V1, `max_num_batched_tokens`, preemption by recompute). https://docs.vllm.ai/en/latest/configuration/optimization.html
-5. WHATWG, HTML Living Standard, §9.2 "Server-sent events." https://html.spec.whatwg.org/multipage/server-sent-events.html
-6. NGINX, "Module ngx_http_proxy_module" (`proxy_buffering`, `X-Accel-Buffering`, `proxy_read_timeout`). https://nginx.org/en/docs/http/ngx_http_proxy_module.html
-7. vLLM team, "vLLM V1: A Major Upgrade to vLLM's Core Architecture," 2025-01-27 (prefix caching on by default, < 1 % overhead at 0 % hit rate). https://vllm.ai/blog/2025-01-27-v1-alpha-release
-8. vLLM project, "Automatic Prefix Caching" (feature guide: target workloads; prefill-only benefit). https://docs.vllm.ai/en/latest/features/automatic_prefix_caching.html
-9. Kubernetes SIG Network, Gateway API Inference Extension (InferencePool, endpoint picker). https://gateway-api-inference-extension.sigs.k8s.io/
-10. llm-d project, "Intelligent inference scheduling with llm-d" (blog, vendor-reported results). https://llm-d.ai/blog/intelligent-inference-scheduling-with-llm-d
-11. Y. Zhong et al., "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving," OSDI 2024. https://arxiv.org/abs/2401.09670
-12. Meta, Llama 3.3 70B Instruct model configuration (80 layers, 8 KV heads, head dim 128), via a public mirror of `config.json`. https://huggingface.co/unsloth/Llama-3.3-70B-Instruct/blob/main/config.json
-13. NVIDIA, "H100 Tensor Core GPU" data sheet (80 GB, 3.35 TB/s, FP8 3,958 TFLOPS with sparsity, up to 700 W, SXM). https://www.nvidia.com/en-us/data-center/h100/
-14. P. Patel et al., "Splitwise: Efficient Generative LLM Inference Using Phase Splitting," ISCA 2024; preprint arXiv:2311.18677. https://arxiv.org/abs/2311.18677
-15. vLLM project, "Disaggregated Prefilling (experimental)" (KV connectors). https://docs.vllm.ai/en/latest/features/disagg_prefill.html
-16. H. Inan et al., "Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations," arXiv:2312.06674 (preprint), 2023. https://arxiv.org/abs/2312.06674
-17. vLLM project, "Metrics" design doc (metric names). https://docs.vllm.ai/en/latest/design/metrics.html
-18. vLLM project, "Sleep Mode." https://docs.vllm.ai/en/latest/features/sleep_mode.html
-19. Regulation (EU) 2016/679 (GDPR), Chapter V, transfers of personal data to third countries. https://eur-lex.europa.eu/eli/reg/2016/679/oj
-20. vLLM releases on PyPI (v0.33.0 uploaded 2026-11-02, v0.34.0 uploaded 2026-11-16). https://pypi.org/project/vllm/#history
-21. Regulation (EU) 2024/1689 (AI Act), Art. 113 application dates. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-22. Council of the EU adoption of the Digital Omnibus on AI (June 2026), as summarised by Gibson Dunn, "EU AI Act Omnibus Agreement — Postponed High-Risk Deadlines and Other Key Changes" (secondary source; check the Official Journal text). https://www.gibsondunn.com/eu-ai-act-omnibus-agreement-postponed-high-risk-deadlines-and-other-key-changes/
-23. L. Zheng et al., "SGLang: Efficient Execution of Structured Language Model Programs," arXiv:2312.07104 (preprint). https://arxiv.org/abs/2312.07104
+1. Meta, Llama 3.3 70B Instruct `config.json`, via a public mirror (upstream is gated). https://huggingface.co/unsloth/Llama-3.3-70B-Instruct/blob/main/config.json
+2. Llama Team, AI @ Meta, "The Llama 3 Herd of Models," arXiv:2407.21783 (preprint), 2024, Table 3. https://arxiv.org/abs/2407.21783
+3. NVIDIA, "H100 Tensor Core GPU" data sheet. https://www.nvidia.com/en-us/data-center/h100/
+4. W. Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention," SOSP 2023. https://arxiv.org/abs/2309.06180
+5. vLLM, "Automatic Prefix Caching" design doc, v0.34.0. https://docs.vllm.ai/en/v0.34.0/design/prefix_caching/
+6. WHATWG, HTML Living Standard, §9.2 "Server-sent events." https://html.spec.whatwg.org/multipage/server-sent-events.html
+7. NGINX, "Module ngx_http_proxy_module." https://nginx.org/en/docs/http/ngx_http_proxy_module.html
+8. G.-I. Yu, J. S. Jeong et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models," OSDI 2022. https://www.usenix.org/conference/osdi22/presentation/yu
+9. vLLM, "Optimization and Tuning," v0.34.0. https://docs.vllm.ai/en/v0.34.0/configuration/optimization/
+10. vLLM team, "vLLM V1: A Major Upgrade to vLLM's Core Architecture," 2025-01-27. https://vllm.ai/blog/2025-01-27-v1-alpha-release
+11. vLLM, "Automatic Prefix Caching" feature guide, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/automatic_prefix_caching/
+12. Kubernetes SIG Network, Gateway API Inference Extension. https://gateway-api-inference-extension.sigs.k8s.io/
+13. llm-d, "Intelligent inference scheduling with llm-d" (blog; vendor-reported). https://llm-d.ai/blog/intelligent-inference-scheduling-with-llm-d
+14. Y. Zhong et al., "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving," OSDI 2024. https://arxiv.org/abs/2401.09670
+15. P. Patel et al., "Splitwise: Efficient Generative LLM Inference Using Phase Splitting," ISCA 2024; preprint arXiv:2311.18677. https://arxiv.org/abs/2311.18677
+16. vLLM, "Disaggregated Prefilling (experimental)," v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/disagg_prefill/
+17. H. Inan et al., "Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations," arXiv:2312.06674 (preprint), 2023. https://arxiv.org/abs/2312.06674
+18. vLLM, "Metrics" design doc, v0.34.0. https://docs.vllm.ai/en/v0.34.0/design/metrics/
+19. vLLM, "Sleep Mode," v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/sleep_mode/
+20. Regulation (EU) 2016/679 (GDPR), Chapter V. https://eur-lex.europa.eu/eli/reg/2016/679/oj
+21. vLLM release history on PyPI. https://pypi.org/project/vllm/#history
+22. vLLM, "Reasoning Outputs," v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/reasoning_outputs/
+23. Regulation (EU) 2024/1689 (AI Act), Art. 50 and Art. 113. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+24. Regulation (EU) 2026/1744 (Digital Omnibus on AI), OJ L 24.7.2026; Art. 1 amends AI Act Art. 111 and 113, Art. 4 entry into force. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
+25. L. Zheng et al., "SGLang: Efficient Execution of Structured Language Model Programs," arXiv:2312.07104 (preprint). https://arxiv.org/abs/2312.07104
+26. NVIDIA, TensorRT-LLM docs, "KV cache reuse." https://nvidia.github.io/TensorRT-LLM/advanced/kv-cache-reuse.html
 
 ### C10 — Enterprise RAG assistant
 
-Lesson: [`course/04-case-studies/C10-enterprise-rag-assistant.md`](course/04-case-studies/C10-enterprise-rag-assistant.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C10-enterprise-rag-assistant.md`](course/04-case-studies/C10-enterprise-rag-assistant.md) · source status: `SOURCES_CHECKED`
 
-1. Qdrant, "Indexing" documentation (filterable HNSW, payload index cardinality, tenant index). https://qdrant.tech/documentation/concepts/indexing/
+1. Qdrant, "Indexing" documentation (filterable HNSW, payload index cardinality, tenant index). https://qdrant.tech/documentation/manage-data/indexing/
 2. pgvector README (filtering with approximate indexes, `hnsw.ef_search` default 40, iterative index scans since 0.8.0; v0.8.7 current). https://github.com/pgvector/pgvector
 3. G. V. Cormack, C. L. A. Clarke, S. Büttcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," SIGIR 2009. https://doi.org/10.1145/1571941.1572114
 4. S. Es, J. James, L. Espinosa-Anke, S. Schockaert, "Ragas: Automated Evaluation of Retrieval Augmented Generation," arXiv:2309.15217 (preprint). https://arxiv.org/abs/2309.15217
 5. K. Greshake et al., "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection," arXiv:2302.12173 (preprint), 2023. https://arxiv.org/abs/2302.12173
 6. OWASP GenAI Security Project, "LLM01:2025 Prompt Injection." https://genai.owasp.org/llmrisk/llm01-prompt-injection/
-7. Model Context Protocol, Specification (version 2026-07-28), "Security and Trust & Safety." https://modelcontextprotocol.io/specification/latest
+7. Model Context Protocol, Specification (version 2026-07-28), "Security and Trust & Safety." https://modelcontextprotocol.io/specification/2026-07-28
 8. J. X. Morris, V. Kuleshov, V. Shmatikov, A. M. Rush, "Text Embeddings Reveal (Almost) As Much As Text," EMNLP 2023; arXiv:2310.06816. https://arxiv.org/abs/2310.06816
-9. Regulation (EU) 2016/679 (GDPR), Chapter V. https://eur-lex.europa.eu/eli/reg/2016/679/oj
-10. Regulation (EU) 2024/1689 (AI Act), Art. 50 and Art. 113. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-11. Gibson Dunn, "EU AI Act Omnibus Agreement — Postponed High-Risk Deadlines and Other Key Changes" (secondary; check the Official Journal text). https://www.gibsondunn.com/eu-ai-act-omnibus-agreement-postponed-high-risk-deadlines-and-other-key-changes/
+9. Regulation (EU) 2016/679 (GDPR), Chapter V, transfers of personal data to third countries. https://eur-lex.europa.eu/eli/reg/2016/679/oj
+10. Regulation (EU) 2024/1689 (AI Act), Art. 50, Art. 113 and Annex III (original text, OJ 12 July 2024). https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+11. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), amending Regulation (EU) 2024/1689, OJ L, 24.7.2026; Art. 1 amends AI Act Art. 113 (Annex III high-risk from 2 Dec 2027, Annex I from 2 Aug 2028); Art. 4: in force on the third day after publication. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
+12. Y. A. Malkov, D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs," arXiv:1603.09320 (`Mmax0` = 2·M recommended for layer 0). https://arxiv.org/abs/1603.09320
+13. R. Nogueira, K. Cho, "Passage Re-ranking with BERT," arXiv:1901.04085 (preprint), 2019. https://arxiv.org/abs/1901.04085
 
 ### C11 — AI coding-agent platform
 
-Lesson: [`course/04-case-studies/C11-coding-agent-platform.md`](course/04-case-studies/C11-coding-agent-platform.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C11-coding-agent-platform.md`](course/04-case-studies/C11-coding-agent-platform.md) · source status: `SOURCES_CHECKED`
 
 1. gVisor documentation, "What is gVisor?" (Sentry, runsc, performance and compatibility trade-offs). https://gvisor.dev/docs/
 2. A. Agache et al., "Firecracker: Lightweight Virtualization for Serverless Applications," NSDI 2020. https://www.usenix.org/conference/nsdi20/presentation/agache
 3. Firecracker project, "Snapshot support" documentation. https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/snapshot-support.md
 4. Git documentation, "Partial Clone." https://git-scm.com/docs/partial-clone
 5. Git documentation, "git-sparse-checkout." https://git-scm.com/docs/git-sparse-checkout
-6. Model Context Protocol, Specification version 2026-07-28 (overview, security and trust & safety, extensions). https://modelcontextprotocol.io/specification/latest
+6. Model Context Protocol, Specification version 2026-07-28 (overview, security and trust & safety, extensions). https://modelcontextprotocol.io/specification/2026-07-28
 7. Model Context Protocol, Specification 2026-07-28, "Authorization." https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
 8. OWASP GenAI Security Project, "LLM01:2025 Prompt Injection." https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 9. Temporal documentation, "Event History" and "Workflow Execution." https://docs.temporal.io/encyclopedia/event-history
 10. OpenTelemetry, Generative AI semantic conventions repository (status: Development). https://github.com/open-telemetry/semantic-conventions-genai
 11. C. E. Jimenez et al., "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?," ICLR 2024; arXiv:2310.06770. https://arxiv.org/abs/2310.06770
-12. SWE-bench, "SWE-bench Verified" (500 human-validated instances, with OpenAI, August 2024). https://swebench.com/verified
+12. SWE-bench, "SWE-bench Verified" (500 human-validated instances, created in collaboration with OpenAI). https://www.swebench.com/verified
+13. Model Context Protocol, 2026-07-28, "Security Best Practices" (Token Passthrough). https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices
 
 ### C12 — Real-time fraud detection (and recommendations)
 
-Lesson: [`course/04-case-studies/C12-realtime-fraud-recsys.md`](course/04-case-studies/C12-realtime-fraud-recsys.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C12-realtime-fraud-recsys.md`](course/04-case-studies/C12-realtime-fraud-recsys.md) · source status: `SOURCES_CHECKED`
 
 1. M. Zinkevich, "Rules of Machine Learning: Best Practices for ML Engineering," Google for Developers (Rule #29). https://developers.google.com/machine-learning/guides/rules-of-ml
 2. A. Dal Pozzolo, G. Boracchi, O. Caelen, C. Alippi, G. Bontempi, "Credit Card Fraud Detection: A Realistic Modeling and a Novel Learning Strategy," IEEE Transactions on Neural Networks and Learning Systems 29(8): 3784–3797, 2018. https://doi.org/10.1109/TNNLS.2017.2736643 (open-access copy: https://re.public.polimi.it/bitstream/11311/1044896/1/08038008.pdf)
@@ -1256,51 +1310,63 @@ Lesson: [`course/04-case-studies/C12-realtime-fraud-recsys.md`](course/04-case-s
 10. Regulation (EU) 2024/1689 (AI Act), Annex III, point 5(b). https://eur-lex.europa.eu/eli/reg/2024/1689/oj
 11. Feast documentation, "Point-in-time joins" and "Feature view." https://docs.feast.dev/getting-started/concepts/point-in-time-joins ; https://docs.feast.dev/getting-started/concepts/feature-view
 12. feast-dev/feast, GitHub releases. https://github.com/feast-dev/feast/releases
+13. Regulation (EU) 2026/1744 (Digital Omnibus on AI), OJ L, 24.7.2026, amending Art. 113 of Regulation (EU) 2024/1689. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
 
 ### C13 — Telemetry & observability platform for a GPU/HPC cluster
 
-Lesson: [`course/04-case-studies/C13-gpu-cluster-telemetry.md`](course/04-case-studies/C13-gpu-cluster-telemetry.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C13-gpu-cluster-telemetry.md`](course/04-case-studies/C13-gpu-cluster-telemetry.md) · source status: `SOURCES_CHECKED`
 
 1. T. Pelkonen et al., "Gorilla: A Fast, Scalable, In-Memory Time Series Database," PVLDB 8(12), 2015. https://www.vldb.org/pvldb/vol8/p1816-teller.pdf
 2. Prometheus documentation (3.16), "Storage." https://prometheus.io/docs/prometheus/latest/storage/
 3. NVIDIA, "DCGM Exporter" (GPU telemetry documentation: `-c` collection interval default 30000 ms; `-k` Kubernetes pod mapping). https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/latest/dcgm-exporter.html
 4. A. Borghesi, C. Di Santi, M. Molan, M. Seyedkazemi Ardebili, A. Mauri, M. Guarrasi, et al., "M100 ExaData: a data collection campaign on the CINECA's Marconi100 Tier-0 supercomputer," Scientific Data, 2023. https://doi.org/10.1038/s41597-023-02174-3 (full text via Europe PMC PMC10193329; accessed 2026-11)
-5. A. Agelastos et al., "The Lightweight Distributed Metric Service: A Scalable Infrastructure for Continuous Monitoring of Large Scale Computing Systems and Applications," SC14, 2014. https://doi.org/10.1109/SC.2014.18 (metadata accessed 2026-11)
-6. A. Bartolini, F. Beneventi, A. Borghesi, D. Cesarini, A. Libri, L. Benini, et al., "Paving the Way Toward Energy-Aware and Automated Datacentre," ICPP Workshops 2019. https://doi.org/10.1145/3339186.3339215 (abstract accessed 2026-11)
-7. EEESlab, "examon" (GitHub repository). https://github.com/EEESlab/examon
+5. A. Agelastos et al., "The Lightweight Distributed Metric Service: A Scalable Infrastructure for Continuous Monitoring of Large Scale Computing Systems and Applications," SC14, 2014. https://doi.org/10.1109/SC.2014.18 (author manuscript SAND2014-3273C read at https://www.osti.gov/servlets/purl/1142975; accessed 2026-11)
+6. A. Bartolini, F. Beneventi, A. Borghesi, D. Cesarini, A. Libri, L. Benini, et al., "Paving the Way Toward Energy-Aware and Automated Datacentre," ICPP Workshops 2019. https://doi.org/10.1145/3339186.3339215 (publisher page blocks automated fetch; abstract read via Semantic Scholar, accessed 2026-11)
+7. ExamonHPC, "examon" (GitHub repository; formerly EEESlab/examon). https://github.com/ExamonHPC/examon
 8. NVIDIA, dcgm-exporter `etc/default-counters.csv` (main branch). https://github.com/NVIDIA/dcgm-exporter/blob/main/etc/default-counters.csv
 9. Thanos documentation, "Compactor" (downsampling and retention). https://thanos.io/tip/components/compact.md/
 10. Grafana Labs, "Grafana Mimir documentation." https://grafana.com/docs/mimir/latest/
 11. VictoriaMetrics documentation, "Single-node VictoriaMetrics" (push protocols; Enterprise downsampling). https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/
 12. ClickHouse documentation, "Manage data with TTL." https://clickhouse.com/docs/guides/developer/ttl
-13. Tiger Data (TimescaleDB) documentation, "About continuous aggregates." https://www.tigerdata.com/docs/use-timescale/latest/continuous-aggregates/about-continuous-aggregates
+13. Tiger Data (TimescaleDB) documentation, "About continuous aggregates." https://www.tigerdata.com/docs/learn/continuous-aggregates
 14. Llama Team, AI @ Meta, "The Llama 3 Herd of Models," arXiv:2407.21783, 2024, §3.3 (infrastructure and reliability). https://arxiv.org/abs/2407.21783
 15. S. Cui et al., "Story of Two GPUs: Characterizing the Resilience of Hopper H100 and Ampere A100 GPUs," arXiv:2503.11901, 2025 (preprint; related DOI 10.1145/3712285.3759821). https://arxiv.org/abs/2503.11901
-16. G. Ostrouchov, D. Maxwell, R. A. Ashraf, C. Engelmann, M. Shankar, J. H. Rogers, "GPU Lifetimes on Titan Supercomputer: Survival Analysis and Reliability," SC20, 2020. https://doi.org/10.1109/SC41405.2020.00045 (abstract accessed 2026-11)
-17. D. Tiwari et al., "Understanding GPU errors on large-scale HPC systems and the implications for system design and operation," HPCA 2015. https://doi.org/10.1109/HPCA.2015.7056044 (metadata accessed 2026-11)
-18. NVIDIA, "XID Errors: Analyzing Xid Errors with the Xid Catalog." https://docs.nvidia.com/deploy/xid-errors/analyzing-xid-catalog.html
+16. G. Ostrouchov, D. Maxwell, R. A. Ashraf, C. Engelmann, M. Shankar, J. H. Rogers, "GPU Lifetimes on Titan Supercomputer: Survival Analysis and Reliability," SC20, 2020. https://doi.org/10.1109/SC41405.2020.00045 (abstract read via Semantic Scholar, full text unverified as of 2026-11)
+17. D. Tiwari et al., "Understanding GPU errors on large-scale HPC systems and the implications for system design and operation," HPCA 2015. https://doi.org/10.1109/HPCA.2015.7056044 (author manuscript read at https://www.osti.gov/servlets/purl/1185857; accessed 2026-11)
+18. NVIDIA, "XID Errors: Analyzing Xid Errors with the Xid Catalog." https://docs.nvidia.com/deploy/xid-errors/latest/analyzing-xid-catalog.html
 19. SchedMD, "acct_gather.conf" (Slurm energy plugins). https://slurm.schedmd.com/acct_gather.conf.html
 
 ### C14 — Global flash sale
 
-Lesson: [`course/04-case-studies/C14-global-flash-sale.md`](course/04-case-studies/C14-global-flash-sale.md) · source status: `DRAFT`
+Lesson: [`course/04-case-studies/C14-global-flash-sale.md`](course/04-case-studies/C14-global-flash-sale.md) · source status: `SOURCES_CHECKED`
 
-1. Redis, "DECR" command documentation. https://redis.io/docs/latest/commands/decr/
-2. Redis, "Scripting with Lua" (atomic script execution). https://redis.io/docs/latest/develop/programmability/eval-intro/
-3. Redis, "Redis replication" (asynchronous by default; `WAIT` does not make Redis CP; acknowledged writes can be lost during failover). https://redis.io/docs/latest/operate/oss_and_stack/management/replication/
-4. Cloudflare, "Waiting Room — Queueing methods" (FIFO, Random, Passthrough, Reject). https://developers.cloudflare.com/waiting-room/reference/queueing-methods/
-5. Stripe, "Idempotent requests" API reference. https://docs.stripe.com/api/idempotent_requests
-6. J. Jena, S. Dalal, D. Tishkin, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header-08 (Internet-Draft, work in progress), October 2026. https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
-7. Agentic Commerce Protocol (OpenAI and Stripe), specification site. https://agenticcommerce.dev/
-8. Google Cloud, "Announcing Agent Payments Protocol (AP2)," September 2025; protocol site https://ap2-protocol.org/. https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol
+1. PostgreSQL Global Development Group, "Transaction Isolation" (Read Committed: a second updater waits for the first to commit, then re-evaluates the `WHERE` clause), PostgreSQL current docs. https://www.postgresql.org/docs/current/transaction-iso.html
+2. Google Firebase, "Distributed counters" (Firestore; write throughput grows linearly with the number of shards). https://firebase.google.com/docs/firestore/solutions/counters
+3. PostgreSQL Global Development Group, "Log-Shipping Standby Servers", §Synchronous Replication ("each commit of a write transaction will wait until confirmation is received"), PostgreSQL current docs. https://www.postgresql.org/docs/current/warm-standby.html
+4. Redis, "DECR" and "INCR" command documentation (INCR: "atomic increment/decrement commands like DECR"). https://redis.io/docs/latest/commands/decr/ ; https://redis.io/docs/latest/commands/incr/
+5. Redis, "Scripting with Lua" (atomic script execution). https://redis.io/docs/latest/develop/programmability/eval-intro/
+6. Redis, "Redis replication" (asynchronous by default; `WAIT` does not make Redis CP; acknowledged writes can be lost during failover). https://redis.io/docs/latest/operate/oss_and_stack/management/replication/
+7. Cloudflare, "How KV works" (Workers KV is eventually consistent; changes "may take up to 60 seconds or more" to be visible in other locations). https://developers.cloudflare.com/kv/concepts/how-kv-works/
+8. Cloudflare, "Waiting Room — Queueing methods" (FIFO, Random, Passthrough, Reject). https://developers.cloudflare.com/waiting-room/reference/queueing-methods/
+9. Stripe, "Idempotent requests" API reference. https://docs.stripe.com/api/idempotent_requests
+10. J. Jena, S. Dalal, D. Tishkin, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header-08 (Internet-Draft, work in progress), October 2026. https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
+11. Stripe, "Receive Stripe events in your webhook endpoint" (sections "Handle duplicate events" and "Event ordering"). https://docs.stripe.com/webhooks
+12. Imperva (Thales), "2025 Bad Bot Report" (automated traffic 51 % of all web traffic; general web, not flash sales). https://www.imperva.com/resources/resource-library/reports/2025-bad-bot-report/
+13. A. Back, "Hashcash — A Denial of Service Counter-Measure," 2002. http://www.hashcash.org/papers/hashcash.pdf
+14. Kubernetes, "Horizontal Pod Autoscaling" (`--horizontal-pod-autoscaler-sync-period`, default 15 s). https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/
+15. M. Brooker, "Timeouts, retries, and backoff with jitter," Amazon Builders' Library, 2019 (now hosted on AWS Builder Center). https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
+16. Agentic Commerce Protocol, specification site ("Stripe and OpenAI developed the Agentic Commerce Protocol"). https://www.agenticcommerce.dev/
+17. Google Cloud, "Announcing Agent Payments Protocol (AP2)," September 2025; protocol site https://ap2-protocol.org/ (announces "AP2 v0.2 Release and FIDO Alliance Donation"). https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol
+18. Universal Commerce Protocol (UCP), specification site (lists Google, Shopify and others as co-developers). https://ucp.dev/
+19. AWS Well-Architected, "Reducing the Scope of Impact with Cell-Based Architecture: What is a cell-based architecture?" https://docs.aws.amazon.com/wellarchitected/latest/reducing-scope-of-impact-with-cell-based-architecture/what-is-a-cell-based-architecture.html
 
 ## Part V — Interview track
 
 ### I01 — The interview playbook: CLARIFY → QUANTIFY → SKETCH → DEEPEN → STRESS → WRAP
 
-Lesson: [`course/05-interview/I01-interview-playbook.md`](course/05-interview/I01-interview-playbook.md) · source status: `DRAFT`
+Lesson: [`course/05-interview/I01-interview-playbook.md`](course/05-interview/I01-interview-playbook.md) · source status: `SOURCES_CHECKED`
 
-1. Meta Careers, *Preparing for your Software Engineering Interview at Meta*, published 2016-06-27, updated 2022-10-06. https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/
+1. Meta Careers, *Preparing for your Software Engineering Interview at Meta*, published 2016-06-27, updated 2022-10-06. https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/ (some automated clients receive HTTP 400; archived copy: https://web.archive.org/web/20260610131027/https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/)
 2. Amazon, *SDE III/Sr. SDE Interview Prep* (redirects from amazon.jobs to atoz.amazon). https://amazon.jobs/content/en/how-we-hire/sde-iii-interview-prep
 3. S. Virji, J. Youngman, H. Robertson, S. Thorne, D. Rensin, Z. Egyed, with R. Bondi, "Non-Abstract Large System Design", in *The Site Reliability Workbook*, Google/O'Reilly, 2018, ch. 12. https://sre.google/workbook/non-abstract-design/
 4. J. Dean, *Designs, Lessons and Advice from Building Large Distributed Systems*, keynote, LADIS 2009. https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf
@@ -1309,12 +1375,12 @@ Lesson: [`course/05-interview/I01-interview-playbook.md`](course/05-interview/I0
 
 ### I02 — Numbers & cheat sheets: latency, throughput, storage, capacity, cost & GPU numbers
 
-Lesson: [`course/05-interview/I02-numbers-cheat-sheets.md`](course/05-interview/I02-numbers-cheat-sheets.md) · source status: `DRAFT`
+Lesson: [`course/05-interview/I02-numbers-cheat-sheets.md`](course/05-interview/I02-numbers-cheat-sheets.md) · source status: `SOURCES_CHECKED`
 
 1. J. Dean, *Designs, Lessons and Advice from Building Large Distributed Systems*, LADIS 2009 keynote ("Numbers Everyone Should Know" slide). https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf
 2. P. Norvig, *Teach Yourself Programming in Ten Years* ("Approximate timing for various operations on a typical PC"; table undated; page © 2001–2014). https://norvig.com/21-days.html
 3. C. Scott, *Latency Numbers Every Programmer Should Know* (interactive; extrapolation model in page source). https://colin-scott.github.io/personal_website/research/interactive_latency.html
-4. J. D. C. Little, "A Proof for the Queuing Formula: L = λW", *Operations Research* 9(3), 1961. https://doi.org/10.1287/opre.9.3.383
+4. J. D. C. Little, "A Proof for the Queuing Formula: L = λW", *Operations Research* 9(3), 1961. https://doi.org/10.1287/opre.9.3.383 (publisher page blocks automated fetches; metadata confirmed via Crossref, https://api.crossref.org/works/10.1287/opre.9.3.383, accessed 2026-11-20)
 5. Redis, *Redis benchmark* (documentation, `redis-benchmark` examples and pitfalls). https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/
 6. J. Kreps, *Benchmarking Apache Kafka: 2 Million Writes Per Second (On Three Cheap Machines)*, LinkedIn Engineering, 2014-04-27. https://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines
 7. AWS, *Regions and Availability Zones* ("all within 100 km (60 miles) of each other"; synchronous replication between AZs). https://aws.amazon.com/about-aws/global-infrastructure/regions_az/
@@ -1333,7 +1399,7 @@ Lesson: [`course/05-interview/I02-numbers-cheat-sheets.md`](course/05-interview/
 20. NVIDIA, *GB200 NVL72* (superchip: 372 GB HBM3e, 16 TB/s; rack: 13.4 TB, 576 TB/s). https://www.nvidia.com/en-us/data-center/gb200-nvl72/
 21. D. Salvator, R. Bhargava, K. Devleker, *NVIDIA Blackwell Ultra for the Era of AI Reasoning*, NVIDIA Technical Blog, 2025-03-19 ("up to 288 GB of HBM3e memory per GPU"). https://developer.nvidia.com/blog/nvidia-blackwell-ultra-for-the-era-of-ai-reasoning
 22. NVIDIA, *GB300 NVL72* (72 Blackwell Ultra GPUs; 20 TB GPU memory; up to 576 TB/s). https://www.nvidia.com/en-us/data-center/gb300-nvl72/
-23. NVIDIA, *HGX platform* (HGX B300: 2.1 TB; HGX B200: 1.4 TB; HGX Rubin NVL8: 2 TB HBM4, 130 TB/s). https://www.nvidia.com/en-us/data-center/hgx/
+23. NVIDIA, *HGX platform* (HGX B300: 2.1 TB; HGX B200: 1.4 TB; NVLink 1.8 TB/s per GPU; HGX Rubin NVL8: 2 TB HBM4, 130 TB/s). https://www.nvidia.com/en-us/data-center/hgx/
 24. J. Kaplan et al., *Scaling Laws for Neural Language Models*, arXiv:2001.08361, 2020 (§2.1: C_forward ≈ 2N + …; C ≈ 6N FLOPs per training token). https://arxiv.org/abs/2001.08361
 25. S. Rajbhandari, J. Rasley, O. Ruwase, Y. He, *ZeRO: Memory Optimizations Toward Training Trillion Parameter Models*, arXiv:1910.02054v3, 2020 (2Ψ + 2Ψ + 12Ψ = 16Ψ bytes). https://arxiv.org/abs/1910.02054
 26. E. J. Hu et al., *LoRA: Low-Rank Adaptation of Large Language Models*, arXiv:2106.09685, 2021. https://arxiv.org/abs/2106.09685
@@ -1342,19 +1408,31 @@ Lesson: [`course/05-interview/I02-numbers-cheat-sheets.md`](course/05-interview/
 29. vLLM project, *Engine Arguments* (`--gpu-memory-utilization`). https://docs.vllm.ai/en/latest/configuration/engine_args.html
 30. F. Yergeau, *UTF-8, a transformation format of ISO 10646*, RFC 3629, November 2003. https://www.rfc-editor.org/rfc/rfc3629
 31. K. Davis, B. Peabody, P. Leach, *Universally Unique IDentifiers (UUIDs)*, RFC 9562, May 2024 (obsoletes RFC 4122). https://www.rfc-editor.org/rfc/rfc9562
+32. NVIDIA, *DGX B300* (8 Blackwell Ultra SXM GPUs; 2.1 TB total GPU memory). https://www.nvidia.com/en-us/data-center/dgx-b300/
+33. Lambda, *AI Cloud pricing* (on-demand H100 SXM $4.69–4.89 and H100 PCIe $3.79 per GPU-hour; prices change often). https://lambda.ai/pricing
+34. CoreWeave, *Pricing* (NVIDIA HGX H100, 8 GPUs, on demand $49.24 per hour; prices change often). https://www.coreweave.com/pricing
 
 ### I03 — Question bank & rubrics: 77 questions by category and level, what good looks like, red flags
 
-Lesson: [`course/05-interview/I03-question-bank-rubrics.md`](course/05-interview/I03-question-bank-rubrics.md) · source status: `DRAFT`
+Lesson: [`course/05-interview/I03-question-bank-rubrics.md`](course/05-interview/I03-question-bank-rubrics.md) · source status: `SOURCES_CHECKED`
 
 1. Meta Careers, *Preparing for your Software Engineering Interview at Meta*, updated 2022-10-06. https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/
 2. Amazon, *SDE III/Sr. SDE Interview Prep*. https://amazon.jobs/content/en/how-we-hire/sde-iii-interview-prep
 3. S. Virji et al., "Non-Abstract Large System Design", *The Site Reliability Workbook*, ch. 12. https://sre.google/workbook/non-abstract-design/
 4. K. Davis, B. Peabody, P. Leach, *Universally Unique IDentifiers (UUIDs)*, RFC 9562, May 2024 (UUIDv7, referenced in CL-14). https://www.rfc-editor.org/rfc/rfc9562
+5. R. Fielding, M. Nottingham, J. Reschke (eds.), *HTTP Semantics*, RFC 9110, June 2022, §15.4. https://www.rfc-editor.org/rfc/rfc9110
+6. G. DeCandia et al., "Dynamo: Amazon's Highly Available Key-value Store", SOSP 2007. https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+7. J. D. C. Little, "A Proof for the Queuing Formula: L = λW", *Operations Research* 9(3):383–387, 1961. https://doi.org/10.1287/opre.9.3.383 (publisher blocks automated fetches; metadata confirmed via https://api.crossref.org/works/10.1287/opre.9.3.383, accessed 2026-11-20)
+8. Regulation (EU) 2016/679 (General Data Protection Regulation), Art. 12(3) and Art. 17. https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng
+9. Regulation (EU) 2024/1689 (Artificial Intelligence Act), Art. 113 and recital 179 (application dates). https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng
+10. SLSA project, *SLSA specification*, version 1.2. https://slsa.dev/spec/v1.2/
+11. *Model Context Protocol specification*, version 2026-07-28. https://modelcontextprotocol.io/specification/2026-07-28
+12. SPIFFE project, *SPIFFE overview*. https://spiffe.io/docs/latest/spiffe-about/overview/
+13. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), amending Regulation (EU) 2024/1689, OJ L, 24.7.2026. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
 
 ### I04 — ML/LLM system design interviews: how they differ, question bank, worked answers
 
-Lesson: [`course/05-interview/I04-ml-llm-interviews.md`](course/05-interview/I04-ml-llm-interviews.md) · source status: `DRAFT`
+Lesson: [`course/05-interview/I04-ml-llm-interviews.md`](course/05-interview/I04-ml-llm-interviews.md) · source status: `SOURCES_CHECKED`
 
 1. M. Zinkevich, *Rules of Machine Learning: Best Practices for ML Engineering*, Google for Developers. https://developers.google.com/machine-learning/guides/rules-of-ml
 2. D. Sculley et al., *Hidden Technical Debt in Machine Learning Systems*, NeurIPS 2015. https://papers.nips.cc/paper_files/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html
@@ -1369,3 +1447,8 @@ Lesson: [`course/05-interview/I04-ml-llm-interviews.md`](course/05-interview/I04
 11. NVIDIA, *H100 Tensor Core GPU*. https://www.nvidia.com/en-us/data-center/h100/
 12. NVIDIA, *L4 Tensor Core GPU*. https://www.nvidia.com/en-us/data-center/l4/
 13. Yu. A. Malkov, D. A. Yashunin, *Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs*, arXiv:1603.09320. https://arxiv.org/abs/1603.09320
+14. G.-I. Yu et al., *Orca: A Distributed Serving System for Transformer-Based Generative Models*, OSDI 2022 (iteration-level scheduling). https://www.usenix.org/conference/osdi22/presentation/yu
+15. W. Kwon et al., *Efficient Memory Management for Large Language Model Serving with PagedAttention*, SOSP 2023. arXiv:2309.06180. https://arxiv.org/abs/2309.06180
+16. Y. Zhong et al., *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*, OSDI 2024. arXiv:2401.09670. https://arxiv.org/abs/2401.09670
+17. E. Frantar et al., *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*, arXiv:2210.17323 (preprint). https://arxiv.org/abs/2210.17323
+18. J. Lin et al., *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*, arXiv:2306.00978 (preprint). https://arxiv.org/abs/2306.00978

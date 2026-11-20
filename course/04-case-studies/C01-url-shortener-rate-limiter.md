@@ -3,7 +3,7 @@ id: SYSDESIGN-C01
 title: "URL shortener + distributed rate limiter"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01, SYSDESIGN-04, SYSDESIGN-05, SYSDESIGN-07, SYSDESIGN-10]
 estimated_time: "2h reading + exercises"
 requirement: "Design a public URL shortener that takes 100 million new links a month and serves 10 billion redirects a month with p99 < 50 ms from the edge, plus a rate limiter that enforces per-API-key quotas across three regions and blocks abusive traffic before it reaches the origin."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Choose redirect status codes and cache headers from RFC 9110 semantics and explain the analytics trade-off"
   - "Design a distributed rate limiter: algorithm, state placement, multi-region quota sharing, failure policy and client signalling"
   - "Diagnose hot links, cache stampedes, limiter outages and abuse, and state SLOs, cost and energy per redirect"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C01 — URL shortener + distributed rate limiter
@@ -26,17 +26,15 @@ last_reviewed: 2026-11-19
 > average load, and a quota that must be "global" sits on top of a system whose regions cannot afford to talk to each
 > other on every request.
 
-The two halves are often asked separately; they belong together because the shortener is the simplest realistic
-system that *needs* a limiter. Prerequisites:
+The shortener is the simplest realistic system that *needs* a limiter. Prerequisites:
 [SYSDESIGN-04 caching](../01-foundations/04-caching.md), [SYSDESIGN-07 partitioning](../01-foundations/07-partitioning-sharding.md)
 and [SYSDESIGN-10 APIs and rate-limiting algorithms](../01-foundations/10-apis-communication.md).
 
 ## The prompt
 
-"Design a URL shortener" is usually given with no numbers and an implied answer of "hash the URL, store it in a
-database". Push back: ask who creates links (anonymous users? API customers?), whether links can be edited or expire,
-whether you must count clicks, and what happens when a link points at malware. Those four questions decide the redirect
-status code, the cache policy, the need for a limiter and the abuse pipeline — which is where the interesting design is.
+"Design a URL shortener" usually comes with no numbers and an implied answer of "hash the URL, store it". Ask who
+creates links, whether links can be edited or expire, whether you must count clicks, and what happens when a link
+points at malware. Those answers decide the status code, the cache policy, the limiter and the abuse pipeline.
 
 ## CLARIFY: requirements
 
@@ -126,10 +124,9 @@ Edge click logs flow to an analytics aggregator; an abuse scanner re-checks stor
 
 **Why each box is there.**
 
-- **Edge PoP** — the only way to meet 50 ms p99 globally and to absorb the viral link: the redirect is cacheable
-  for seconds, and the edge sees the request first, so it is also where abusive IPs are cheapest to drop.
-- **Redirect service + regional cache** — a stateless read path; the cache turns the skewed workload into a mostly
-  in-memory one. It is separate from the create service so a write-side incident cannot take down redirects.
+- **Edge PoP** — the only way to meet 50 ms p99 globally and absorb the viral link; it also sees abusive IPs first.
+- **Redirect service + regional cache** — a stateless, mostly in-memory read path, separate from the create service
+  so a write-side incident cannot take down redirects.
 - **Link store** — a replicated key-value store keyed by code. The access pattern is pure point lookup and
   insert-if-absent; no joins, no range scans. Any store with conditional writes works (DynamoDB, Cassandra with
   lightweight transactions, PostgreSQL with a primary key) — choose by what your team operates
@@ -152,8 +149,8 @@ Content-Type: application/json
 { "url": "https://shop.example.com/spring?utm=x", "alias": "spring-sale", "expires_at": "2027-06-01T00:00:00Z" }
 
 201 Created
-RateLimit-Policy: "burst";q=100;w=60
-RateLimit: "burst";r=97;t=41
+RateLimit-Policy: "hourly";q=100;w=3600
+RateLimit: "hourly";r=97;t=2410
 { "code": "spring-sale", "short_url": "https://lmn.example/spring-sale", "created_at": "..." }
 ```
 
@@ -191,8 +188,10 @@ For a shortener the method rule is irrelevant (redirects are GETs); caching is w
 the next click never reaches you: you lose the click count, you cannot change the destination, and — worst — you cannot
 take down a phishing link that a victim has already visited once. The design choice here: **302 with
 `Cache-Control: public, s-maxage=60, max-age=0`**. Shared caches (your CDN) may keep the answer for 60 s, which absorbs
-viral load and bounds takedown propagation to the requirement's 60 s; browsers revalidate every time, so every click
-passes through an edge you log. If a customer explicitly wants SEO-style permanence, offer 301 per link and document
+viral load and bounds *passive* CDN staleness to 60 s (plus any stale-while-revalidate window); the 60 s takedown
+requirement is met only by active purge (deep dive 2), which must also bypass stale-while-revalidate and
+stale-if-error, so keep the SWR window at ≤ 5 s. Browsers revalidate every time, so every click passes through an edge
+you log. If a customer explicitly wants SEO-style permanence, offer 301 per link and document
 that analytics and takedown become best-effort.
 
 ## DEEPEN
@@ -206,18 +205,15 @@ that analytics and takedown become best-effort.
 | Counter blocks per node | a coordinator hands each node ranges of 10,000 IDs | none | one call per 10,000 creates | yes, unless scrambled | good throughput; gaps on node crash are harmless |
 | Random code + conditional insert | 7 random base-62 chars from a CSPRNG; `INSERT … IF NOT EXISTS` | probability = occupancy (≈ 0.17 % at 5 years) → retry | none | no | **default here** |
 | Counter + keyed permutation | counter block value → a keyed bijection on [0, 62^7) → base 62 | none, by construction | one call per block | no, without the key | best when you want zero retries and non-guessable codes |
-| Snowflake-style ID [8] | 41-bit time + 10-bit machine + 12-bit sequence | none | machine IDs only | partially (time-ordered) | IDs are 64-bit, ≈ 11 base-62 chars — too long for this product |
-
-Snowflake's README states the constraints any ID scheme should state — throughput, no coordination, rough time order,
-under 64 bits [8]. Ours differ: *short* and *non-guessable* matter more than time order.
+| Snowflake-style ID [8] | 41-bit time + 10-bit machine + 12-bit sequence | none | machine IDs only | partially (time-ordered) | IDs are 64-bit, ≈ 11 base-62 chars — too long; here *short* and *non-guessable* beat time order |
 
 The random scheme's cost is easy to bound. With occupancy *p*, the expected number of attempts is 1 / (1 − p) ≈ 1.0017
 at five years; even at 10× the planned volume (1.7 % occupancy) it is ≈ 1.017. A conditional insert is a single
 round-trip in DynamoDB (`attribute_not_exists`) or PostgreSQL (`ON CONFLICT DO NOTHING`); in Cassandra it is a
-lightweight transaction, which costs a Paxos round — acceptable at ≈ 200 writes/s.
+lightweight transaction, implemented with Paxos [14], which adds several replica round trips — acceptable at
+≈ 200 writes/s.
 
-**Custom aliases** use the same conditional insert, plus a reserved-word list (`api`, `admin`, `login`, brand names)
-and a profanity/brand-impersonation check, because aliases are where impersonation attempts concentrate.
+**Custom aliases** use the same conditional insert plus a reserved-word and brand-impersonation check.
 
 ### Deep dive 2 — the read path and the viral link
 
@@ -257,8 +253,8 @@ The limiter has five decisions. Work through them in this order.
 
 Stripe describes the same layering from production: a per-user *request rate limiter* (the most important one), a
 *concurrent requests limiter* ("You can only have 20 API requests in progress at the same time"), and two load
-shedders that reserve capacity for critical traffic [2]. Concurrency limits matter for expensive endpoints (bulk
-create, stats over a year of data) where request *rate* says little about load.
+shedders that reserve capacity for critical traffic [2]. Concurrency limits matter for expensive endpoints
+(bulk create, long stats queries).
 
 **(b) Which algorithm.** [SYSDESIGN-10](../01-foundations/10-apis-communication.md) covers them; the summary for this
 design:
@@ -288,7 +284,9 @@ Three placements:
 | **Two-stage: local bucket + central/global service** | local absorbs bursts, central enforces the real quota | ≈ 0 for most requests | degrades to local-only |
 
 Envoy documents the two-stage pattern explicitly: a local token bucket applies a coarse first limit and a global gRPC
-rate-limit service applies the fine-grained one, which "reduces load on the global service" [3]. DynamoDB's global
+rate-limit service applies the fine-grained one, so the local bucket can "reduce load on the global rate limit
+service" [3]. Envoy also offers a quota-based global limiter that shares a quota "with periodic load reports" [3],
+the same shape as the adaptive split below. DynamoDB's global
 admission control works the same way: each request router keeps a local token bucket and periodically refills it from
 a central service [11].
 
@@ -303,13 +301,13 @@ a central service [11].
    bounded by the sync interval: if a client suddenly sprays all regions, each region can admit at most its current
    share plus one interval of unsynchronized traffic. With a 6,000/min quota (100 /s), 3 regions and a 1 s interval,
    worst-case excess is on the order of (regions − 1) × 100 /s × 1 s = 200 requests per interval, ≈ 3 % of a minute's
-   quota — inside the 5 % accuracy target. Write that bound down; it converts "eventually consistent limiter" from
+   quota — inside the 5 % accuracy target. The bound assumes any region admits at most the full per-second quota rate
+   for one sync interval; it is a worst-case burst bound, not the steady-state error. Write that bound down; it converts "eventually consistent limiter" from
    hand-waving into a contract.
 
 **(e) Failure policy.** If the counter store is unreachable, **fail open with a conservative local limit** for API
 quotas (a missed quota is lost revenue for minutes; a blocked API is an outage for every customer) and **fail closed**
-only for limits that protect safety-critical resources (e.g. login attempts). Emit a metric on every fallback decision
-so the error budget shows it. Tell clients the truth: `429` plus `Retry-After`, and the `RateLimit` fields so
+only for limits that protect safety-critical resources (e.g. login attempts). Emit a metric on every fallback decision. Tell clients the truth: `429` plus `Retry-After`, and the `RateLimit` fields so
 well-behaved SDKs slow down *before* they hit the wall [5]. Add jitter guidance to the SDK; synchronized retries after
 a `Retry-After` are their own thundering herd ([SYSDESIGN-11](../01-foundations/11-reliability-engineering.md)).
 
@@ -339,12 +337,11 @@ denied ones get 429 with Retry-After.*
 
 ### Deep dive 4 — analytics without slowing the redirect
 
-Counting clicks synchronously (increment a counter, then redirect) couples the 50 ms redirect to a write path and
-creates the hottest write key in the system. Instead: the edge already logs every request. Ship edge logs to a log
+Counting clicks synchronously couples the 50 ms redirect to a write path and creates the hottest write key in the
+system. The edge already logs every request: ship edge logs to a log
 stream ([SYSDESIGN-08](../01-foundations/08-async-event-driven.md)), aggregate per `(code, hour, country, referrer)` in a
-stream processor, and write hourly rows. The 5-minute freshness requirement allows micro-batches. Deduplicate at the
-aggregator by request ID (edge log delivery is at-least-once) and drop known bots by user-agent and the edge's bot
-score. Raw logs contain IP addresses — personal data under GDPR — so truncate or hash IPs at ingestion and keep raw
+stream processor, and write hourly rows. Micro-batches meet the 5-minute freshness. Deduplicate by request ID (edge log delivery is at-least-once)
+and drop known bots. Raw logs contain IP addresses — personal data under GDPR — so truncate or hash IPs at ingestion and keep raw
 logs for days, not years ([SYSDESIGN-19](../02-modern-requirements/19-privacy-compliance-sovereignty.md)).
 
 ## STRESS: failures, hot spots, scale ×10
@@ -360,8 +357,8 @@ logs for days, not years ([SYSDESIGN-19](../02-modern-requirements/19-privacy-co
 | Phishing wave | many creates from new accounts pointing at look-alike domains | safety-check hit rate; abuse reports | creation-time checks, new-account quotas, interstitials, fast takedown (Modern twist) |
 | Retry storm after 429 | clients retry in lock-step | 429 rate oscillates | `Retry-After` with jitter in SDKs; token bucket rather than fixed window |
 
-**Scale ×10** (100 B redirects/month; ≈ 193,000 /s peak; 1 B creates/month). Nothing structural changes on the read
-path: it is still mostly edge hits, and edge capacity is bought, not built. Storage grows to ≈ 30 TB (90 TB with
+**Scale ×10** (100 B redirects/month; ≈ 193,000 /s peak; 1 B creates/month). The read path is still mostly edge
+hits, and edge capacity is bought, not built. Storage grows to ≈ 30 TB (90 TB with
 replicas) over five years — now partition the link store by code hash across more nodes, which is trivial because
 there are no cross-key queries ([SYSDESIGN-07](../01-foundations/07-partitioning-sharding.md); try
 [labs/07-partitioning-sharding](../../labs/07-partitioning-sharding/) to see how much data moves when you add nodes).
@@ -387,26 +384,23 @@ send only keys whose consumption changed.
 The cost structure is unusual: compute and storage are tiny, so **per-request edge pricing and log volume dominate**.
 Work it as a sensitivity, not a quote: at 10 B redirects/month, every 1 cent per 10,000 requests of CDN request pricing
 is 10 B / 10,000 × $0.01 = **$10,000 per month**. Edge logs at ≈ 1 TB/month raw are cheap to store but expensive to
-*query* if kept raw; aggregate to hourly rows and expire raw logs. The single biggest cost lever is the edge cache hit
-ratio: each percentage point of misses at peak is ≈ 190 /s of origin traffic. See
+*query* if kept raw; aggregate to hourly rows and expire raw logs. The biggest lever is the edge hit ratio: each point
+of misses at peak is ≈ 190 /s of origin traffic. See
 [SYSDESIGN-16](../02-modern-requirements/16-cost-as-requirement.md) for building the unit-cost model.
 
 ### Energy
 
-Order-of-magnitude, with assumptions labelled: if one redirect-service instance on a server drawing 300 W serves
-20,000 cache-hit redirects/s, the server energy is 300 J/s ÷ 20,000 /s = **15 mJ per redirect** before network and
-cooling overhead (PUE). At 10 B/month that is ≈ 150 MJ ≈ 42 kWh per month for that tier — negligible next to the
-analytics pipeline and the edge network. The useful energy decision here is architectural: answering from the edge
-avoids long-haul transit, and dropping abusive traffic at the edge avoids spending origin energy on it
-([SYSDESIGN-17](../02-modern-requirements/17-energy-carbon-aware.md)).
+Assumption: one server drawing 300 W serves 20,000 cache-hit redirects/s; energy is 300 J/s ÷ 20,000 /s = **15 mJ per redirect** before network and
+cooling overhead (PUE). At 10 B/month that is ≈ 150 MJ ≈ 42 kWh per month for that tier — negligible. The energy
+levers are architectural: answer from the edge and drop abusive traffic there ([SYSDESIGN-17](../02-modern-requirements/17-energy-carbon-aware.md)).
 
 ## Modern twist
 
 What changes in 2026 is less the shortener than the **adversary**.
 
 **Abuse detection is a first-class component.** Short links hide destinations, so they are a standard phishing
-wrapper. A 2026 design checks every destination at creation and re-checks stored links asynchronously, because a
-domain that was clean yesterday can host a kit today. Google's Safe Browsing API is for non-commercial use only; the
+wrapper. Check every destination at creation and re-check stored links asynchronously:
+a domain clean yesterday can host a kit today. Google's Safe Browsing API is for non-commercial use only; the
 commercial product is Web Risk, which offers a *Lookup* API (send the URL; Google learns which URLs you check) and an
 *Update* API (keep hashed copies of the lists locally and query the server only on a local match — better privacy and
 latency) [10][12]. For a high-volume shortener the Update pattern fits: a local hash-prefix check at creation adds
@@ -414,26 +408,22 @@ microseconds, not a network round trip. Layer your own signals on top — accoun
 domains, landing-page classification — and route uncertain cases to an **interstitial** ("this link leads to …,
 continue?") rather than a hard block, which keeps false positives survivable.
 
-**Rate limiting moved to the edge, and it counts per data center.** Managed edge rate limiting now keys on far more
-than IP: Cloudflare's rate-limiting rules can count by IP, IP with NAT support, headers, cookies, ASN, country, path,
-JSON body fields and JA3/JA4 TLS fingerprints (the richer characteristics are plan-dependent), and its documentation
-states counters have a *per-data-center scope* [13]. That is the same trade-off as deep dive 3(d) made by a vendor: a
-distributed attacker spread over many PoPs gets more than the nominal limit, in exchange for zero cross-PoP
-coordination on the hot path. Design for it — combine an edge limit (coarse, per PoP, cheap) with your gateway's
+**Rate limiting moved to the edge, and it counts per data center.** Cloudflare's rate-limiting rules can count by
+IP, headers, cookies, ASN, country, path, JSON body fields and JA3/JA4 TLS fingerprints (richer characteristics are
+plan-dependent), and its documentation states counters have a *per-data-center scope* [13]: the trade-off of deep
+dive 3(d) made by a vendor. A distributed attacker spread over many PoPs gets more than the nominal limit, in exchange
+for zero cross-PoP coordination. Design for it — combine an edge limit (coarse, per PoP, cheap) with your gateway's
 per-key quota (precise, per region) and a per-tenant concurrency cap.
 
 **Standard headers are close.** The `RateLimit` and `RateLimit-Policy` fields [5] and the `Idempotency-Key` header [7]
-are both active IETF drafts as of 2026-11. Implementing them now costs little and lets generic HTTP clients back off
-correctly; pin the draft version you implemented in your API docs.
+are both active IETF drafts as of 2026-11. Implementing them now is cheap; pin the draft version in your API docs.
 
 ## WRAP: interview summary
 
-**A strong 45-minute answer covers, in order:** clarify create/redirect/analytics/abuse → numbers showing the problem
-is skew and latency, not size (100:1, 3 TB, one viral key above fleet peak) → 7-character code with the occupancy
-argument → sketch with edge, redirect service, cache, KV store and a separate create path → 302 + `s-maxage` choice
-from RFC 9110 semantics, tied to analytics and takedown → code generation trade-offs → viral-link mitigations →
-limiter: algorithm per layer, atomic state, two-stage local/central, multi-region adaptive shares with a stated
-overshoot bound, fail-open policy, `429` + `Retry-After` → failures and ×10.
+**A strong 45-minute answer covers, in order:** clarify → numbers showing skew and latency, not size → 7-character
+codes → sketch with separate read and create paths → 302 + `s-maxage` → code generation → viral-link mitigations →
+limiter (algorithm per layer, atomic state, two-stage, multi-region overshoot bound, fail-open, `429`) → failures and
+×10.
 
 | Level | What "good" looks like |
 |---|---|
@@ -454,21 +444,17 @@ lazy check on read); GDPR erasure of a creator's links and analytics.
 | Alternative | Wins when | Why not the default here |
 |---|---|---|
 | Relational database (PostgreSQL) as the link store | small to mid scale, team already runs it | fine up to the ×10 case with read replicas and caching; a KV store makes cross-region replication and partitioning simpler at the top end |
-| 301 permanent redirects | SEO-oriented links that never change | browsers cache them, so analytics, edits and takedowns stop working for repeat visitors |
-| Synchronous click counter | tiny scale, exact real-time counts required | puts a hot write key on the latency-critical path |
 | Single global limiter (one region) | one-region deployments | adds a cross-region round trip to every API call from elsewhere |
 
 ## Exercises
 
-See [exercises/C01-url-shortener-rate-limiter.md](../../exercises/C01-url-shortener-rate-limiter.md) — key-space and
-storage drills, redirect-code choices, the viral-link stampede, limiter overshoot math, and lab exercises using
-[labs/10-apis-communication](../../labs/10-apis-communication/) (rate-limiting algorithms in Redis),
-[labs/04-caching](../../labs/04-caching/) (hit ratio and stampede) and
-[labs/07-partitioning-sharding](../../labs/07-partitioning-sharding/) (data movement when the store grows).
+See [exercises/C01-url-shortener-rate-limiter.md](../../exercises/C01-url-shortener-rate-limiter.md); labs used:
+[labs/10-apis-communication](../../labs/10-apis-communication/), [labs/04-caching](../../labs/04-caching/) and
+[labs/07-partitioning-sharding](../../labs/07-partitioning-sharding/).
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20.
 
 1. R. Fielding, M. Nottingham, J. Reschke (eds.), "HTTP Semantics," RFC 9110, June 2022 — §15.4.2 (301), §15.4.3 (302), §15.4.8 (307), §15.4.9 (308), §10.2.3 (Retry-After). https://www.rfc-editor.org/rfc/rfc9110
 2. P. Tarjan, "Scaling your API with rate limiters," Stripe blog, 2017-03-30. https://stripe.com/blog/rate-limiters
@@ -483,3 +469,4 @@ All accessed 2026-11-19.
 11. M. Elhemali et al., "Amazon DynamoDB: A Scalable, Predictably Performant, and Fully Managed NoSQL Database Service," USENIX ATC 2022 — §4 global admission control with token buckets. https://www.usenix.org/conference/atc22/presentation/elhemali
 12. Google Cloud, "Web Risk overview" (Lookup API vs Update API with local hashed lists). https://docs.cloud.google.com/web-risk/docs/overview
 13. Cloudflare, "Rate limiting rules" (counting characteristics incl. JA3/JA4; per-data-center counter scope). https://developers.cloudflare.com/waf/rate-limiting-rules/
+14. Apache Cassandra documentation, "Guarantees" (lightweight transactions implemented with Paxos). https://cassandra.apache.org/doc/latest/cassandra/architecture/guarantees.html

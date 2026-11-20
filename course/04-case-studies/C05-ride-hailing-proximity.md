@@ -3,7 +3,7 @@ id: SYSDESIGN-C05
 title: "Ride-hailing & proximity search"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-04, SYSDESIGN-07, SYSDESIGN-09, SYSDESIGN-20]
 estimated_time: "2h reading + exercises"
 requirement: "Design the real-time core of a ride-hailing service in 600 cities: 2 million online drivers report location every 4 seconds, riders see nearby cars live, a ride request is matched to a driver within 2 seconds at p99, no driver is ever assigned two rides, and prices react to local supply and demand."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Design a location ingestion path whose state is soft and self-healing, partitioned by city"
   - "Design matching with a driver state machine and leases so no driver is double-assigned"
   - "Explain ETA prediction, supply–demand pricing on hexagonal cells, and location-privacy obligations"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C05 — Ride-hailing & proximity search
@@ -75,10 +75,11 @@ All values are **labelled assumptions**.
 | Ride requests | 15 M rides/day × 1.5 (requests that don't complete) ÷ 86,400 | ≈ 260 /s avg; ≈ 1,000 /s peak |
 | ETA computations | 1,000 /s × 20 candidates | 20,000 /s |
 | "Nearby cars" views | 3 M riders with the app open, refresh every 5 s | ≈ 600,000 /s |
-| Trip traces (40 % of online drivers on a trip) | 200,000 /s × 200 B | ≈ 40 MB/s ≈ 3.5 TB/day |
+| Trip traces (40 % of online drivers on a trip) | 200,000 /s × 200 B | ≈ 40 MB/s; ≤ 3.5 TB/day (upper bound: peak rate held for 24 h; scale by the average/peak ratio) |
 | Largest city (assume 5 % of drivers) | 100,000 drivers | 25,000 updates/s in one city |
 
-**What the numbers say.** The entire live driver index is ≈ 128 MB — *tiny*. The problem is not size; it is (a) the
+**What the numbers say.** The entire live driver index is ≈ 128 MB in our model (our estimate, not a published Uber
+figure) — *tiny*. The problem is not size; it is (a) the
 **write rate** (500,000 updates/s, each moving a point), (b) the **read fan-in** of map views (600,000 /s, more than
 the writes), and (c) **mutual exclusion** in matching. It also says something liberating: the index is soft state.
 Every driver re-sends position every 4 s, so a lost index rebuilds itself in about 4 s without any durable
@@ -162,7 +163,7 @@ standard trick is to map 2-D space onto a 1-D key that preserves locality, or to
 | Index | Idea | Strengths | Weaknesses | Examples |
 |---|---|---|---|---|
 | Geohash | interleave lat/lng bits into a string/integer; prefix = containing cell | trivially stored in any ordered KV; prefix queries | rectangular cells of varying shape; neighbors across cell edges need extra lookups | Redis GEO stores members in a sorted set scored by a 52-bit geohash; `GEOSEARCH` (since 6.2) is O(N + log M) [6] |
-| Quadtree | recursively split a square into 4 where density is high | adapts to density (Manhattan vs countryside) | in-memory structure; rebalancing under moving points | common in in-memory services |
+| Quadtree | recursively split a square into 4 where density is high | adapts to density (Manhattan vs countryside) | in-memory structure; rebalancing under moving points | textbook structure; no specific production system cited here |
 | S2 | project the sphere onto 6 cube faces; order cells along a Hilbert curve; 64-bit cell IDs, levels 0–30 | hierarchical, sphere-aware, good range coverings | square-ish cells; neighbor distances vary | level-30 leaf cells are ≈ 1 cm [4] |
 | **H3** | hierarchical **hexagonal** grid on an icosahedron; 16 resolutions; each cell has 7 children (aperture 7) | **one** distance to every neighbor; simple k-ring neighborhoods; good for aggregation and smoothing | 12 pentagons per resolution; children only approximately cover their parent | built at Uber for marketplace analysis such as pricing and dispatch [1][2][3] |
 
@@ -175,9 +176,13 @@ containment in the index is exact, *geographic* containment is approximate [3][7
 **Choosing a resolution.** From the H3 resolution table [2]: resolution 7 cells average 5.16 km² (edge ≈ 1.41 km);
 resolution 8, 0.737 km² (edge ≈ 0.53 km); resolution 9, 0.105 km² (edge ≈ 0.20 km). For a regular hexagon the
 center-to-center distance is √3 × edge, so at resolution 8 neighbors are ≈ 0.92 km apart. A `gridDisk` of radius *k*
-contains up to 3k(k + 1) + 1 cells (fewer near pentagons) [7]: *k* = 2 → 19 cells covering roughly a 2 km radius,
-*k* = 3 → 37 cells. Store each driver under its resolution-8 (or 9) cell; answer "within 2 km" with a k-ring lookup,
-then filter candidates by exact distance.
+contains up to 3k(k + 1) + 1 cells (derived: 1 + 6 + 12 + … + 6k; fewer near pentagons — the library exposes this
+bound as `maxGridDiskSize` [7]). How far a disk reaches depends on direction and on where the pickup sits in its cell.
+Typical reach (pickup near its cell centre, along a neighbour direction) is ≈ *k* × spacing; the guaranteed radius in
+every direction, with the pickup anywhere in its cell, is ≈ 0.87 × *k* × spacing − edge/2 (the disk is a hexagon of
+hexagons, so its narrowest direction is 0.87 of the corner direction). At resolution 8: *k* = 2 (19 cells) reaches
+≈ 1.8 km typically but guarantees only ≈ 1.3 km; *k* = 3 (37 cells) guarantees ≈ 2.1 km. So answer "within 2 km" at
+resolution 8 with *k* = 3 (resolution 9 would need *k* ≈ 7, 169 cells), then filter candidates by exact distance.
 
 **Default here:** H3 at resolution 8 for matching candidates and resolution 7–8 for pricing aggregates, implemented as
 an in-memory map `cell → set(driver)` per city. Any of the four would work for candidate search; H3 wins because the
@@ -230,8 +235,9 @@ Offered with a compare-and-set and a 15-second lease; accepting moves to En rout
 returns to Available. En route moves to On trip at pickup or back to Available on cancel; drop-off returns On trip to
 Available; Available drivers can go Offline.*
 
-**Candidate selection.** For a request at pickup *p*: k-ring around *p*'s cell (expand *k* until at least 20
-candidates or a maximum radius) → filter `status = available`, product type, freshness → keep the 20 closest by
+**Candidate selection.** The parameters in this deep dive (20 candidates, a 15 s offer lease, a 1–2 s batching
+window) are our design choices, not Uber's published values. For a request at pickup *p*: k-ring around *p*'s cell
+(expand *k* until at least 20 candidates or a maximum radius) → filter `status = available`, product type, freshness → keep the 20 closest by
 straight-line distance → ask the ETA service for road ETAs → score (ETA, driver rating, acceptance likelihood) → pick
 the best.
 
@@ -251,7 +257,8 @@ near a driver for pooled rides [1]; the exact algorithms are product-specific, s
 "correct" algorithm.
 
 **Latency budget (assumptions):** candidate lookup 20 ms; ETA for 20 candidates in parallel 100 ms; scoring 20 ms;
-CAS 10 ms; batching window ≤ 1,000 ms; offer push to driver 300 ms → well under 2 s p99.
+CAS 10 ms; batching window ≤ 1,000 ms; offer push to driver 300 ms → about 1.45 s of allocated budget. That leaves
+≈ 0.5 s of slack at p99 only if each stage's tail is bounded, because stage p99s do not add; measure end to end.
 
 ### Deep dive 4 — ETAs and supply–demand pricing
 
@@ -285,7 +292,7 @@ rider accepted is the price charged even if the multiplier changes a second late
 **Scale ×10** (20 M online drivers, 5 M location updates/s). The per-city design scales by adding cities and splitting
 big ones into sub-regions; nothing global sits on the hot path. The gateway tier grows linearly with connections. The
 nearby-cars cache becomes the largest read system (≈ 6 M reads/s) and should be served from regional caches close to
-riders. Trip traces reach ≈ 35 TB/day; retention and downsampling policies (keep full resolution for disputes for a
+riders. Trip traces reach up to ≈ 35 TB/day (same upper-bound caveat); retention and downsampling policies (keep full resolution for disputes for a
 limited period, then coarsen) become cost *and* privacy requirements.
 
 ## Operate: SLOs, cost, energy
@@ -318,8 +325,9 @@ server-controlled parameter so it can be tuned without an app release ([SYSDESIG
 
 ## Modern twist
 
-**H3 as the shared language of the marketplace.** In 2026 the hexagonal index is not just a query trick; it is the
-join key that ties real-time matching, pricing, forecasting, analytics tables and ML features together. H3's 4.x API
+**H3 as the shared language of the marketplace.** Uber's H3 post describes using hexagons for pricing and dispatch
+analysis [1]; we recommend going further and making the cell ID the join key that ties real-time matching, pricing,
+forecasting, analytics tables and ML features together. H3's 4.x API
 (current documentation shows "Version: 4.x") names the neighborhood operations `gridDisk` and `gridRing` and documents
 how they behave near pentagons [3][7]; the C library and its bindings are open source [8]. Storing H3 cell IDs at several resolutions on every event lets a lakehouse
 answer "demand by neighborhood by hour" with integer joins instead of geometry, and lets features computed offline
@@ -331,7 +339,8 @@ millisecond budgets. The design rule from deep dive 4 — baseline plus learned 
 fallback — is the 2026 pattern for putting models on a hard real-time path.
 
 **Location privacy is a design constraint.** Precise GPS traces reveal homes, workplaces and routines; under the GDPR
-they are personal data, so purpose limitation, minimization and retention limits apply
+they are personal data — Art. 4(1) lists "location data" among the identifiers that make a person identifiable [9] —
+so purpose limitation, minimization and retention limits apply
 ([SYSDESIGN-19](../02-modern-requirements/19-privacy-compliance-sovereignty.md)). Practical consequences: show riders
 approximate driver positions before a match, aggregate analytics to cells rather than points, keep full-resolution
 traces only for the period needed for disputes and safety, and make the retention policy executable (TTLs on trace
@@ -380,13 +389,15 @@ partitioning) and [labs/04-caching](../../labs/04-caching/) (read fan-in).
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20 (uber.com and eur-lex.europa.eu block automated clients; refs 1, 5
+and 9 were read via the Wayback Machine copies listed).
 
-1. I. Brodsky, "H3: Uber's Hexagonal Hierarchical Spatial Index," Uber Engineering blog, 2018-06-27. https://www.uber.com/blog/h3/
+1. I. Brodsky, "H3: Uber's Hexagonal Hierarchical Spatial Index," Uber Engineering blog, 2018-06-27. https://www.uber.com/blog/h3/ (read via https://web.archive.org/web/20260101053035/https://www.uber.com/en-CA/blog/h3/)
 2. H3 project, "Tables of Cell Statistics Across Resolutions." https://h3geo.org/docs/core-library/restable/
 3. H3 project, "Overview of the H3 Geospatial Indexing System" (122 base cells; 12 pentagons per resolution; version 4.x) and "Indexing" (aperture 7; exact logical containment). https://h3geo.org/docs/core-library/overview and https://h3geo.org/docs/highlights/indexing/
 4. S2 Geometry, "S2 Cells" developer guide (cube faces, Hilbert curve, levels 0–30, 64-bit cell IDs). http://s2geometry.io/devguide/s2cell_hierarchy
-5. Uber Engineering, "DeepETA: How Uber Predicts Arrival Times Using Deep Learning," 2022-02-10. https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/
+5. Uber Engineering, "DeepETA: How Uber Predicts Arrival Times Using Deep Learning," 2022-02-10. https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/ (read via https://web.archive.org/web/20260214071427/https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/)
 6. Redis documentation, "GEOSEARCH" (since 6.2.0; O(N + log M); 52-bit geohash scores). https://redis.io/docs/latest/commands/geosearch/
 7. H3 project, "Grid traversal functions" (`gridDisk`, `gridRing`, pentagon behavior). https://h3geo.org/docs/api/traversal
 8. Uber, H3 source repository. https://github.com/uber/h3
+9. Regulation (EU) 2016/679 (GDPR), Art. 4(1) definition of personal data ("location data" listed among identifiers). https://eur-lex.europa.eu/eli/reg/2016/679/oj (read via https://web.archive.org/web/20241230232003/https://eur-lex.europa.eu/eli/reg/2016/679/oj)

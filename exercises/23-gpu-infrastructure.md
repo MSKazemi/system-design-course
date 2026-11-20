@@ -74,7 +74,7 @@ yet officially supported (disabled by default). In practice many clusters still 
 
 ## 6. [Deep] Gang scheduling deadlock
 
-Two 32-GPU training jobs are submitted to a 48-GPU cluster without gang scheduling. Describe the failure and two fixes.
+Two 32-GPU training jobs are submitted to a 48-GPU cluster without gang scheduling. Describe the failure and fixes (at least two).
 
 <details><summary>Answer</summary>
 
@@ -87,7 +87,7 @@ atomically. Add **topology-aware** placement so the admitted job's pods land wit
 
 ## 7. [Core] Utilisation that lies
 
-A dashboard shows `DCGM_FI_DEV_GPU_UTIL` = 98 % on every inference GPU, yet tokens/s per GPU is a third of the
+A dashboard shows GPU utilisation (`DCGM_FI_DEV_GPU_UTIL_RATIO` = 0.98, i.e. 98 %) on every inference GPU, yet tokens/s per GPU is a third of the
 capacity model. Which metrics do you check next, and what patterns indicate which problem?
 
 <details><summary>Answer</summary>
@@ -150,6 +150,6 @@ A provider prices an H100 at $P per hour and a B200 at $2.2P per hour. Using the
 
 Cost per token ∝ price ÷ throughput: H100 = P ÷ 4,960; B200 = 2.2P ÷ 11,850 = P ÷ 5,386 → **B200 ≈ 8 % cheaper per
 token** on the bandwidth term. Check: real benchmarks (compute, kernels, FP4/FP8 support), larger batches enabled by
-180 GB of HBM (favours B200 further), power and cooling (DGX B200 ~14.3 kW per system), availability, and whether
+180 GB of HBM (derived: DGX B200 ÷ 8; favours B200 further), power and cooling (DGX B200 ~14.3 kW per system), availability, and whether
 your SLO (TPOT) allows the batch size assumed.
 </details>

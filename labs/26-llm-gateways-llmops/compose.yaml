@@ -32,7 +32,7 @@ services:
         condition: service_healthy   # llm-a downloads the model into the shared volume first
 
   db:   # LiteLLM stores virtual keys, budgets and spend here
-    image: postgres:18.6-alpine
+    image: postgres:18.6-alpine   # tested tag (runtime-tested 2026-11-20); 18.7 exists but has not been re-run with this lab
     environment:
       POSTGRES_USER: litellm
       POSTGRES_PASSWORD: litellm-lab-only     # local lab credential, not a secret

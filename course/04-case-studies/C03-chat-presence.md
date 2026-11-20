@@ -3,7 +3,7 @@ id: SYSDESIGN-C03
 title: "Chat & presence"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-02, SYSDESIGN-05, SYSDESIGN-07, SYSDESIGN-08, SYSDESIGN-10]
 estimated_time: "2h reading + exercises"
 requirement: "Design a chat service for 100 million daily users with 1:1 and group conversations up to 1,000 members, real-time delivery under 500 ms at p99 to online devices, reliable offline delivery and multi-device sync, ordered history, presence and typing indicators, and an end-to-end-encrypted mode."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Explain per-conversation ordering, idempotent sends and at-least-once delivery with client-side deduplication"
   - "Design message storage partitioned by conversation and time bucket, and justify it with published production designs"
   - "Explain how MLS (RFC 9420) end-to-end encryption and on-device or confidential-computing AI assistants change server responsibilities"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C03 — Chat & presence
@@ -33,8 +33,8 @@ Prerequisites: [SYSDESIGN-02](../01-foundations/02-anatomy-of-a-request.md) (TLS
 
 ## The prompt
 
-"Design WhatsApp", "design Slack" or "design Discord" sound similar and are not: WhatsApp-style messaging is mostly 1:1
-and small groups with mobile-first offline delivery; Slack/Discord are dominated by channels with many members, long
+"Design WhatsApp", "design Slack" or "design Discord" sound similar and are not: WhatsApp-style messaging is typically 1:1
+and small groups (a common characterisation, not a measured figure) with mobile-first offline delivery; Slack/Discord are dominated by channels with many members, long
 history and presence in big communities. Ask which one, then fix group size, retention and whether E2EE is required —
 E2EE changes what the server is allowed to do, so it must be decided before the sketch.
 
@@ -60,7 +60,7 @@ E2EE changes what the server is allowed to do, so it must be decided before the 
 | Durability | no acknowledged message is lost | "sent" with one tick is a promise |
 | Duplicates | the user never sees the same message twice | retries are frequent on mobile networks |
 | Availability (send) | 99.95 % | messaging is a daily-habit product |
-| Presence freshness | ≤ 30 s staleness acceptable | presence is a hint, not a contract |
+| Presence freshness | ≤ 60 s for ungraceful disconnects; immediate on clean close | presence is a hint, not a contract; bounded by the 60 s presence TTL (deep dive 4) |
 
 ### Out of scope
 
@@ -140,8 +140,8 @@ hashing; **admin servers** routing between the web app and channel servers; and 
 ### Wire protocol (over one WebSocket per device)
 
 ```text
-→ HELLO {device_id, auth_token, last_seen: {conv_id: seq, ...}}       # resume point per conversation
-← READY {session_id, missed: [...] | sync_required: [conv_id...]}
+→ HELLO {device_id, auth_token, sync_token: "s-91c…"}                 # one opaque cursor over user_conversations activity
+← READY {session_id, sync_token, changed: [{conv_id, last_seq}...] | sync_required: [conv_id...]}
 → SEND  {client_msg_id: "c-7f3a…", conv_id, body | ciphertext}       # client_msg_id = idempotency key
 ← ACK   {client_msg_id, conv_id, seq: 18452, server_ts}               # "one tick": durable
 ← MSG   {conv_id, seq: 18453, sender, body | ciphertext, server_ts}
@@ -165,15 +165,18 @@ membership management, and device registration.
 | `device_cursors` | `device_id` | `conv_id` | `delivered_seq`, `read_seq` |
 | session registry (in memory) | `device_id` | — | gateway_id, connected_at, TTL |
 
-`bucket` is a time window derived from the message's time (or ID), so one conversation's history is split into
-bounded partitions — the same idea Discord published (deep dive 3).
+`bucket = floor(seq / 50,000)` (N sized in exercise 5), so one conversation's history is split into bounded
+partitions. Because history is paged by `seq`, a `before_seq` request maps to its bucket with no lookup, and `server_ts`
+stays a plain column. Discord applied the same principle — its buckets had to be "derivable from the message_id or a
+timestamp" [1] — but bucketed by time (deep dive 3).
 
 ## DEEPEN
 
 ### Deep dive 1 — the connection layer
 
 **One connection per device.** A device opens a WebSocket after login and keeps it while foregrounded; mobile OSes
-suspend background sockets, which is why push notifications exist. On connect the gateway authenticates the token,
+restrict backgrounded apps — Android's Doze mode suspends network access [12], and iOS may suspend an app in the
+background [13] — which is why push notifications exist. On connect the gateway authenticates the token,
 writes `device_id → gateway_id` to the session registry with a TTL (say 90 s), and refreshes it with each heartbeat.
 
 **Routing a delivery.** For each recipient device the router reads the registry and sends the message to that gateway
@@ -191,8 +194,8 @@ server is pushed to subscribed gateways [4].
 immediately to the remaining gateways, the handshake load (TLS + auth + resume sync) is a self-inflicted
 denial-of-service — the **reconnect storm**. Mitigations: drain gradually (close connections over minutes, not
 seconds), send a "reconnect after *t* + random jitter" control frame, cap new-connection admission per gateway, and
-make the resume handshake cheap (the client sends its per-conversation `last_seen` seq; the server sends only what
-is missing) ([SYSDESIGN-11](../01-foundations/11-reliability-engineering.md)).
+make the resume handshake cheap (the client sends one `sync_token`; the server returns only conversations that
+changed since it) ([SYSDESIGN-11](../01-foundations/11-reliability-engineering.md)).
 
 ### Deep dive 2 — ordering, idempotency and delivery semantics
 
@@ -201,7 +204,8 @@ conversation**. The simplest correct mechanism is a **single sequencer per conve
 conversation to its owner (consistent hashing on `conv_id`, [SYSDESIGN-07](../01-foundations/07-partitioning-sharding.md)),
 which assigns `seq = last_seq + 1`, writes the message, and only then acknowledges. Slack maps each channel to one
 channel server by consistent hashing; when a channel server is replaced, a new one is ready "in under 20 seconds" and
-affected teams see higher delivery latency during that window [4]. That is the cost of the design: a short
+affected teams see higher delivery latency during that window [4]. (Slack's post describes channel-server ownership
+and failover time, not sequence assignment; the sequencer is our design.) That is the cost of the design: a short
 unavailability per conversation on owner failover, in exchange for a simple total order. Make ownership a lease with
 fencing tokens so a stale owner cannot assign duplicate sequence numbers after a partition
 ([SYSDESIGN-09](../01-foundations/09-coordination-consensus.md)).
@@ -250,8 +254,9 @@ covers. Group read receipts ("seen by 14") aggregate the members' cursors on dem
 
 ### Deep dive 3 — message storage that survives success
 
-Discord's two published storage posts are the best public case study for this table. In 2017 Discord moved messages
-from MongoDB to Cassandra after data and indexes stopped fitting in memory at around 100 million stored messages,
+Discord's two published storage posts are the best public case study for this table. In a 2017 post, Discord described moving
+messages from MongoDB to Cassandra after reaching about 100 million stored messages (around November 2015), when data
+and indexes no longer fit in RAM,
 choosing the primary key `((channel_id, bucket), message_id)`: partition by channel plus a time **bucket**,
 cluster by a time-sortable Snowflake message ID. Buckets were sized at about 10 days because that kept the largest
 channels' partitions comfortably under 100 MB; larger partitions caused garbage-collection pressure [1]. In 2023
@@ -262,10 +267,10 @@ from three months to nine days [2].
 
 Two lessons transfer directly:
 
-1. **Bound partitions by time.** A busy group conversation accumulates history forever; without a bucket component its
-   partition grows without limit and every compaction and repair touches it. The bucket must be derivable from the
-   message ID or timestamp so reads can compute which partitions to scan ("latest 50 messages" = current bucket, then
-   the previous one if needed).
+1. **Bound partitions.** A busy group conversation accumulates history forever; without a bucket component its
+   partition grows without limit and every compaction and repair touches it. The bucket must be derivable from the key
+   you page by (here `seq`; for Discord, the message ID or timestamp) so reads can compute which partitions to scan
+   ("latest 50 messages" = the bucket of `last_seq`, then the previous one if needed).
 2. **Put a data service between the API and the database.** Discord's 2023 design added Rust "data services" that
    expose roughly one gRPC endpoint per query and perform **request coalescing**: if many users request the same rows
    at once (everyone opening a channel after an announcement), the database is queried once and the result shared.
@@ -279,8 +284,8 @@ scroll-back.
 
 ### Deep dive 4 — offline delivery, multi-device and presence
 
-**Offline delivery.** The message store is the inbox. On reconnect the device sends `last_seen` per conversation; the
-server returns missed messages for conversations with few gaps and a "sync required" list for conversations with many,
+**Offline delivery.** The message store is the inbox. On reconnect the device sends its `sync_token`; the server walks
+`user_conversations` activity since that token and returns missed messages for conversations with few gaps and a "sync required" list for conversations with many,
 which the client pages through. When the router finds no online device for a recipient, it enqueues a push
 notification. Collapse notifications per conversation (one "5 new messages" rather than five pushes) and rate-limit
 them; platform push services are a shared external dependency, so treat them like any third-party API with retries,
@@ -294,7 +299,8 @@ keys, which makes multi-device a cryptographic problem as well (Modern twist).
 devices and contact lists of hundreds, that is far more traffic than the messages themselves. Practical rules:
 
 - **Derive presence from the connection, not separate pings.** The gateway already sees heartbeats; it updates a
-  presence store entry with a TTL (e.g. 60 s) only on state *changes* and at a coarse refresh interval.
+  presence store entry with a TTL (e.g. 60 s) only on state *changes* and at a coarse refresh interval. A clean close
+marks the user offline at once; an ungraceful disconnect shows within the 60 s TTL, which is the freshness target.
 - **Subscribe lazily.** A client subscribes to presence only for users currently on screen (the open conversation,
   the visible part of a contact list) and unsubscribes when they scroll away.
 - **Degrade in large groups.** Showing live presence of all 1,000 members of a group is rarely worth it; show counts
@@ -375,7 +381,7 @@ What changes in the system design:
   "understand the message".
 - **The sequencer is now a protocol requirement.** RFC 9750 notes that MLS mostly tolerates out-of-order delivery,
   with two exceptions: proposals must arrive before the Commit that references them, and the group must agree on a
-  single Commit that ends each epoch. It recommends that most Delivery Services take the strongly consistent approach,
+  single Commit that ends each epoch. It notes that most Delivery Services will use the strongly consistent paradigm,
   in which the DS orders incoming handshake messages and breaks ties between concurrent Commits [6]. Our per-conversation
   owner from deep dive 2 is exactly that "ordering server".
 - **New stored state: KeyPackages.** The DS must store one-time KeyPackages per device so offline users can be added
@@ -446,7 +452,7 @@ sequencer and failover, idempotent sends, bucket sizing, presence traffic, MLS i
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20.
 
 1. S. Vishnevskiy, "How Discord Stores Billions of Messages," Discord blog, 2017-01-13. https://discord.com/blog/how-discord-stores-billions-of-messages
 2. B. Ingram, "How Discord Stores Trillions of Messages," Discord blog, 2023-03-06. https://discord.com/blog/how-discord-stores-trillions-of-messages
@@ -459,3 +465,5 @@ All accessed 2026-11-19.
 9. T. Van Pelt, "RCS Encryption: A Leap Towards Secure and Interoperable Messaging," GSMA Newsroom, 2025-03-14. https://www.gsma.com/newsroom/article/rcs-encryption-a-leap-towards-secure-and-interoperable-messaging/
 10. Signal, "Specifications" (XEdDSA, X3DH, PQXDH, Double Ratchet, Sesame, ML-KEM Braid). https://signal.org/docs/
 11. M. Thomson, C. A. Wood, "Oblivious HTTP," RFC 9458, January 2024. https://www.rfc-editor.org/rfc/rfc9458
+12. Android Developers, "Optimize for Doze and App Standby" (Doze restrictions: "Suspends network access"). https://developer.android.com/training/monitoring-device-state/doze-standby
+13. Apple Developer Documentation, "About the background execution sequence" (UIKit; a backgrounded app "may be suspended"). https://developer.apple.com/documentation/uikit/about-the-background-execution-sequence

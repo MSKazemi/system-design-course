@@ -38,9 +38,12 @@ with 48 sequences of 3,000 tokens and an FP8 KV cache (160 KiB/token), at 50 % a
 
 Weights ≈ 70 GB on 160 GB of HBM leaves ≈ 75 GB for KV after overheads (assumption). KV for the batch = 48 × 3,000 ×
 160 KiB ≈ 23.6 GB — fits. Bytes per step ≈ 70 + 23.6 ≈ 93.6 GB; bandwidth 6.7 TB/s × 0.5 = 3.35 TB/s → ≈ 28 ms per step.
-TPOT ≈ 28 ms meets 50 ms; replica output ≈ 48 / 0.028 ≈ 1,700 tokens/s (≈ 850 per GPU). Fewer GPUs per replica means
-weights dominate each step, so per-GPU throughput is lower than the 4-GPU case; that is why tensor parallelism helps
-decode even when the model fits. State that this is a roofline estimate, not a benchmark.
+TPOT ≈ 28 ms meets 50 ms; replica output ≈ 48 / 0.028 ≈ 1,700 tokens/s (≈ 850 per GPU). Per-GPU throughput is lower
+than the lesson's 4-GPU case (≈ 1,375) mainly because the batch is smaller (48 vs 128 sequences): the 70 GB of weights
+are read every step whatever the batch size, so they dominate the bytes per step. With 128 sequences of 3,000 tokens
+(≈ 63 GB of KV, still fits) the same 2-GPU replica would reach ≈ 128 / 0.040 s ≈ 3,200 tokens/s (≈ 1,600 per GPU) at
+a TPOT of ≈ 40 ms. Tensor parallelism mainly buys aggregate bandwidth (lower TPOT) and KV capacity. State that this is
+a roofline estimate (no all-reduce or attention FLOPs), not a benchmark.
 </details>
 
 ## 4. [Core] SSE through proxies
@@ -109,7 +112,7 @@ An interviewer asks whether you would use disaggregated prefill/decode from day 
 <details><summary>Answer</summary>
 
 Default no. vLLM labels it experimental and states it does not improve throughput; its value is independent control
-of TTFT and tail ITL. DistServe and Splitwise show large gains on their workloads, but it adds KV transfer (≈ 1.25 GiB
+of TTFT and tail ITL. DistServe and Splitwise show large gains on their workloads, but it adds KV transfer (≈ 1.2 GiB, i.e. 1,250 MiB,
 per 4,000-token 70B request in BF16) that needs a fast interconnect. Start with chunked prefill and tune
 `max_num_batched_tokens`; adopt disaggregation when long prompts keep breaking the ITL SLO and measurements show the
 gain. Saying "it depends, and here is the measurement that decides" is the senior answer.

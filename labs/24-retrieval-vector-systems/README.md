@@ -67,7 +67,7 @@ docker compose -p sd-24 run --rm app python rag_demo.py --generate
 
 Look for shapes, not exact numbers. They depend on your CPU, Docker settings and the random seed.
 
-- Part A: the table size within a few percent of the estimate. HNSW recall at `ef_search=10` well below 1.0,
+- Part A: the table size within about 10% of the estimate (tuple headers and page overhead). HNSW recall at `ef_search=10` well below 1.0,
   climbing towards 1.0 by `ef_search` ≈ 80–160. Every ANN setting much faster than the sequential scan. Plain HNSW
   with a 1% filter returning < 1 row of 10 on average. `relaxed_order` returning 10/10 at higher latency. A
   `Bitmap Index Scan on items_tenant` plan once the B-tree exists.

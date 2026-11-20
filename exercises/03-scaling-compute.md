@@ -74,9 +74,9 @@ user-visible impact without shortening the interval?
 
 <details><summary>Answer</summary>
 
-(a) Three consecutive failed checks: up to about 3 × 2 = 6 s, plus up to one interval of phase offset, so about
-**6–8 s** worst case.
-(b) 250 × 6–8 ≈ **1,500–2,000 requests** routed to it.
+(a) HAProxy marks the server down after three consecutive failed checks, so the worst case is about
+fall × inter = 3 × 2 = **6 s**, plus `timeout check` when the host hangs instead of refusing connections.
+(b) 250 × 6 ≈ **1,500 requests** routed to it (more if probes time out).
 (c) **Connection retries with redispatch** (a refused or timed-out *connect* is safe to retry on another server),
 **passive outlier detection** (eject on real errors immediately), and for in-flight requests, **idempotent
 retries** at the client or proxy. Shortening the interval increases check traffic on every backend from every
@@ -176,16 +176,16 @@ the whole window.
 
 ### 12. [Deep] Retry amplification
 
-A request passes through 4 service layers. Each layer retries a failed downstream call up to 2 times (3 attempts
-total). The bottom service is failing completely. How many attempts reach it per user request? What does a 10%
+A request passes through 4 service layers, and the failing service sits below the fourth layer. Each layer
+retries a failed downstream call up to 2 times (3 attempts total). The failing service rejects every call. How many attempts reach it per user request? What does a 10%
 retry budget at each client change?
 
 <details><summary>Answer</summary>
 
-Each layer multiplies by 3: 3⁴ = **81 attempts** at the bottom per user request. That amplification lands on the
+Each layer multiplies by 3: 3⁴ = **81 attempts** at the failing service per user request. That amplification lands on the
 service that is already failing. With a per-client retry budget that allows retries only while they are under 10%
 of requests, the sustained multiplier per layer approaches about 1.1×, so about 1.1⁴ ≈ 1.46× in total. Better
-still, retry at **one layer only** (the one directly above the failure), as the SRE book recommends, add jittered
+still, retry at **one layer only** (the one immediately above the layer that is rejecting), as the SRE book recommends, add jittered
 exponential backoff, and fail fast with circuit breakers (SYSDESIGN-11).
 </details>
 
@@ -214,7 +214,7 @@ What do you expect in the error count, and why?
 <details><summary>Answer</summary>
 
 `kill` sends SIGKILL. In-flight requests on app2 fail, and new requests keep reaching it until HAProxy's health
-checks mark it down (about `inter × fall` ≈ 2–3 s). With `RETRIES=0` those surface as errors (502/503, or
+checks mark it down (about `inter × fall` ≈ 2 s, longer if probes hang until `timeout check`). With `RETRIES=0` those surface as errors (502/503, or
 timeouts). With `RETRIES=2` and `option redispatch`, connection failures are retried elsewhere, but requests
 already in flight on app2 still fail. `stop` with `DRAIN_S=5` sends SIGTERM. app2 starts failing `/health` but
 keeps serving, HAProxy marks it down after two failed checks and stops routing to it, in-flight requests complete,

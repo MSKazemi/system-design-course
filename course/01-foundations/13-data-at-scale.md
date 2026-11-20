@@ -3,7 +3,7 @@ id: SYSDESIGN-13
 title: "Data at scale: object storage, lakehouse, batch vs stream, search"
 part: "I — Classical foundations"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-05, SYSDESIGN-06, SYSDESIGN-07, SYSDESIGN-08]
 estimated_time: "3h reading"
 requirement: "Keep 2 PB of documents durably and cheaply, answer analytics over 90 days of events in seconds, and serve keyword search over 500 M chunks at p99 < 200 ms"
@@ -50,12 +50,13 @@ Three changes between 2020 and 2026 reshaped this chapter's design space:
    read-after-write consistency for all PUTs, overwrites and LISTs since December 2020, at no extra cost [1]. In
    August 2024 S3 added conditional writes with `If-None-Match: *`, and in November 2024 `If-Match` on ETags [3][4][33]. Before this, table
    formats needed an external lock service on S3; the Delta Lake paper explicitly notes that S3 lacked atomic
-   put-if-absent and that Databricks ran a separate coordination service for log commits [9]. A primitive that
-   was missing for 14 years is now a header.
+   put-if-absent and that Databricks ran a separate coordination service for log commits [9]. A primitive S3
+   lacked until 2024, and that table formats had to work around, is now a header.
 2. **Open table formats won.** Apache Iceberg format **v3** is complete and adopted by the community (new types such
    as `variant` and geospatial, default values, row lineage, binary deletion vectors), while **v4** is "under
-   active development and has not been formally adopted" (as of 2026-11) [10]. Iceberg 1.10 (September 2025)
-   brought v3 features to general availability and the current Java release is 1.12.0 (2026-09-30) [11]. AWS ships
+   active development and has not been formally adopted" (as of 2026-11) [10]. The Iceberg project marked the
+   v3 spec as completed in release 1.10.0 (2025-09-11), which also added broad v3 support such as row lineage and
+   `variant`; the current Java release is 1.12.0 (released 2026-09-29) [11]. AWS ships
    managed Iceberg tables as "S3 Tables" (December 2024) [31].
 3. **Object storage is eating the systems built *on top of* disks.** Kafka tiered storage (KIP-405) was marked
    production-ready in Kafka 3.9 [26]; WarpStream (acquired by Confluent in September 2024) runs a Kafka-compatible
@@ -205,8 +206,9 @@ stages separated by shuffles, tasks over partitions — is recognizably MapReduc
 ### 6. Stream vs batch: Lambda and Kappa
 
 Batch gives correct answers late; streaming gives fast answers that are harder to make correct. Nathan Marz's
-**Lambda architecture** (2011) runs both: a batch layer recomputes views from the immutable master dataset, and a
-speed layer covers the recent window, with queries merging the two [18]. Jay Kreps' 2014 critique ("Questioning
+2011 design, later named the **Lambda architecture**, runs both: a batch layer recomputes views from the immutable
+master dataset, and a realtime layer (the "speed layer" in later usage) covers the recent window, with queries
+merging the two [18]. Jay Kreps' 2014 critique ("Questioning
 the Lambda Architecture") accepted the immutable log and the need to reprocess, but argued that keeping two
 complex systems producing the same answer is the real cost — "I don't think this problem is fixable" — and proposed
 what became known as **Kappa**: keep the input in a replayable log (e.g. Kafka with 30 days' retention), and when
@@ -290,9 +292,9 @@ roughly 10–50 GB with fewer than 200 M documents each [32]. Near-real-time vis
 that opens a new segment for search: `index.refresh_interval` defaults to 1 s on self-managed Elasticsearch (5 s
 on its serverless offering) [23].
 
-**Elasticsearch vs OpenSearch.** OpenSearch began in 2021 as an AWS-led fork after Elastic moved away from the
-Apache 2.0 licence; in September 2024 the Linux Foundation launched the OpenSearch Software Foundation to host it
-[25], and in August 2024 Elastic added the OSI-approved AGPLv3 as a third licence option alongside SSPL and ELv2
+**Elasticsearch vs OpenSearch.** OpenSearch was established in 2021 and hosted by AWS [25]; it is the fork that
+followed Elastic's 2021 licence change, as Elastic's founder later described it [34]. In September 2024 the Linux
+Foundation launched the OpenSearch Software Foundation to host it [25], and in August 2024 Elastic added the OSI-approved AGPLv3 as a third licence option alongside SSPL and ELv2
 for the free part of Elasticsearch and Kibana [24]. Architecturally both are distributed Lucene; choose on
 features, operations model and licence fit, not on the inverted index. Vector and hybrid (BM25 + embedding) search
 are covered in SYSDESIGN-24 ([24-retrieval-vector-systems](../03-ai-systems/24-retrieval-vector-systems.md)); a
@@ -363,7 +365,7 @@ why object-storage-native systems **batch many partitions into one object** and 
 | Format | Distinctive design | Wins when | Watch out for |
 |---|---|---|---|
 | Apache Iceberg (spec v3 adopted, v4 in development [10]) | Metadata tree (metadata → manifest list → manifests), hidden partitioning, partition evolution, catalog-based atomic swap | Multi-engine neutrality; very large tables; evolving partitioning | Requires a catalog; many tiny commits bloat metadata |
-| Delta Lake (latest release v4.4.1 as of 2026-10) | Ordered JSON log + Parquet checkpoints in `_delta_log` [9] | Spark-centric stacks; simple log model | Historically needed coordination for S3 commits [9] |
+| Delta Lake (latest release v4.4.1, published 2026-10-05, as of 2026-11 [35]) | Ordered JSON log + Parquet checkpoints in `_delta_log` [9] | Spark-centric stacks; simple log model | Historically needed coordination for S3 commits [9] |
 | Apache Hudi | Timeline; copy-on-write vs merge-on-read; incremental pulls [12][13] | Upsert-heavy CDC ingestion with minute-level freshness | More table services to tune; MoR read cost depends on compaction lag |
 
 **Batch vs stream**
@@ -430,8 +432,9 @@ Observations an interviewer will probe:
 ### Sequence numbers and deletes
 
 Row-level deletes need to know whether a delete applies to a given data file. Iceberg assigns each commit a
-**sequence number**; a delete file applies only to data files with an older sequence number in the same partition
-[10]. v3's **deletion vectors** encode deleted row positions for one data file as a bitmap, replacing the v2
+**sequence number**. A position delete file (or deletion vector) applies to data files in the same partition whose
+data sequence number is less than or equal to the delete's; an equality delete applies only to strictly older
+data files (in the same partition, or in every partition if the delete is unpartitioned) [10]. v3's **deletion vectors** encode deleted row positions for one data file as a bitmap, replacing the v2
 position-delete files [10]. The engineering consequence: deletes are cheap to write and expensive to read until a
 compaction rewrites the affected files — so GDPR erasure (SYSDESIGN-19) is a *two-step* process: logical delete
 now, physical rewrite plus snapshot expiry within your retention promise.
@@ -500,8 +503,9 @@ produce `from + size` results — use cursor-style `search_after` instead.
   disks [27]. Apache Kafka's KIP-1150 ("Diskless Topics") was accepted on 2026-03-02 as a direction-setting KIP;
   the implementation KIPs (KIP-1163 Diskless Core, KIP-1164 Diskless Coordinator) were still in progress and not
   in a release when last checked [29]. Treat latency claims from vendors as vendor claims and measure.
-- **Single-node analytics on the lake.** DuckDB 2.0.0 (LTS, released 2026-10-21) adds a client-server mode,
-  asynchronous I/O for Parquet/CSV reads from object storage, and a shredded `VARIANT` type [30]. For data that fits
+- **Single-node analytics on the lake.** DuckDB 2.0.0 (LTS, released 2026-10-21) ships a polished client-server protocol
+  (Quack, first introduced in 1.5.3), asynchronous I/O for Parquet/CSV reads from object storage, and a shredded
+  `VARIANT` type [30]. For data that fits
   a single machine's scan budget, "a laptop plus Parquet on S3" now replaces a cluster.
 - **Search converges with retrieval for AI.** Lucene 10.x and both Elasticsearch and OpenSearch ship approximate
   vector search next to BM25; hybrid ranking is the default pattern for RAG (SYSDESIGN-24). Elastic's own AGPL
@@ -644,8 +648,10 @@ exercised in lab L24.)
 10. Apache Iceberg, "Iceberg Table Spec" (format versions 1–3 adopted; v4 in development).
     https://iceberg.apache.org/spec/ — source: https://github.com/apache/iceberg/blob/main/format/spec.md
     (accessed 2026-11)
-11. Apache Iceberg, GitHub releases (1.10.0 2025-09-11; 1.12.0 2026-09-30).
-    https://github.com/apache/iceberg/releases (accessed 2026-11)
+11. Apache Iceberg, releases (1.10.0 released 2025-09-11, notes include "Spec: Mark version 3 as completed";
+    1.12.0 released 2026-09-29 per the project page, GitHub timestamp 2026-09-30 UTC).
+    https://iceberg.apache.org/releases/ ; https://github.com/apache/iceberg/releases/tag/apache-iceberg-1.10.0
+    (accessed 2026-11)
 12. Apache Hudi, "Table & Query Types." https://hudi.apache.org/docs/table_types (accessed 2026-11)
 13. V. Chandar, P. Rajaperumal, "Hudi: Uber Engineering's Incremental Processing Framework on Apache Hadoop," Uber
     Engineering blog, 2017-03-11. https://www.uber.com/blog/hoodie/ (accessed 2026-11)
@@ -656,13 +662,14 @@ exercised in lab L24.)
 17. M. Zaharia et al., "Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster
     Computing," NSDI 2012. https://www.usenix.org/conference/nsdi12/technical-sessions/presentation/zaharia
     (accessed 2026-11)
-18. N. Marz, "How to beat the CAP theorem," 2011. http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
+18. N. Marz, "How to beat the CAP theorem," October 2011. https://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html
     (accessed 2026-11)
 19. J. Kreps, "Questioning the Lambda Architecture," O'Reilly Radar, 2014-07-02.
     https://www.oreilly.com/radar/questioning-the-lambda-architecture/ (accessed 2026-11)
 20. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," Foundations and Trends in
-    Information Retrieval 3(4), 2009. https://doi.org/10.1561/1500000019 (DOI not fetchable by automated client
-    this session; bibliographic details from the publisher record)
+    Information Retrieval 3(4):333–389, 2009. https://doi.org/10.1561/1500000019 (the DOI now redirects to a page
+    that returns HTTP 403 to scripts; volume and pages checked on the authors' copy:
+    https://staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf, accessed 2026-11)
 21. Apache Lucene, "Lucene 10.3 file format / index structure" (package summary).
     https://lucene.apache.org/core/10_3_0/core/org/apache/lucene/codecs/lucene103/package-summary.html
     (accessed 2026-11)
@@ -671,7 +678,9 @@ exercised in lab L24.)
 23. Elastic, "Index settings / index modules," Elasticsearch reference.
     https://www.elastic.co/docs/reference/elasticsearch/index-settings/index-modules (accessed 2026-11)
 24. Elastic, "Elastic Announces Open Source License for Elasticsearch and Kibana Source Code," press release,
-    2024-08-29. https://www.businesswire.com/news/home/20240829537786/en (accessed 2026-11)
+    2024-08-29. https://www.businesswire.com/news/home/20240829537786/en (reachable in a browser, not fetchable by
+    script; content checked on a syndicated copy:
+    https://www.apmdigest.com/elastic-announces-open-source-license-elasticsearch-and-kibana-source-code, accessed 2026-11)
 25. The Linux Foundation, "Linux Foundation Announces OpenSearch Software Foundation to Foster Open Collaboration in
     Search and Analytics," press release, 2024-09-16.
     https://www.linuxfoundation.org/press/linux-foundation-announces-opensearch-software-foundation-to-foster-open-collaboration-in-search-and-analytics
@@ -694,3 +703,7 @@ exercised in lab L24.)
     https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards (accessed 2026-11)
 33. Amazon Web Services, "Amazon S3 adds new functionality for conditional writes," What's New, 2024-11-25.
     https://aws.amazon.com/about-aws/whats-new/2024/11/amazon-s3-functionality-conditional-writes/ (accessed 2026-11)
+34. S. Banon, "Elasticsearch Is Open Source. Again!," Elastic blog, 2024-08-29.
+    https://www.elastic.co/blog/elasticsearch-is-open-source-again (accessed 2026-11)
+35. Delta Lake, GitHub releases (v4.4.1 marked Latest, 2026-10-05). https://github.com/delta-io/delta/releases
+    (accessed 2026-11)

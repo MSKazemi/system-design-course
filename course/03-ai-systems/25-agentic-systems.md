@@ -3,7 +3,7 @@ id: SYSDESIGN-25
 title: "Agentic systems"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-08, SYSDESIGN-11, SYSDESIGN-18, SYSDESIGN-21, SYSDESIGN-24]
 estimated_time: "3.5h reading + 2h lab"
 requirement: "Run multi-step research-and-analysis tasks for 10,000 daily users: tasks up to 30 minutes, every tool call least-privileged and audited, risky actions approved by a human, a hard cost cap per task, and no duplicated side effects after a worker crash"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Design state, memory and checkpointing so a long-running agent survives crashes without repeating side effects"
   - "Design a sandbox and permission model for tool execution, including human approval gates and budgets"
   - "Evaluate and observe agents: task success, pass^k reliability, trajectories, and traces"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 25 — Agentic systems
@@ -41,7 +41,8 @@ security boundary, and treat the model as an untrusted, creative planner inside 
 ## Why this matters now
 
 - **Tool calling became a native model feature.** ReAct (Yao et al., 2022) showed that interleaving reasoning traces
-  with actions beats either alone on several tasks [1]. Model APIs and open inference servers now expose structured
+  with actions beats either alone on several tasks [1]. Toolformer (Schick et al., 2023) showed that a model can
+  learn by itself when and how to call external APIs [2]. Model APIs and open inference servers now expose structured
   tool calls in the OpenAI-compatible format. Lab L25 uses llama.cpp's server for this.
 - **Tool integration was standardised.** The Model Context Protocol (MCP) gives agents one way to discover and call
   tools, resources and prompts. Its current revision is **2026-07-28**, which made the core protocol **stateless**:
@@ -121,14 +122,19 @@ MCP standardises the connection between an AI application (the *host/client*) an
 
 - **Server primitives:** *tools* (model-invoked functions), *resources* (readable context identified by URI), and
   *prompts* (reusable templates) [4].
-- **Transports:** stdio (local subprocess) and Streamable HTTP (remote). The older HTTP+SSE transport is deprecated
-  with a one-year transition [5].
+- **Transports:** stdio (local subprocess) and Streamable HTTP (remote). The older HTTP+SSE transport has been
+  deprecated since 2025-03-26. The release post calls it a year-long offramp, while the spec's deprecated-features
+  registry sets a different earliest-removal rule, so plan on Streamable HTTP now [5][32].
 - **Statelessness (2026-07-28):** every request carries its own protocol version (in `_meta` and the
   `MCP-Protocol-Version` header) and client details. Servers can be load-balanced like ordinary HTTP services.
   Requests also carry `Mcp-Method` and `Mcp-Name` headers so gateways can route and authorise per tool [3][5].
   Clients can call `server/discover` to learn versions and capabilities up front [3].
 - **Extensions:** long-running *Tasks* moved into the `io.modelcontextprotocol/tasks` extension. Roots, Sampling
   and Logging are deprecated, with at least twelve months before removal can be proposed [5].
+- **Multi round-trip requests (MRTR):** instead of the server opening its own requests to the client
+  (elicitation, sampling, roots), a tool call can return `resultType: "input_required"` with the questions it
+  needs answered, and the client retries the call with `inputResponses`. This is how a stateless tool asks the user
+  to confirm an action. List and read results now also carry cache hints (`ttlMs`, `cacheScope`) [5].
 - **Authorization:** OAuth-based. 2026-07-28 requires clients to validate the issuer (`iss`, RFC 9207) and binds
   client credentials to the issuing authorization server. Dynamic Client Registration is deprecated in favour of
   Client ID Metadata Documents [5].
@@ -151,10 +157,11 @@ see its prompts, tools or memory. Core concepts [8]:
   collaboration.
 - **Message / Part / Artifact:** turns of communication made of parts (text, file, structured data). Artifacts are
   the outputs, and they can be streamed.
-- **Interaction:** over HTTP(S) with JSON-RPC 2.0 payloads. Polling, streaming (SSE) and push notifications
+- **Interaction:** operations are defined once and mapped to three protocol bindings: JSON-RPC 2.0 over HTTP(S),
+  gRPC, and HTTP+JSON/REST, with guidance for custom bindings. Polling, streaming (SSE) and push notifications
   (webhooks) are supported for long tasks [8].
-- **Versioning:** v1.0 clients declare their version in an `A2A-Version` header. That is a breaking change from
-  0.3 [7].
+- **Versioning:** v1.0 clients must send an `A2A-Version` header (spec §3.6.1). Requests without it are treated as
+  0.3, so this is a breaking change from 0.3 [8]. A v1.1.0 release candidate is tagged (as of 2026-11) [7].
 
 Rule of thumb: **MCP for capabilities you control, A2A for delegating to agents you don't.** A2A is a federation
 protocol across team or vendor boundaries.
@@ -256,8 +263,8 @@ no credentials inside. Lab L25 implements this with `docker run --network none -
 
 ### 9. Permissions, least privilege and human-in-the-loop
 
-OWASP lists **Excessive Agency** (LLM06:2025) as a top risk. Its root causes are excessive functionality, excessive
-permissions and excessive autonomy [23]. Controls:
+OWASP lists **Excessive Agency** as a top risk (LLM03 in the 2026 edition, LLM06 in 2025) [23][33]. Its root causes are excessive functionality, excessive
+permissions and excessive autonomy [23][33]. Controls:
 
 - **Per-tool, per-task scopes.** The agent acting for Alice gets Alice's permissions, *narrowed* to the task (read
   the contracts folder, not the whole drive). Use short-lived, audience-restricted tokens (SYSDESIGN-18 workload
@@ -296,7 +303,7 @@ SYSDESIGN-22), summarising old steps, and sub-agents with fresh contexts.
 **2. Cost per task.** *Assume* a hosted model at $1.00 per million input tokens and $4.00 per million output tokens
 (illustrative prices, not a quote). That gives 0.2025 × $1 + 0.0045 × $4 = **≈ $0.22** per 15-step task. 10,000
 users × 3 tasks/day = 30,000 tasks/day ≈ **$6,600/day**. A runaway 100-step loop costs 100×3,000 + 1,500×4,950 ≈
-7.7M input tokens, about **$7.7** for one task. That is why budgets are a requirement, not a nicety.
+7.7M input tokens plus 30,000 output tokens, about **$7.8** for one task. That is why budgets are a requirement, not a nicety.
 
 **3. Latency.** *Assume* 0.5 s time-to-first-token, 50 output tokens/s, 2 s average tool time. A step takes
 0.5 + 300/50 + 2 = 8.5 s, so 15 steps take **≈ 2 minutes**. Users need progress streaming and a task model
@@ -370,7 +377,7 @@ Filters on tool output help, but they are probabilistic. Architectural controls:
 A *trace* per task: a root span for the task, child spans for each LLM call (model, tokens in/out, latency, finish
 reason), each tool call (tool name, arguments hash, duration, result size, error), approvals and checkpoints.
 OpenTelemetry's GenAI semantic conventions define agent and tool spans (`invoke_agent`, `execute_tool`) and MCP
-conventions. They are still in **Development** status and maintained in a dedicated repository (as of 2026-11) [9].
+conventions, plus a page for A2A. They are still in **Development** status and maintained in a dedicated repository (as of 2026-11) [9].
 SYSDESIGN-26 covers the metrics side. Record *trajectories* (the sequence of actions) for evaluation. Many agent
 failures are visible only as weird trajectories (10 searches with the same query), not as errors.
 
@@ -500,20 +507,20 @@ requirement.
 - A2A specification v1.0 [8]: Agent Cards, Tasks and Artifacts.
 - Temporal docs on workflow execution [11]: the mental model for durable agents.
 - Greshake et al. [17] and Debenedetti et al., CaMeL [18]: why injection is an architecture problem.
-- OWASP LLM06:2025 Excessive Agency [23]: a checklist for tool permissions.
+- OWASP Excessive Agency (LLM03:2026, formerly LLM06:2025) [33][23]: a checklist for tool permissions.
 - Yao et al., τ-bench [12]: pass^k and why single-run evaluation misleads.
 
 ## References
 
 1. Yao, S. et al. "ReAct: Synergizing Reasoning and Acting in Language Models." ICLR 2023. arXiv:2210.03629. https://arxiv.org/abs/2210.03629 (accessed 2026-11)
 2. Schick, T. et al. "Toolformer: Language Models Can Teach Themselves to Use Tools." NeurIPS 2023. arXiv:2302.04761. https://arxiv.org/abs/2302.04761 (accessed 2026-11)
-3. Model Context Protocol. "Versioning" (current revision 2026-07-28). https://modelcontextprotocol.io/specification/versioning (accessed 2026-11)
+3. Model Context Protocol. "Versioning" (current revision 2026-07-28). https://modelcontextprotocol.io/docs/2026-07-28/learn/versioning (accessed 2026-11)
 4. Model Context Protocol. Specification, revision 2026-07-28 (server features: tools, resources, prompts). https://modelcontextprotocol.io/specification/2026-07-28 ; https://modelcontextprotocol.io/specification/2026-07-28/server/tools (accessed 2026-11)
 5. MCP maintainers. "MCP 2026-07-28" release post (stateless core, Tasks extension, deprecations, authorization changes). https://blog.modelcontextprotocol.io/posts/2026-07-28/ (accessed 2026-11)
 6. Linux Foundation. "Linux Foundation Announces the Formation of the Agentic AI Foundation" (press release, 9 Dec 2025). https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation (accessed 2026-11)
-7. A2A project. Releases v1.0.0 (2026-03-12), v1.0.1 (2026-05-28). https://github.com/a2aproject/A2A/releases (accessed 2026-11)
-8. A2A project. Documentation and "Key concepts". https://a2a-protocol.org/latest/ ; https://a2a-protocol.org/latest/topics/key-concepts/ ; specification https://a2a-protocol.org/latest/specification/ (accessed 2026-11)
-9. OpenTelemetry. GenAI semantic conventions (agent spans, execute_tool, MCP), status Development. https://github.com/open-telemetry/semantic-conventions-genai (accessed 2026-11)
+7. A2A project. Releases v1.0.0 (2026-03-12), v1.0.1 (2026-05-28); tag v1.1.0-rc. https://github.com/a2aproject/A2A/releases (accessed 2026-11)
+8. A2A project. Documentation and "Key concepts". https://a2a-protocol.org/latest/ ; https://a2a-protocol.org/latest/topics/key-concepts/ ; specification v1.0.0 (§3.6.1 version header; §§9–12 JSON-RPC, gRPC, HTTP+JSON/REST and custom bindings) https://a2a-protocol.org/latest/specification/ (accessed 2026-11)
+9. OpenTelemetry. GenAI semantic conventions (agent spans, execute_tool, MCP, A2A), status Development. https://github.com/open-telemetry/semantic-conventions-genai (accessed 2026-11)
 10. LangChain. LangGraph "Persistence" and "Interrupts" docs (LangGraph 1.2.x). https://docs.langchain.com/oss/python/langgraph/persistence ; https://docs.langchain.com/oss/python/langgraph/interrupts (accessed 2026-11)
 11. Temporal. "Workflow Execution" and "Understanding Temporal". https://docs.temporal.io/workflow-execution ; https://docs.temporal.io/evaluate/understanding-temporal (accessed 2026-11)
 12. Yao, S., Shinn, N., Razavi, P., Narasimhan, K. "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains." arXiv:2406.12045 (2024). https://arxiv.org/abs/2406.12045 (accessed 2026-11)
@@ -524,7 +531,7 @@ requirement.
 17. Greshake, K. et al. "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection." AISec 2023. arXiv:2302.12173. https://arxiv.org/abs/2302.12173 (accessed 2026-11)
 18. Debenedetti, E. et al. "Defeating Prompt Injections by Design" (CaMeL). arXiv:2503.18813 (2025). https://arxiv.org/abs/2503.18813 (accessed 2026-11)
 19. Debenedetti, E. et al. "AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents." NeurIPS 2024 Datasets & Benchmarks. arXiv:2406.13352 (accessed 2026-11)
-20. Anthropic. "Building effective agents" (engineering blog, Dec 2024; perspective). https://www.anthropic.com/engineering/building-effective-agents (accessed 2026-11)
+20. Anthropic. "Building effective agents" (engineering blog, Dec 2024; perspective). https://www.anthropic.com/research/building-effective-agents (accessed 2026-11)
 21. Packer, C. et al. "MemGPT: Towards LLMs as Operating Systems." arXiv:2310.08560 (2023). https://arxiv.org/abs/2310.08560 (accessed 2026-11)
 22. Park, J. S. et al. "Generative Agents: Interactive Simulacra of Human Behavior." UIST 2023. arXiv:2304.03442 (accessed 2026-11)
 23. OWASP GenAI Security Project. "LLM06:2025 Excessive Agency." https://genai.owasp.org/llmrisk/llm062025-excessive-agency/ (accessed 2026-11)
@@ -536,3 +543,5 @@ requirement.
 29. Kong. "AI Gateway" documentation (LLM, MCP and A2A traffic). https://developer.konghq.com/ai-gateway/ (accessed 2026-11)
 30. Agent Router (formerly Envoy AI Gateway), README, v1.3.0. https://github.com/theagentrouter/agent-router (accessed 2026-11)
 31. Linux Foundation. "A2A protocol surpasses 150 organizations…" (press release, Apr 2026). https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year (accessed 2026-11)
+32. Model Context Protocol. "Deprecated Features" registry, revision 2026-07-28 (HTTP+SSE deprecated in 2025-03-26). https://modelcontextprotocol.io/specification/2026-07-28/deprecated (accessed 2026-11)
+33. OWASP GenAI Security Project. "OWASP Top 10 for LLM Applications 2026" (LLM03:2026 Excessive Agency), 2026-08-04. https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/ (accessed 2026-11)

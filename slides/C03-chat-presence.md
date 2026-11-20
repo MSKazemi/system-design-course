@@ -47,7 +47,7 @@ servers, presence servers.
 - SEND carries `client_msg_id` (idempotency key)
 - ACK returns `seq`; MSG carries `seq`
 - RECV / READ are cursors, not per-message rows
-- HELLO resumes with `last_seen` per conversation
+- HELLO resumes with one opaque `sync_token`; server returns only changed conversations
 
 **Visual:** Frame list with arrows device ↔ server.
 Icons: `protocol-websocket`, `pattern-idempotency`.
@@ -58,7 +58,7 @@ Icons: `protocol-websocket`, `pattern-idempotency`.
 
 - Consistent hashing on `conv_id` → owner assigns `last_seq + 1`
 - Total order per conversation; no global order needed
-- Failover stalls a conversation briefly (Slack: new channel server < 20 s)
+- Failover stalls a conversation briefly (Slack: new channel server < 20 s; sequencing itself is our design)
 - Leases + fencing tokens stop a stale owner
 
 **Visual:** Ring of owners; one conversation's sends converge on one node.
@@ -80,8 +80,8 @@ Icons: `pattern-idempotency`, `pattern-retry`, `pattern-deduplication`.
 
 ## Slide 7 — Storage that survives success
 
-- Partition `(conv_id, bucket)`, cluster by time-sortable ID
-- Discord 2017: ~10-day buckets to keep partitions < 100 MB
+- Partition `(conv_id, bucket)` with bucket = floor(seq / 50,000), cluster by `seq`
+- Discord (2017 post): ~10-day time buckets, derivable from the message ID, to keep partitions < 100 MB
 - Discord 2023: 177 Cassandra → 72 ScyllaDB nodes; p99 fetch 40–125 ms → ≈ 15 ms
 - Data services coalesce identical reads, routed by channel hash
 
@@ -112,7 +112,7 @@ Icons: `domain-notification`, `arch-mobile-client`, `arch-desktop`.
 **Visual:** Eager fan-out (2.8 M events/s, exercise 6) vs lazy (≈ 93,000 /s).
 Icons: `pattern-fan-out`, `ops-clock`, `company-discord`.
 
-**Speaker notes:** Presence is a hint with 30 s staleness tolerance — design it as cheap, approximate state.
+**Speaker notes:** Presence is a hint: offline within the 60 s TTL after an ungraceful disconnect, immediately on clean close — design it as cheap, approximate state.
 
 ## Slide 10 — Failures
 
@@ -137,7 +137,7 @@ hop.
 **Visual:** Ratchet tree with a member update touching only one path.
 Icons: `security-encryption`, `security-key`, `domain-chat`.
 
-**Speaker notes:** RFC 9750 says groups must agree on one Commit per epoch, and most Delivery Services order
+**Speaker notes:** RFC 9750 says groups must agree on one Commit per epoch, and expects most Delivery Services to order
 handshake messages — that is our sequencer.
 
 ## Slide 12 — AI assistants in chat

@@ -3,7 +3,7 @@ id: SYSDESIGN-I02
 title: "Numbers & cheat sheets: latency, throughput, storage, capacity, cost & GPU numbers"
 part: "V — Interview track"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01]
 estimated_time: "1.5h reading + 1h drills"
 requirement: "Produce a defensible order-of-magnitude estimate for any design prompt in under four minutes, using constants you can source and assumptions you label."
@@ -98,16 +98,16 @@ to measure.
 |---|---|---|---|
 | L1 cache reference | 0.5 ns | ≈ 1 ns | [S 3] model: ≈ 3 cycles at ≈ 3 GHz; clock rates stopped rising ≈ 2005 |
 | Branch mispredict | 5 ns | ≈ 3–5 ns | [A] depends on pipeline depth; roughly unchanged |
-| L2 cache reference | 7 ns | ≈ 4 ns | [A] small change; on-die caches grew more than they sped up |
+| L2 cache reference | 7 ns | ≈ 4 ns | [S 3] model: 13 cycles at ≈ 3 GHz ≈ 4.3 ns; on-die caches grew more than they sped up |
 | Mutex lock/unlock (uncontended) | 25 ns | ≈ 15–25 ns | [A] contention, not the instruction, dominates real cost |
 | Main memory reference | 100 ns | ≈ 100 ns | [S 3] model holds 100 ns flat since 2000; DRAM latency has not improved much |
 | Compress 1 KB (Snappy, then "Zippy") | 3,000 ns | ≈ 1–2 µs | [A] faster cores and codecs; measure for your codec |
 | Send 2 KB over 1 Gbps | 20,000 ns | 1.6 µs at 10 Gbps; 0.16 µs at 100 Gbps | [D] serialization = bits ÷ link rate; NIC speeds grew 10–100× |
-| Read 1 MB sequentially from memory | 250,000 ns | ≈ 10–50 µs | [D] at an assumed 20–100 GB/s per-core-to-socket bandwidth [A] |
+| Read 1 MB sequentially from memory | 250,000 ns | ≈ 10–100 µs | [A] at an assumed 10–100 GB/s: one core streaming reaches the low end; whole-socket bandwidth is higher but needs many cores. Measure with a STREAM-style test |
 | SSD 4 KB random read | — (no SSD row) | ≈ 16–100 µs | [S 3] model: 16 µs; enterprise NVMe datasheets typically quote tens of µs [A]; check yours |
 | Read 1 MB sequentially from NVMe SSD | — | ≈ 100–300 µs | [D] at 3–10 GB/s sequential [A] (PCIe 4.0/5.0 x4 link ceilings ≈ 7.9/15.8 GB/s [D]) |
 | Round trip within same data center | 500,000 ns | ≈ 50–500 µs | [S 3] model keeps 500 µs; modern fabrics are often faster [A]; measure with your RPC stack |
-| Round trip between zones in a region | — | ≤ 1 ms of propagation | [D] AWS states its AZs are within 100 km of each other [7]; 100 km of fiber ≈ 0.5 ms one way |
+| Round trip between zones in a region | — | ≤ 1 ms of propagation | [D] propagation only: AWS states its AZs are within 100 km of each other [7]; 100 km of fiber ≈ 0.5 ms one way. Measured RTT is higher; measure yours |
 | Disk (HDD) seek | 10 ms | ≈ 4–10 ms | [A] mechanical; barely changed; HDDs now mostly for cold/bulk storage |
 | Read 1 MB sequentially from HDD | 20 ms | ≈ 4–10 ms | [A] at 100–250 MB/s |
 | Packet CA → Netherlands → CA | 150 ms | ≈ 140–160 ms | [S 1][S 3]; physics floor ≈ 90 ms (see below) |
@@ -115,7 +115,7 @@ to measure.
 **[D] Speed of light in fiber.** Light in silica fiber travels at about c / 1.47 ≈ 204,000 km/s (refractive index
 ≈ 1.47 [A], typical of single-mode fiber), so **≈ 5 µs per km one way, ≈ 1 ms of round trip per 100 km**. Two
 great-circle distances (approximate [A]): New York–London ≈ 5,600 km → RTT floor ≈ 56 ms; California–Netherlands ≈
-8,900 km → RTT floor ≈ 89 ms. Real paths are longer than great circles and add routing and queueing, which is why the
+8,900 km → RTT floor ≈ 89 ms (using the rounded 5 µs/km rule; at exactly 204,000 km/s the floors are ≈ 55 and ≈ 87 ms). Real paths are longer than great circles and add routing and queueing, which is why the
 observed 150 ms has not shrunk. **No caching or engineering removes this floor; only moving data closer does**
 (see [SYSDESIGN-15](../02-modern-requirements/15-multi-region-edge.md)).
 
@@ -124,14 +124,14 @@ interview anchors):
 
 | Operation | Value | Basis |
 |---|---|---|
-| Read all weights of an 8B model in BF16 (16.4 GB) from H100 HBM | ≈ 4.9 ms | [D] 16.4 GB ÷ 3.35 TB/s [S 8] — the lower bound on one decode step at batch 1 |
+| Read all weights of an 8B model in BF16 (16.4 GB) from H100 HBM | ≈ 4.9 ms | [D] 16.4 GB ÷ 3.35 TB/s [S 8] — the lower bound on one decode step at batch 1. SYSDESIGN-21 counts 8.2 B parameters (16.4 GB); the §10 table rounds to 8 B = 16 GB (≈ 4.8 ms) |
 | Read 70 GB (70B model in FP8) from H200 HBM | ≈ 14.6 ms | [D] 70 GB ÷ 4.8 TB/s [S 9] |
 | Prefill of a 2,000-token prompt, 8B model, H100 | ≈ 66 ms | [D] in SYSDESIGN-21 at an assumed 50 % of dense BF16 peak |
 | Typical interactive targets | TTFT ≈ 0.5–2 s; inter-token ≈ 20–50 ms | [A] product targets used in this course's cases, not standards |
 
-**How to use the table in an interview.** Use ratios rather than values: memory is about 100× faster than an
-SSD random read; an SSD random read is about 100× faster than a cross-region round trip; a cross-region round trip
-costs as much as ≈ 10⁶ memory references. "Never put a cross-region call on the hot path of a 50 ms request" follows
+**How to use the table in an interview.** Use ratios rather than values: memory is about 10³× faster than an
+SSD random read (≈ 100 ns vs ≈ 100 µs); an SSD random read is about 10³× faster than a cross-region round trip
+(≈ 100 µs vs ≈ 100 ms); so a cross-region round trip costs as much as ≈ 10⁶ memory references. "Never put a cross-region call on the hot path of a 50 ms request" follows
 from the last row.
 
 ### 4. Throughput rules of thumb
@@ -143,14 +143,14 @@ machines**, then say "I'd load-test to confirm" (the course's labs do exactly th
 | Component | Rule of thumb | Label and source |
 |---|---|---|
 | Redis, one instance, simple GET/SET, no pipelining | ≈ 10⁵ ops/s | [S 5] Redis docs show `redis-benchmark` SET ≈ 180k req/s, ≈ 72k with random keys over 100k keys (50 clients). Hardware is not fully specified, so treat as indicative |
-| Redis, pipelined (16 commands) | ≈ 10⁶ ops/s | [S 5] docs example on a laptop: SET ≈ 1.5 M, GET ≈ 1.8 M req/s |
+| Redis, pipelined (16 commands) | ≈ 10⁶ ops/s | [S 5] docs example on a laptop: SET ≈ 1.5 M, GET ≈ 1.8 M req/s. The same page also publishes per-version results on fully specified bare-metal hardware (one Xeon Gold 6230, 50 clients, no pipelining, 256-byte payloads) as charts; read them there |
 | Kafka, small cluster, 100-byte records | ≈ 10⁵–10⁶ records/s per broker | [S 6] Kreps 2014: 3 brokers (HDDs, 1 GbE) sustained ≈ 2.0 M records/s from 3 producers with async 3× replication; ≈ 420k/s for one producer with sync replication. Old hardware; modern brokers are network- or disk-bound at higher numbers |
 | Relational primary (PostgreSQL/MySQL), simple indexed writes | ≈ 10³–10⁴ writes/s | [A] depends on durability settings, row size, indexes, hardware; measure with `pgbench`/sysbench |
 | Relational, cached point reads per node | ≈ 10⁴–10⁵ reads/s | [A] |
 | Stateless HTTP/JSON service, per core | ≈ 10²–10³ req/s for business logic | [A] dominated by your code and serialization, not the framework |
 | L7 proxy (NGINX/Envoy) per core, small requests | ≈ 10⁴ req/s | [A] TLS and request size matter more than the proxy brand |
 | 1 Gbps / 10 Gbps / 100 Gbps NIC | 125 MB/s / 1.25 GB/s / 12.5 GB/s | [D] ÷ 8 bits; expect 70–90 % usable [A] |
-| NVMe SSD (PCIe 4.0 x4 / 5.0 x4) | ≈ 7 / ≈ 14 GB/s sequential ceiling | [D] from 16 / 32 GT/s per lane, 4 lanes, 128b/130b encoding; device ratings are lower [A] |
+| NVMe SSD (PCIe 4.0 x4 / 5.0 x4) | ≈ 7.9 / ≈ 15.8 GB/s sequential ceiling | [D] from 16 / 32 GT/s per lane, 4 lanes, 128b/130b encoding; device ratings are lower [A] |
 | HDD | ≈ 100–250 MB/s sequential; ≈ 100–200 random IOPS | [A] |
 | Object storage single stream | ≈ 50–100+ MB/s per connection; parallelize | [A] throughput scales with parallel connections and prefix spread |
 | One H100 decoding a 70B model (FP8, TP4 replica share) | ≈ 1,400 output tokens/s per GPU | [D/A] roofline estimate in [C09](../04-case-studies/C09-llm-chat-service.md) at assumed 50 % of HBM bandwidth; benchmark before buying |
@@ -171,7 +171,7 @@ indexed write, fsync'd write).
 | IPv4 / IPv6 address | 4 / 16 B | [D] 32 / 128 bits |
 | SHA-256 digest | 32 B | [D] 256 bits |
 | Embedding vector, 1,024 dims, float32 / int8 | 4 KiB / 1 KiB | [D] |
-| HNSW index per vector | d × 4 + M × 2 × 4 B (≈ 4.2 KiB at d = 1,024, M = 16) | [S 13] FAISS guidelines |
+| HNSW index per vector | d × 4 + M × 2 × 4 B (4,224 B ≈ 4.1 KiB at d = 1,024, M = 16) | [S 13] FAISS guidelines |
 | A short text post or chat message with metadata | ≈ 0.5–2 KB | [A] |
 | A JSON API response | ≈ 1–10 KB | [A] |
 | Compressed photo (phone) | ≈ 1–5 MB original; ≈ 50–300 KB thumbnail | [A] |
@@ -257,17 +257,18 @@ and GPU memory bandwidth almost always is.
 
 ### 9. Cost rules (labelled assumptions)
 
-Prices vary by provider, region, commitment and month. Except where a source is given, the figures are
-**assumptions for interview arithmetic**. Say so out loud, and use the formulas.
+Prices vary by provider, region, commitment and month. The figures below are indicative, checked 2026-11-20, and vary
+by region and commitment. Except where a source is given, they are **assumptions for interview arithmetic**. Say so
+out loud, and use the formulas.
 
 | Item | Interview assumption | Note |
 |---|---|---|
 | Object storage, standard tier | ≈ $0.015–0.025 per GB-month | [S 15] Cloudflare R2 lists $0.015/GB-month and no egress fee for R2 Standard; other providers charge more for storage or egress [A] |
 | Cold/archive object storage | ≈ 10–20× cheaper than standard; retrieval fees and delays | [A] |
-| Internet egress from a hyperscale cloud | ≈ $0.05–0.09 per GB at list price | [A] check the provider; often the surprise line item |
+| Internet egress from a hyperscale cloud | ≈ $0.05–0.09 per GB at list price | [A] not checked against a provider page as of 2026-11; check yours; often the surprise line item |
 | Cross-zone / cross-region transfer | ≈ $0.01–0.02 per GB | [A] multi-region designs pay this on every replicated byte |
 | General-purpose vCPU | ≈ $0.02–0.05 per vCPU-hour on demand | [A] |
-| Data-center GPU (H100-class), on demand | ≈ $2–5 per GPU-hour, depending on provider and commitment | [A] wide variance; the formula matters more |
+| Data-center GPU (H100-class), on demand | ≈ $3–7 per GPU-hour at list price; committed or smaller-provider rates can be lower | [S 33][S 34] as of 2026-11-20: Lambda H100 SXM $4.69–4.89, H100 PCIe $3.79 per GPU-hour; CoreWeave 8 × H100 node $49.24/h ≈ $6.16 per GPU-hour. Wide variance; the formula matters more |
 | SMS message | ≈ $0.005–0.10 per message, by country | [A] often the largest line item of a notification system |
 
 [D] **Formulas that interviewers like:**
@@ -278,7 +279,8 @@ cost per 1M tokens     = GPU $/hour ÷ (tokens/s per GPU × 3,600) × 10⁶
 storage cost per month = stored GB × $/GB-month × replication (if billed per replica)
 ```
 
-Example [D/A]: at an assumed $3 per H100-hour and the ≈ 1,400 output tokens/s per GPU estimated in C09, decode
+Example [D/A]: at an assumed $3 per H100-hour (assumption: a committed or discounted rate at the low end of the
+2026-11 range) and the ≈ 1,400 output tokens/s per GPU estimated in C09, decode
 costs ≈ $3 ÷ (1,400 × 3,600) × 10⁶ ≈ **$0.60 per million output tokens**, before utilization losses. At 50 % average
 utilization, which is plausible with diurnal traffic [A], it is ≈ $1.20. **Utilization is the biggest lever on
 self-hosted token cost**, which is why autoscaling and multi-tenancy matter
@@ -301,7 +303,7 @@ labelled assumption in every estimate.
 | 8 B (e.g. Llama 3.1 8B) | 16 GB | 8 GB | ≈ 4.1 GB | one L4 (24 GB) at FP8 or INT4; one H100 at any precision |
 | 32 B | 64 GB | 32 GB | ≈ 16.5 GB | one H100 at FP8; one L40S (48 GB) at INT4 |
 | 70 B (e.g. Llama 3.3 70B) | 140 GB | 70 GB | ≈ 36 GB | one H200 (141 GB) at FP8 with little KV room; 2–4 H100s with tensor parallelism |
-| 405 B (Llama 3.1 405B) | 810 GB | 405 GB | ≈ 209 GB | one 8-GPU H200 or B200 node at FP8 |
+| 405 B (Llama 3.1 405B) | 810 GB | 405 GB | ≈ 209 GB | at FP8, 8 × H100 (640 GB) holds the weights with little KV room; 8 × H200 or B200 leaves room for KV. BF16 does not fit one 8 × H100 machine [10] |
 
 Rules:
 
@@ -362,7 +364,7 @@ conversations per H200, limited by KV memory") is the kind of bounded, sourced a
 | NVIDIA H200 (SXM and NVL) | 141 GB | 4.8 TB/s | ≈ 989 (SXM) / ≈ 835 (NVL) TFLOPS | [9] same tensor throughput as H100, more and faster memory |
 | NVIDIA B200 (per GPU, from DGX B200) | ≈ 180 GB HBM3e | ≈ 8 TB/s | — | [D] from [19]: 8 GPUs, 1,440 GB total, 64 TB/s total; FP8 72 PFLOPS sparse per system |
 | NVIDIA GB200 (per GPU, from the superchip) | ≈ 186 GB HBM3e | ≈ 8 TB/s | — | [D] from [20]: 1 Grace CPU + 2 GPUs, 372 GB and 16 TB/s per superchip |
-| NVIDIA B300 / GB300 (Blackwell Ultra) | up to 288 GB HBM3e | ≈ 8 TB/s | — | [21] 288 GB per GPU; bandwidth [D] from [22]: GB300 NVL72 lists up to 576 TB/s across 72 GPUs |
+| NVIDIA B300 / GB300 (Blackwell Ultra) | up to 288 GB HBM3e (system pages: 2.1 TB per 8 GPUs) | ≈ 8 TB/s | — | [21] "up to 288 GB" per GPU; [23][32] 2.1 TB per 8-GPU HGX/DGX B300; bandwidth [D] from [22]: GB300 NVL72 lists up to 576 TB/s across 72 GPUs |
 
 Notes and drift:
 
@@ -370,9 +372,15 @@ Notes and drift:
   130 TB/s across 8 GPUs) [23]. Expect this table to need updating within a year. Re-check the vendor page before
   quoting.
 - **Per-GPU Blackwell numbers are derived** by dividing system totals by GPU count, because NVIDIA's pages give
-  system totals. "2.1 TB" for an 8-GPU B300 system matches 8 × 288 GB = 2,304 GB only if the page means TiB (2,304 GB ≈
-  2.1 TiB). Treat that as an inconsistency in units, and prefer the per-GPU 288 GB figure from NVIDIA's technical blog
-  [21].
+  system totals.
+- **B300 memory.** NVIDIA publishes two figures: its technical blog gives "up to 288 GB of HBM3e memory per GPU" [21],
+  and its HGX and DGX B300 pages list 2.1 TB of total GPU memory for eight GPUs [23][32]. The two do not match exactly
+  (8 × 288 GB = 2.30 TB; 2.1 TB ÷ 8 ≈ 262 GB), and NVIDIA does not explain the gap. Quote both as published: for
+  capacity planning of an 8-GPU node, use NVIDIA's 2.1 TB system figure, and treat 288 GB as the per-GPU maximum.
+  Confirm usable memory on the exact system you buy.
+- **NVLink per GPU (GPU-to-GPU).** H100 SXM 900 GB/s (H100 NVL bridge 600 GB/s) [8]; H200 900 GB/s [9]; HGX B200 and
+  HGX B300 1.8 TB/s per GPU, 14.4 TB/s per 8-GPU system [23]; GB200 NVL72 130 TB/s across the 72-GPU NVLink domain [20].
+  NVLink decides how cheaply tensor parallelism splits one model across GPUs.
 - **Bandwidth decides decode speed; capacity decides concurrency.** H200 has the same compute as H100 but 43 % more
   bandwidth and 76 % more memory [8][9], so for memory-bound decode it is the more useful upgrade.
 
@@ -418,7 +426,8 @@ NINES       99.9 % = 43.8 min/month · 99.99 % = 4.4 min/month · 99.999 % = 26 
 LITTLE      in-flight = rate × duration
 WEIGHTS     params × {2, 1, 0.5} B for {BF16, FP8, INT4}
 KV          2 × layers × KV heads × head dim × bytes   (Llama 70B: 320 KiB/token BF16)
-GPUS        H100 80 GB @ 3.35 TB/s · H200 141 GB @ 4.8 TB/s · B200 ≈ 180 GB @ ≈ 8 TB/s · B300 288 GB
+GPUS        H100 80 GB @ 3.35 TB/s · H200 141 GB @ 4.8 TB/s · B200 ≈ 180 GB @ ≈ 8 TB/s
+            B300 up to 288 GB/GPU (2.1 TB per 8-GPU node)
 COMPUTE     prefill ≈ 2N FLOPs/token · training ≈ 6N FLOPs/token · Adam state ≈ 16 B/param
 COST        $/M tokens = $/GPU-h ÷ (tokens/s × 3,600) × 10^6
 ```
@@ -521,7 +530,8 @@ bandwidth bound).
 3. C. Scott, *Latency Numbers Every Programmer Should Know* (interactive; extrapolation model in page source).
    https://colin-scott.github.io/personal_website/research/interactive_latency.html (accessed 2026-11)
 4. J. D. C. Little, "A Proof for the Queuing Formula: L = λW", *Operations Research* 9(3), 1961.
-   https://doi.org/10.1287/opre.9.3.383
+   https://doi.org/10.1287/opre.9.3.383 (publisher page blocks automated fetches; metadata confirmed via Crossref,
+   https://api.crossref.org/works/10.1287/opre.9.3.383, accessed 2026-11-20)
 5. Redis, *Redis benchmark* (documentation, `redis-benchmark` examples and pitfalls).
    https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/ (accessed 2026-11)
 6. J. Kreps, *Benchmarking Apache Kafka: 2 Million Writes Per Second (On Three Cheap Machines)*, LinkedIn Engineering,
@@ -557,7 +567,7 @@ bandwidth bound).
     https://developer.nvidia.com/blog/nvidia-blackwell-ultra-for-the-era-of-ai-reasoning (accessed 2026-11-20)
 22. NVIDIA, *GB300 NVL72* (72 Blackwell Ultra GPUs; 20 TB GPU memory; up to 576 TB/s).
     https://www.nvidia.com/en-us/data-center/gb300-nvl72/ (accessed 2026-11-20)
-23. NVIDIA, *HGX platform* (HGX B300: 2.1 TB; HGX B200: 1.4 TB; HGX Rubin NVL8: 2 TB HBM4, 130 TB/s).
+23. NVIDIA, *HGX platform* (HGX B300: 2.1 TB; HGX B200: 1.4 TB; NVLink 1.8 TB/s per GPU; HGX Rubin NVL8: 2 TB HBM4, 130 TB/s).
     https://www.nvidia.com/en-us/data-center/hgx/ (accessed 2026-11-20)
 24. J. Kaplan et al., *Scaling Laws for Neural Language Models*, arXiv:2001.08361, 2020 (§2.1: C_forward ≈ 2N + …;
     C ≈ 6N FLOPs per training token). https://arxiv.org/abs/2001.08361
@@ -572,3 +582,9 @@ bandwidth bound).
 29. vLLM project, *Engine Arguments* (`--gpu-memory-utilization`). https://docs.vllm.ai/en/latest/configuration/engine_args.html (accessed 2026-11)
 30. F. Yergeau, *UTF-8, a transformation format of ISO 10646*, RFC 3629, November 2003. https://www.rfc-editor.org/rfc/rfc3629
 31. K. Davis, B. Peabody, P. Leach, *Universally Unique IDentifiers (UUIDs)*, RFC 9562, May 2024 (obsoletes RFC 4122). https://www.rfc-editor.org/rfc/rfc9562
+32. NVIDIA, *DGX B300* (8 Blackwell Ultra SXM GPUs; 2.1 TB total GPU memory).
+    https://www.nvidia.com/en-us/data-center/dgx-b300/ (accessed 2026-11-20)
+33. Lambda, *AI Cloud pricing* (on-demand H100 SXM $4.69–4.89 and H100 PCIe $3.79 per GPU-hour; prices change often).
+    https://lambda.ai/pricing (accessed 2026-11-20)
+34. CoreWeave, *Pricing* (NVIDIA HGX H100, 8 GPUs, on demand $49.24 per hour; prices change often).
+    https://www.coreweave.com/pricing (accessed 2026-11-20)

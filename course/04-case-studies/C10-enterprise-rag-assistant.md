@@ -3,7 +3,7 @@ id: SYSDESIGN-C10
 title: "Enterprise RAG assistant"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-24, SYSDESIGN-26, SYSDESIGN-28, SYSDESIGN-C09]
 estimated_time: "2h reading + exercises"
 requirement: "Design a multi-tenant assistant that answers employees' questions from their company's documents (wiki, drive, tickets, chat) with citations, never shows a document the asker cannot open, reflects edits within 15 minutes and permission revocations within 5 minutes, keeps EU tenants' data in the EU, and costs under one cent per answer."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Compare index-time and query-time permission enforcement and design permission sync as a security SLA"
   - "Design hybrid retrieval with reranking, citations and groundedness checks, and an evaluation harness"
   - "Diagnose indirect prompt injection from documents and design layered mitigations"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C10 — Enterprise RAG assistant
@@ -77,13 +77,13 @@ All values are **labelled assumptions** unless sourced.
 | Tenants | given | 1,000 |
 | Documents per tenant | average (heavy-tailed: largest ≈ 20 M) | 200 k |
 | Total documents | 1,000 × 200 k | 200 M |
-| Average document length | assumption | 4,000 tokens |
-| Chunk size | 500 tokens with ~10 % overlap | ≈ 9 chunks/doc |
-| **Total chunks** | 200 M × 8 (rounded) | **≈ 1.6 B** |
+| Average document length | assumption | 3,600 tokens |
+| Chunk size | 500 tokens with ~10 % overlap (stride ≈ 450) | 3,600 / 450 = 8 chunks/doc |
+| **Total chunks** | 200 M × 8 | **≈ 1.6 B** |
 | Embedding dimensions | assumption (common size) | 1,024 |
 | Vector bytes, float32 | 1.6 B × 1,024 × 4 B | ≈ 6.5 TB |
 | Vector bytes, int8 scalar-quantised | ÷ 4 | ≈ 1.6 TB |
-| HNSW graph links (M = 16, ≈ 2M neighbours × 4 B at layer 0) | 1.6 B × 128 B | ≈ 0.2 TB |
+| HNSW graph links (M = 16, 2M neighbours at layer 0 [12], × 4 B) | 1.6 B × 128 B | ≈ 0.2 TB |
 | Chunk text + metadata (ACL tokens, source, offsets) | 1.6 B × 2.5 KB | ≈ 4 TB |
 | BM25 index | assume ≈ 30 % of text | ≈ 1 TB |
 
@@ -204,7 +204,7 @@ feed and permission model. Design rules:
 
 **Chunking.** Split on structure first (headings, list items, table rows), then on size (≈ 300–800 tokens), with small
 overlap; store the **heading path** ("HR Policy › Germany › Leave") with the chunk and prepend it at embedding time —
-it often matters more than the chunk size. Tables and slides need specialised parsers. Keep chunk IDs stable across
+it can matter as much as the chunk size (assumption; measure it on your eval set). Tables and slides need specialised parsers. Keep chunk IDs stable across
 re-chunking where possible so citations and evaluation labels survive.
 
 **Embeddings.** One model version per index; store `embedding_model` on every chunk. Changing the model means a full
@@ -219,8 +219,9 @@ blue/green migration, not an in-place update.
 | Shared index, tenant ID as a mandatory filter / partition key | many small tenants | one missing filter is a cross-tenant leak; noisy neighbours share resources |
 | Hybrid: shared for small tenants, dedicated for large/regulated | realistic SaaS | two code paths to test |
 
-Vector engines support the shared model explicitly: Qdrant, for example, lets you mark a payload field as the tenant
-key so it builds per-tenant sub-indexes instead of one global graph [1]. Whatever the engine, enforce the tenant
+Vector engines support the shared model explicitly. Qdrant, for example, has a tenant index (`is_tenant` on a payload
+field, since v1.11) that co-locates each tenant's points on disk, and a tenant-aware HNSW configuration that skips the
+global graph and builds per-tenant sub-indexes [1]. Whatever the engine, enforce the tenant
 filter in **one** query-building library, never in calling code, and test it with cross-tenant canary documents.
 
 ### Deep dive 2 — ACL-aware retrieval and permission sync
@@ -253,31 +254,32 @@ and test recall@k *under the filter* (exercise and lab).
 3. **Fail closed**: if the re-check cannot run, drop the chunk.
 
 **Permission sync is a security SLA.** Revocation in the source must reach the index within the 5-minute target.
-Mechanics: subscribe to permission-change webhooks where sources offer them; poll change feeds otherwise; on a group
+Mechanics: subscribe to permission-change webhooks where a source offers them; poll its change feed otherwise
+(which of these each SaaS API exposes varies; check per connector); on a group
 membership change update the **principal → token set** mapping (cheap: no chunk rewrites), and on a document ACL
 change rewrite that document's chunks' `acl_tokens` (bounded). Modelling groups as tokens is the key trick: a user
-removed from `hr-de` loses access to 50,000 documents by changing one row, not 450,000 chunk records. Measure
+removed from `hr-de` loses access to 50,000 documents by changing one row, not 400,000 chunk records. Measure
 **permission-propagation lag** per connector as an SLI and alert on it like an availability SLO.
 
 **Group expansion** needs care: nested groups, external-domain shares ("anyone with the link"), and identity mapping
 (the same person is `alice@example.com` in one source and `U0123` in another). Unmapped identities get **no** access.
-"Anyone with the link" documents are a policy decision — most deployments index them only for users who have actually
-opened them, or exclude them.
+"Anyone with the link" documents are a policy decision: one option is to index them only for users who have actually
+opened them; another is to exclude them.
 
 ### Deep dive 3 — hybrid search, reranking and freshness
 
 **Hybrid retrieval.** Enterprise questions mix semantics ("how do I expense a train ticket") with exact identifiers
 ("error E-4012", "project Falcon", a person's name). Run BM25 and ANN in parallel, fuse with **Reciprocal Rank
 Fusion** (`Σ 1/(60 + rank)`, Cormack et al. 2009 [3]), then rerank the fused top ≈ 50 with a **cross-encoder**, which
-reads the query and chunk together and is far more accurate than either first-stage scorer but too slow to run on
-more than tens of candidates. See [SYSDESIGN-24](../03-ai-systems/24-retrieval-vector-systems.md) for the ANN
+reads the query and chunk together — a BERT cross-encoder re-ranker beat the previous best MS MARCO passage result
+by 27 % (relative MRR@10) [13] — but is too slow to run on more than tens of candidates. See [SYSDESIGN-24](../03-ai-systems/24-retrieval-vector-systems.md) for the ANN
 internals.
 
 **Query planning.** A small model rewrites follow-ups into stand-alone questions ("and in France?" → "parental-leave
 policy France") and can split multi-part questions. Keep it cheap and optional; log both forms for evaluation.
 
-**Freshness SLA (15 min).** The path is: source change → webhook/poll (≤ 5 min) → queue → parse + embed (≤ 2 min
-at steady state) → index visible (engine refresh interval, ≤ 1 min) → done. The budget breaks during backfills, so
+**Freshness SLA (15 min).** The path is: source change → webhook/poll (≤ 5 min) → queue wait (≤ 5 min) → parse +
+embed (≤ 2 min at steady state) → index visible (engine refresh interval, ≤ 1 min) → done: 13 min plus 2 min margin. The budget breaks during backfills, so
 incremental changes get a **priority lane** ahead of bulk onboarding. Deletions are urgent like revocations: tombstone
 first (filter at query time), physically delete later. Add recency as a ranking feature for document types where
 newer supersedes older (policies, runbooks).
@@ -377,13 +379,17 @@ What 2026 changes (as of 2026-11):
 - **Long context vs RAG.** Million-token context windows tempt teams to "just paste everything". For a tenant with
   200 k documents that is impossible, and even for small corpora it multiplies per-answer token cost and bypasses
   per-document permissions. Use long context for *the few documents retrieved*, not as a replacement for retrieval.
-- **Embeddings are personal data.** Morris et al. (EMNLP 2023) recovered 92 % of 32-token inputs exactly from their
-  embeddings [8]. Treat vectors with the same residency, encryption and deletion rules as the text.
+- **Treat embeddings as personal data.** Vectors can leak the text they encode: Morris et al. (EMNLP 2023) recovered
+  92 % of 32-token inputs exactly for the two encoders they studied [8]. That is a technical result, not a legal
+  ruling, but the safe policy is to give vectors the same residency, encryption and deletion rules as the text.
 - **EU data residency and the AI Act.** EU tenants' text, vectors, logs and LLM inference stay in EU regions, which
   constrains model choice to models served there (GDPR Chapter V [9]). Under the EU AI Act, general-purpose AI model
-  obligations have applied since 2 August 2025 [10]; an internal knowledge assistant is usually not a high-risk system,
-  but Article 50 transparency duties (telling users they interact with AI) apply [10]. Stand-alone high-risk
-  obligations were postponed to December 2027 by the 2026 Digital Omnibus amendments (secondary source [11]). See
+  obligations have applied since 2 August 2025 [10]; they bind the model *provider* (the LLM vendor, or Lumen if it
+  fine-tunes and places a model on the market). Article 50 transparency duties (telling users they interact with AI)
+  apply from the general application date, 2 August 2026 [10]. An internal knowledge assistant is not listed in
+  Annex III as such, but check Annex III point 4 (employment and workers' management) if answers inform HR decisions.
+  The Digital Omnibus on AI, Regulation (EU) 2026/1744 (Official Journal 24 July 2026, in force 27 July 2026), moved
+  the Annex III high-risk obligations to 2 December 2027 and the Annex I ones to 2 August 2028 [11]. See
   [SYSDESIGN-19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) and
   [SYSDESIGN-28](../03-ai-systems/28-ai-trust-safety-governance.md).
 
@@ -424,16 +430,18 @@ and [labs/26-llm-gateways-llmops](../../labs/26-llm-gateways-llmops/) (cost per 
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-20.
 
-1. Qdrant, "Indexing" documentation (filterable HNSW, payload index cardinality, tenant index). https://qdrant.tech/documentation/concepts/indexing/
+1. Qdrant, "Indexing" documentation (filterable HNSW, payload index cardinality, tenant index). https://qdrant.tech/documentation/manage-data/indexing/
 2. pgvector README (filtering with approximate indexes, `hnsw.ef_search` default 40, iterative index scans since 0.8.0; v0.8.7 current). https://github.com/pgvector/pgvector
 3. G. V. Cormack, C. L. A. Clarke, S. Büttcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," SIGIR 2009. https://doi.org/10.1145/1571941.1572114
 4. S. Es, J. James, L. Espinosa-Anke, S. Schockaert, "Ragas: Automated Evaluation of Retrieval Augmented Generation," arXiv:2309.15217 (preprint). https://arxiv.org/abs/2309.15217
 5. K. Greshake et al., "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection," arXiv:2302.12173 (preprint), 2023. https://arxiv.org/abs/2302.12173
 6. OWASP GenAI Security Project, "LLM01:2025 Prompt Injection." https://genai.owasp.org/llmrisk/llm01-prompt-injection/
-7. Model Context Protocol, Specification (version 2026-07-28), "Security and Trust & Safety." https://modelcontextprotocol.io/specification/latest
+7. Model Context Protocol, Specification (version 2026-07-28), "Security and Trust & Safety." https://modelcontextprotocol.io/specification/2026-07-28
 8. J. X. Morris, V. Kuleshov, V. Shmatikov, A. M. Rush, "Text Embeddings Reveal (Almost) As Much As Text," EMNLP 2023; arXiv:2310.06816. https://arxiv.org/abs/2310.06816
-9. Regulation (EU) 2016/679 (GDPR), Chapter V. https://eur-lex.europa.eu/eli/reg/2016/679/oj
-10. Regulation (EU) 2024/1689 (AI Act), Art. 50 and Art. 113. https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-11. Gibson Dunn, "EU AI Act Omnibus Agreement — Postponed High-Risk Deadlines and Other Key Changes" (secondary; check the Official Journal text). https://www.gibsondunn.com/eu-ai-act-omnibus-agreement-postponed-high-risk-deadlines-and-other-key-changes/
+9. Regulation (EU) 2016/679 (GDPR), Chapter V, transfers of personal data to third countries. https://eur-lex.europa.eu/eli/reg/2016/679/oj
+10. Regulation (EU) 2024/1689 (AI Act), Art. 50, Art. 113 and Annex III (original text, OJ 12 July 2024). https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+11. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), amending Regulation (EU) 2024/1689, OJ L, 24.7.2026; Art. 1 amends AI Act Art. 113 (Annex III high-risk from 2 Dec 2027, Annex I from 2 Aug 2028); Art. 4: in force on the third day after publication. https://eur-lex.europa.eu/eli/reg/2026/1744/oj
+12. Y. A. Malkov, D. A. Yashunin, "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs," arXiv:1603.09320 (`Mmax0` = 2·M recommended for layer 0). https://arxiv.org/abs/1603.09320
+13. R. Nogueira, K. Cho, "Passage Re-ranking with BERT," arXiv:1901.04085 (preprint), 2019. https://arxiv.org/abs/1901.04085

@@ -3,7 +3,7 @@ id: SYSDESIGN-C11
 title: "AI coding-agent platform"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-08, SYSDESIGN-18, SYSDESIGN-25, SYSDESIGN-26, SYSDESIGN-C09]
 estimated_time: "2h reading + exercises"
 requirement: "Design a multi-tenant platform where developers assign issues to autonomous coding agents that run in cloud sandboxes for up to an hour, use tools via MCP, ask a human before risky actions, never leak secrets, stay within per-task budgets, and open a pull request — for 200,000 tasks per day."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Design the tool layer with MCP, secrets isolation and human approval gates"
   - "Design durable long-running sessions with checkpoints, idempotent tools, budgets and loop detection"
   - "Define agent-trace observability, SWE-bench-style evaluation and multi-tenant fairness of LLM capacity"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C11 — AI coding-agent platform
@@ -83,7 +83,7 @@ All values are **labelled assumptions** unless sourced.
 | **Concurrent sessions at peak** | Little's law: 7/s × 1,200 s | **≈ 8,400** |
 | Sandbox size | assumption | 2 vCPU, 4 GiB RAM, 20 GiB disk |
 | Sandbox fleet at peak | 8,400 × 2 vCPU, × 4 GiB | ≈ 17,000 vCPU, ≈ 33 TiB RAM |
-| Hosts (96 vCPU, 384 GiB, no overcommit) | 17,000 / 96 | ≈ 175 |
+| Hosts (96 vCPU, 192 GiB: sandbox ratio, no overcommit) | 16,800 / 96 = 33,600 GiB / 192 | ≈ 175 |
 
 ### Tokens
 
@@ -118,7 +118,8 @@ per million output tokens (placeholders — use your provider's current prices o
 | **Total** | | **≈ $1.50 per task** |
 
 The sandbox is ≈ 2 % of the cost. **Tokens are the bill**; a runaway loop that makes 400 calls instead of 40 costs
-roughly 80× more, not 10×, if context keeps growing (quadratic context). Budgets and loop detection (deep dive 3) are not optional.
+about 80× more input, not 10×, if context grew without bound (≈ 10 k + 1.75 k tokens per step), about 40× with an
+assumed 200 k-token window cap, and less with compaction. Budgets and loop detection (deep dive 3) are not optional.
 
 ### Repo checkout
 
@@ -203,7 +204,8 @@ read-only base image, seccomp, no host mounts, per-sandbox disk quotas, and **no
 **Start latency.** Boot is fast; *environment* is slow: clone, dependency install, build. Make it fast with:
 
 1. **Snapshots**: boot from a memory/disk snapshot of a warmed image (language runtimes loaded). Firecracker supports
-   snapshot/restore [3]; a restored microVM skips boot and runtime warm-up.
+   snapshot/restore [3]; a restored microVM skips boot and runtime warm-up. Clones of one snapshot share state meant to be
+   unique (RNG seeds, entropy, identifiers): reseed and regenerate IDs per clone, as the docs warn [3].
 2. **Repo cache tier**: a regional Git mirror (fetch-on-miss from the provider) plus **partial clone**
    (`--filter=blob:none` downloads blobs on demand) [4] and **sparse checkout** for monorepos [5]. A per-repo
    "golden" disk snapshot with `main` checked out and dependencies installed, refreshed hourly, turns a 5-minute setup
@@ -227,7 +229,8 @@ Context Protocol uses JSON-RPC 2.0 between hosts, clients and servers; servers e
 the current specification (version 2026-07-28 as of 2026-11) states that hosts must obtain explicit user consent before
 invoking any tool and that tool descriptions such as annotations should be treated as untrusted unless the server is
 trusted [6]. Its HTTP authorisation profile is based on OAuth 2.1: clients must use RFC 8707 resource indicators, and
-servers must accept only tokens issued for themselves and must not pass other tokens through [7].
+servers must validate that tokens were issued for them as the audience [7]; the security best-practices page names
+token passthrough an anti-pattern: servers must not accept tokens not explicitly issued for them [13].
 
 Platform design around that:
 
@@ -286,12 +289,15 @@ stateDiagram-v2
   Running --> Succeeded: PR opened
   Running --> Failed: error or loop detected
   Running --> Cancelled: user cancel
+  BudgetExhausted --> Running: cap raised
   Succeeded --> [*]
   Failed --> [*]
+  Cancelled --> [*]
 ```
 
 *Diagram: a task moves from queued to provisioning to running; from running it can wait for approval (then resume
-or fail), pause and resume, hit its budget, succeed by opening a PR, fail on error or loop detection, or be cancelled.*
+or fail), pause and resume, hit its budget (and resume if the cap is raised), succeed by opening a PR, fail on error or loop
+detection, or be cancelled.*
 
 Rules that make replay safe:
 
@@ -328,7 +334,7 @@ then escalate to the user, then stop. Every detector is a metric you can tune ag
 
 **Agent traces.** One task = one trace; each LLM call, tool call, approval wait and sandbox operation = a span with
 tokens, cost, latency, model, tool name and outcome. OpenTelemetry's generative-AI semantic conventions define
-`gen_ai.*` attributes and operations such as agent invocation and tool execution; in June 2026 they moved to a
+`gen_ai.*` attributes and operations such as agent invocation and tool execution; they have moved to a
 dedicated repository and are still marked *Development* (as of 2026-11) [10], so pin the version you emit and expect
 renames. Store prompts and outputs as **references** to encrypted, access-controlled blobs, not span attributes —
 they contain source code. Useful dashboards: cost per task distribution, steps per task, loop-detector hits, approval
@@ -337,7 +343,7 @@ wait time, sandbox start p95, tool error rate by MCP server ([SYSDESIGN-12](../0
 **Evaluation.** Changes to the model, system prompt, tools or context strategy need an offline benchmark before
 rollout. **SWE-bench** (Jimenez et al., ICLR 2024) provides 2,294 task instances drawn from real GitHub issues and pull
 requests across 12 popular Python repositories, graded by running the repositories' tests [11]; **SWE-bench Verified**
-is a 500-instance subset screened by human annotators, released with OpenAI in August 2024 [12]. Use the public
+is a 500-instance subset screened by human annotators, created in collaboration with OpenAI [12]. Use the public
 benchmark for comparability and build an **internal suite** from your own tenants' (consented) resolved tasks, because
 public benchmarks may be in model training data and do not cover your languages or tools. Track resolve rate, cost per
 resolved task, steps, and approval requests per task; run the suite in the same sandbox infrastructure as production.
@@ -368,7 +374,7 @@ by 5,000 orgs. A 9:00 burst from one large org must not stall everyone else.
 | Approval never answered | sandboxes held idle | approval age | snapshot and release; timeout → fail with a summary |
 | Malicious dependency in repo | runs install scripts | package-mirror policy alerts | mirror with allowlist and scanning; approval for new dependencies |
 
-**Scale ×10 (2 M tasks/day, ≈ 84,000 concurrent sessions).** Sandboxes become ≈ 1,750 hosts per peak — fine for
+**Scale ×10 (2 M tasks/day, ≈ 84,000 concurrent sessions).** Sandboxes need ≈ 1,750 hosts at peak — fine for
 microVM density, but snapshot storage and the repo cache become large storage systems (per-region, content-addressed,
 deduplicated). LLM demand reaches ≈ 110 M input tokens/s at peak: you either negotiate provider capacity per region or
 run your own fleet (C09), and context management (compaction, caching) dominates the cost curve. The workflow engine's
@@ -435,7 +441,7 @@ Re-executing side-effecting tools on retry. "The model will ask before doing any
 |---|---|---|
 | Plain containers with seccomp/AppArmor | single-tenant, trusted code (e.g. internal-only, one org) | shared kernel is too large an attack surface for hostile multi-tenant code |
 | Run the agent on the developer's machine | privacy, no infra cost | no isolation from the developer's credentials; no fleet-level budgets or audit |
-| Stateless retries instead of durable workflows | short tasks (< 2 min) | an hour-long task restarted from zero wastes ≈ $1.50 of tokens each time |
+| Stateless retries instead of durable workflows | short tasks (< 2 min) | a restart from zero wastes all tokens already spent (≈ $1.50 for a mean task, more for an hour-long one) |
 | One giant model for all steps | simplicity | 2–5× cost vs routing easy steps to a smaller model (assumption; measure on your eval suite) |
 | CI system as the sandbox | existing infra | CI runners are not built for interactive, approval-paused, hour-long sessions |
 
@@ -447,17 +453,18 @@ See [exercises/C11-coding-agent-platform.md](../../exercises/C11-coding-agent-pl
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-20.
 
 1. gVisor documentation, "What is gVisor?" (Sentry, runsc, performance and compatibility trade-offs). https://gvisor.dev/docs/
 2. A. Agache et al., "Firecracker: Lightweight Virtualization for Serverless Applications," NSDI 2020. https://www.usenix.org/conference/nsdi20/presentation/agache
 3. Firecracker project, "Snapshot support" documentation. https://github.com/firecracker-microvm/firecracker/blob/main/docs/snapshotting/snapshot-support.md
 4. Git documentation, "Partial Clone." https://git-scm.com/docs/partial-clone
 5. Git documentation, "git-sparse-checkout." https://git-scm.com/docs/git-sparse-checkout
-6. Model Context Protocol, Specification version 2026-07-28 (overview, security and trust & safety, extensions). https://modelcontextprotocol.io/specification/latest
+6. Model Context Protocol, Specification version 2026-07-28 (overview, security and trust & safety, extensions). https://modelcontextprotocol.io/specification/2026-07-28
 7. Model Context Protocol, Specification 2026-07-28, "Authorization." https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization
 8. OWASP GenAI Security Project, "LLM01:2025 Prompt Injection." https://genai.owasp.org/llmrisk/llm01-prompt-injection/
 9. Temporal documentation, "Event History" and "Workflow Execution." https://docs.temporal.io/encyclopedia/event-history
 10. OpenTelemetry, Generative AI semantic conventions repository (status: Development). https://github.com/open-telemetry/semantic-conventions-genai
 11. C. E. Jimenez et al., "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?," ICLR 2024; arXiv:2310.06770. https://arxiv.org/abs/2310.06770
-12. SWE-bench, "SWE-bench Verified" (500 human-validated instances, with OpenAI, August 2024). https://swebench.com/verified
+12. SWE-bench, "SWE-bench Verified" (500 human-validated instances, created in collaboration with OpenAI). https://www.swebench.com/verified
+13. Model Context Protocol, 2026-07-28, "Security Best Practices" (Token Passthrough). https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices

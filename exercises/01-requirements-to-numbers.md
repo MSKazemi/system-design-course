@@ -105,8 +105,8 @@ Redo the lesson's launch-day estimate with 2 million DAU, 40 requests per user p
 
 Requests/day = 2 × 10⁶ × 40 = 80 M. Busiest hour = 0.10 × 80 M / 3,600 ≈ 2,222/s. Peak minute ≈ 3,333/s, call it
 **3,500/s**. CPU = 3,500 × 0.015 = 52.5 cores busy, so at 60%: 52.5 / 0.6 ≈ **88 cores**. That is several
-servers before any redundancy. With N+1 or zone redundancy (SYSDESIGN-03), plan for perhaps 6–8 servers of
-16–24 cores. State the assumptions, because the busiest-hour share is the one most worth challenging.
+servers before any redundancy. With zone redundancy (SYSDESIGN-03, about 1.5× for three zones),
+plan for about 130 cores in total, for example 6 servers of 24 cores or 9 of 16. State the assumptions, because the busiest-hour share is the one most worth challenging.
 </details>
 
 ### 8. [Deep] Pooling

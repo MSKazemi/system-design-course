@@ -118,8 +118,11 @@ and how should the fleet p99 be computed?
 <details><summary>Answer</summary>
 
 322.5 ms is the **average of four p99s**, which has no statistical meaning: the fleet p99 depends on how many
-requests each pod served and on the shape of each distribution. If the 900 ms pod serves 25% of traffic, the fleet
-p99 is likely near 900 ms, not 322. Compute it from **summed histogram buckets**:
+requests each pod served and on the shape of each distribution. Four p99s cannot recover the fleet p99: it lies
+somewhere between the smallest and largest pod p99 (120 to 900 ms). If the 900 ms pod serves 25% of traffic and the
+other pods' tails stop near their own p99s, the fleet's slowest 1% is the slow pod's slowest 4%, so the fleet p99 is
+that pod's p96, which can be far below 900 ms. If the other pods also have long tails it moves towards 900 ms.
+Compute it from **summed histogram buckets**:
 `histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))`. This is why
 histograms (or native/exponential histograms) are preferred over client-side summaries for anything aggregated.
 </details>

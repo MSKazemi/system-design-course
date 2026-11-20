@@ -3,7 +3,7 @@ id: SYSDESIGN-09
 title: "Coordination & consensus"
 part: "I — Classical foundations"
 level: [core, deep, frontier]
-status: DRAFT            # two ACM DOI links not fetched directly this session
+status: SOURCES_CHECKED  # ACM DOI links [1] and [18] return 403 to scripts; checked via Crossref and full-text mirrors
 prerequisites: [SYSDESIGN-06, SYSDESIGN-07]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Lumen must run exactly one active job scheduler and one ledger writer across three availability zones: fail over in under 5 s, never let two writers act at once, and never lose an acknowledged configuration change."
@@ -14,7 +14,7 @@ learning_objectives:
   - "Compare physical, Lamport, vector, hybrid logical and TrueTime-style clocks and choose one for a given ordering requirement."
   - "Choose a unique-ID scheme (UUIDv7, ULID, Snowflake-style, database sequence) from stated requirements and estimate its capacity."
   - "Diagnose coordination failures (election storms, quorum loss, clock skew, expired leases, false failure suspicions) from their SLIs."
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 09 — Coordination & consensus
@@ -46,10 +46,10 @@ and scalable failure detection.
 Consensus moved from the research papers into the plumbing of nearly every platform team. Kubernetes stores all
 cluster state in etcd, and an etcd cluster without a leader means "no new pods can be scheduled" [11]. Kubernetes'
 own controllers pick their active replica with **Lease** objects [12]. Apache Kafka 4.0 removed ZooKeeper entirely and
-"only supports KRaft mode", its built-in Raft-based metadata quorum [35]. The etcd-io/raft library alone sits under
-etcd, CockroachDB, TiKV, Dgraph and Docker Swarmkit [6].
+"only supports KRaft mode", its built-in Raft-based metadata quorum [35]. The etcd-io/raft library is used by etcd,
+CockroachDB, Dgraph and Docker Swarmkit [6]; TiKV runs its own Rust implementation, raft-rs [39].
 
-Three other things changed between 2023 and 2026:
+Three other things shape how you design this today:
 
 - **Clocks got better, but not perfect.** AWS announced in November 2023 that EC2 instances can synchronize "within
   microseconds of UTC" [25]. Bounded-error clocks, once a Google-only advantage (TrueTime [23]), are now something you
@@ -58,8 +58,9 @@ Three other things changed between 2023 and 2026:
   implementations SHOULD use UUIDv7 instead of v1 and v6 where possible [26]. PostgreSQL 18 ships a built-in
   `uuidv7()` function [29].
 - **The "safe lock" myth got tested in public.** Jepsen's 2020 analysis of etcd 3.4.3 found that etcd locks did not
-  guarantee mutual exclusion. About 18% of acknowledged updates in its lock test were lost, and Jepsen recommended
-  fencing with the lock key's revision [17]. Correct coordination is now a design skill that interviewers probe, not
+  guarantee mutual exclusion. With two-second lease TTLs and process pauses injected every five seconds, Jepsen
+  reliably lost about 18% of acknowledged updates in its lock test, and recommended fencing with the lock key's
+  revision [17]. Correct coordination is now a design skill that interviewers probe, not
   just a library call.
 
 ## Core ideas [Core]
@@ -242,7 +243,8 @@ naive switch, two disjoint majorities could each elect a leader. The Raft paper 
 configuration C_old,new in which decisions need separate majorities of *both* C_old and C_new. Once that is committed,
 the leader moves to C_new [4]. Ongaro's dissertation also describes the simpler alternative of adding or removing
 **one server at a time**. Any majority of the old and the new configuration then necessarily overlap [5]. The
-etcd-io/raft library applies membership changes one node at a time [6]. Two operational corollaries from the etcd FAQ:
+etcd-io/raft library keeps the invariant that membership changes happen one node at a time, and also supports
+joint consensus through `ConfChangeV2` [6]. Two operational corollaries from the etcd FAQ:
 in a degraded three-member cluster, *remove the dead member before adding its replacement*, and etcd by default
 rejects member additions that could cost the cluster its quorum [8].
 
@@ -275,11 +277,11 @@ sequenceDiagram
     participant S1 as Scheduler A
     participant E as etcd (3-node Raft)
     participant S2 as Scheduler B
-    S1->>E: txn: create /leader if absent (lease L1, TTL 10 s)
+    S1->>E: txn: create /leader if absent (lease L1, TTL 3 s)
     E-->>S1: ok, revision 41
     S2->>E: txn: create /leader if absent (lease L2)
     E-->>S2: failed (exists), watch /leader
-    loop every few seconds
+    loop every ~1 s
         S1->>E: keep-alive L1
     end
     Note over S1: crash, or pause longer than TTL
@@ -350,7 +352,8 @@ both its current value and the message's stamp (IR2) [18]. This guarantees *a* �
 by process ID gives a total order consistent with causality. The converse does not hold: C(*a*) < C(*b*) does not mean
 *a* caused *b*.
 
-**Vector clocks.** Developed independently by Fidge and Mattern [19], a vector clock keeps one counter *per process*.
+**Vector clocks.** Described by Mattern [19], who notes that Fidge proposed the same idea independently, a vector
+clock keeps one counter *per process*.
 Comparing two vectors tells you whether *a* → *b*, *b* → *a*, or they are **concurrent**. This is what you need to
 detect conflicting writes. Dynamo used vector clocks of (node, counter) pairs to detect divergent object versions and
 hand them to the application to reconcile. To bound their size, it removed the oldest pair once the clock passed a
@@ -407,7 +410,8 @@ many per second? The common options:
 
 Consensus groups are small. A pool of 2,000 GPU workers needs a different way to know who is alive.
 
-- **All-to-all heartbeats** cost O(*n*²) messages.
+- **All-to-all heartbeats** cost O(*n*²) messages: 2,000 workers each heartbeating the other 1,999 once a second is
+  2,000 × 1,999 ≈ 4 million messages/s.
 - **SWIM** (Das, Gupta, Motivala, DSN 2002) separates failure *detection* from membership *dissemination* [30]. Each
   protocol period, a member pings one random peer. If no ack arrives, it asks *k* other members to `ping-req` the target
   on its behalf, which filters out problems local to one link. A non-responding member is first marked *suspected*
@@ -446,14 +450,16 @@ fsynced it. For three members, that means the leader plus the faster follower.
 
 - etcd's own leader failover takes about one election timeout: the default is 1000 ms [7], plus randomization and one
   vote round trip. Expect **1–2 s**. The lab measures it on your laptop.
-- The *application* leader lease is separate. With TTL = 3 s, a crashed scheduler is replaced after ≤ 3 s plus watch
-  notification plus etcd failover if that happens concurrently. That is roughly **3–5 s worst case**, inside the
-  target. Shorter TTLs fail over faster but are revoked more often by pauses. Jepsen saw the most lock violations
-  with 1–3 s TTLs, which is one more reason to fence [17].
+- The *application* leader lease is separate. With TTL = 3 s the typical failover is up to one TTL plus watch
+  latency, about **3.3–3.6 s** (the lab saw 2.3–2.6 s with a 2 s TTL). If the etcd leader dies at the same moment,
+  add one etcd election (about 1–2 s): the worst case is **4–5 s**, at the edge of the < 5 s target, not
+  comfortably inside it. Shorter TTLs (2 s, keep-alive every 500 ms) buy margin but are revoked more often by
+  pauses. Jepsen saw the most lock violations with 1–3 s TTLs, which is one more reason to fence [17].
 
 **4. Commit wait.** With TrueTime's ε̄ ≈ 4 ms, the expected commit wait is at least 2ε̄ ≈ **8 ms** per read-write
-transaction, overlapped with Paxos [23]. With a cloud clock bound under 100 µs, the same rule would cost under 0.2 ms.
-This is an *assumption*: it is the rule applied to the vendor's typical bound, not a measurement.
+transaction, overlapped with Paxos [23]. With an assumed cloud clock bound under 100 µs, the same rule would cost under 0.2 ms.
+This is an *assumption*: AWS's announcement says only "within microseconds of UTC" and publishes no fixed bound
+[25], so read the error bound your instance reports rather than trusting a constant.
 
 **5. ID capacity.**
 
@@ -471,7 +477,7 @@ This is an *assumption*: it is the rule applied to the vendor's typical bound, n
 |---|---|---|---|
 | etcd (Raft, KV + leases + watch) | you need linearizable config, leader election and locks; you already run Kubernetes | small data (the store is meant for metadata); disk-latency sensitive | Kubernetes control plane [11] |
 | ZooKeeper (Zab, znodes + watches) | mature JVM ecosystems; recipes (locks, barriers, queues) | reads are served locally and are not linearizable by default (use `sync`) [14]; extra cluster to run | Hadoop and HBase ecosystems; Kafka before 4.0 [35] |
-| Embedded Raft library | your own database or broker; you need a per-shard log | you own correctness, testing, membership tooling | CockroachDB, TiKV with etcd-io/raft [6]; Kafka KRaft [35] |
+| Embedded Raft library | your own database or broker; you need a per-shard log | you own correctness, testing, membership tooling | CockroachDB with etcd-io/raft [6]; TiKV with raft-rs [39]; Kafka KRaft [35] |
 | Conditional writes in your existing DB | one leader, low churn, DB already highly available | leadership tied to DB availability; still needs fencing | `UPDATE … WHERE version = ?` lease rows |
 | No coordination (CRDTs, idempotence) | merges are commutative; duplicates are harmless | not every invariant can be expressed this way | counters, sets ([SYSDESIGN-06](06-replication-consistency.md)) |
 
@@ -554,11 +560,9 @@ expired from anyone else's point of view, with a margin for clock drift.
   coordination cluster to operate.
 - **Coordinated leader election in Kubernetes** (beta since v1.33, off by default) chooses leaders deliberately for
   version-skew safety during upgrades, using LeaseCandidate objects [13].
-- **Bounded-error clocks as a cloud service.** Microsecond-accurate time on EC2 is available over NTP and a PTP
-  hardware clock [25]. When clocks come with tight error bounds, TrueTime-style commit wait gets cheap and lease
-  margins can shrink. Safety still has to hold when the bound degrades.
-- **UUIDv7 everywhere.** RFC 9562 (2024) [26] and PostgreSQL 18's built-in `uuidv7()` [29] make time-ordered IDs the
-  default recommendation for new schemas where exposing creation time is acceptable.
+- **Bounded-error clocks as a cloud service** (EC2 over NTP and a PTP hardware clock [25]) make TrueTime-style
+  commit wait cheap. Safety still has to hold when the bound degrades.
+- **UUIDv7 everywhere** [26][29]: the default for new schemas where exposing creation time is acceptable.
 
 ## Failure modes and operations
 
@@ -579,16 +583,15 @@ client past its TTL, as in the lab [17]. Back up and rehearse restores [11].
 
 ## Cost and energy
 
-Coordination clusters are small: three or five modest machines with fast disks. Their cost is dominated by **what
-their failure costs you**, not by the instance bill. Three things move the real bill:
+Coordination clusters are small (three or five modest machines with fast disks); their real cost is **what their
+failure costs you**. Three levers move the bill:
 
-- **5 vs 3 members** increases storage and replication traffic by roughly two-thirds (five copies instead of three)
-  and adds a little write latency [8]. In exchange it survives two failures instead of one.
-- **Cross-region quorums** pay in latency (every write waits for an inter-region RTT) and in inter-region transfer
-  charges on every replicated entry. Keep consensus groups regional when you can, and replicate asynchronously across
-  regions ([SYSDESIGN-15](../02-modern-requirements/15-multi-region-edge.md)).
-- **Avoiding coordination** is the cheapest option. Idempotent, commutative designs need no quorum round trips at all.
-  Every write that does not need consensus saves fsyncs and network messages, which is also energy.
+- **5 vs 3 members:** about two-thirds more storage and replication traffic and a little more write latency [8], in
+  exchange for surviving two failures.
+- **Cross-region quorums:** an inter-region RTT on every write and transfer charges on every entry. Keep groups
+  regional and replicate asynchronously across regions ([SYSDESIGN-15](../02-modern-requirements/15-multi-region-edge.md)).
+- **Avoiding coordination:** idempotent, commutative designs skip quorum round trips, fsyncs and messages, which is
+  also energy.
 
 ## Interview angle
 
@@ -610,7 +613,8 @@ framework:
 
 **Five-line model answer, "only one scheduler must run":**
 1. Run three replicas; each tries to create `/scheduler/leader` in etcd bound to a 3 s lease and keeps it alive.
-2. Non-leaders watch the key and contend when it disappears; failover ≈ TTL + watch latency (< 5 s).
+2. Non-leaders watch the key and contend when it disappears; failover ≈ TTL + watch latency (≈ 3.5 s, 4–5 s if etcd's own
+   leader fails at the same moment, so fence rather than rely on the margin).
 3. The leader passes the leader key's revision as a fencing token with every job assignment. Workers and the job
    table reject lower tokens.
 4. etcd itself is a three-member Raft cluster across zones and tolerates one zone loss.
@@ -650,11 +654,9 @@ Full set with answers: [exercises/09-coordination-consensus.md](../../exercises/
 ## Lab
 
 **L09: Kill the leader** ([labs/09-coordination-consensus/](../../labs/09-coordination-consensus/README.md)). Start a
-three-member etcd v3.7.4 cluster with Docker Compose. Watch which member leads and in which Raft term. SIGKILL the
-leader, and a small standard-library Python script times how long the survivors take to elect a new leader (higher
-term) and to accept the first write. Then stop two of three members and see linearizable writes and reads fail while
-serializable (possibly stale) reads still answer. Finally, run a lease-based lock where client A "pauses" past its
-TTL. Without fencing, A's stale write overwrites B's. With the etcd revision used as a fencing token, the store
+three-member etcd v3.7.4 cluster, SIGKILL the leader and time the new election and first write. Stop two of three
+members and watch linearizable requests fail while serializable (possibly stale) reads answer. Finally, pause a
+lock holder past its TTL: without fencing its stale write wins; with the etcd revision as a fencing token, the store
 rejects it.
 
 ## Further reading
@@ -669,10 +671,10 @@ rejects it.
 
 ## References
 
-All URLs accessed 2026-11-19 unless noted.
+All URLs accessed 2026-11-20 unless noted.
 
 1. M. J. Fischer, N. A. Lynch, M. S. Paterson. "Impossibility of Distributed Consensus with One Faulty Process."
-   *Journal of the ACM* 32(2):374–382, 1985. https://doi.org/10.1145/3149.214121 (full text:
+   *Journal of the ACM* 32(2):374–382, 1985. https://doi.org/10.1145/3149.214121 (DOI returns HTTP 403 to scripts; bibliographic data checked via Crossref; full text:
    https://www.cs.princeton.edu/courses/archive/spring22/cos418/papers/flp.pdf)
 2. L. Lamport. "The Part-Time Parliament." *ACM Transactions on Computer Systems* 16(2):133–169, 1998.
    https://www.microsoft.com/en-us/research/publication/part-time-parliament/
@@ -682,7 +684,8 @@ All URLs accessed 2026-11-19 unless noted.
    https://raft.github.io/raft.pdf)
 5. D. Ongaro. "Consensus: Bridging Theory and Practice." PhD dissertation, Stanford University, 2014.
    https://purl.stanford.edu/qr033xr6097 (PDF: https://github.com/ongardie/dissertation)
-6. etcd-io/raft. README: features and notable users. https://github.com/etcd-io/raft
+6. etcd-io/raft. README: features and notable users. https://github.com/etcd-io/raft (joint-consensus
+   `ConfChangeV2` transitions: https://github.com/etcd-io/raft/blob/main/raftpb/raft.proto)
 7. etcd documentation v3.6. "Tuning." https://etcd.io/docs/v3.6/tuning/
 8. etcd documentation v3.6. "Frequently Asked Questions (FAQ)." https://etcd.io/docs/v3.6/faq/
 9. etcd documentation v3.7. "Configuration options" (`--pre-vote`). https://etcd.io/docs/v3.7/op-guide/configuration/
@@ -700,7 +703,7 @@ All URLs accessed 2026-11-19 unless noted.
     https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html
 17. Jepsen (K. Kingsbury). "etcd 3.4.3." 30 January 2020. https://jepsen.io/analyses/etcd-3.4.3
 18. L. Lamport. "Time, Clocks, and the Ordering of Events in a Distributed System." *Communications of the ACM*
-    21(7):558–565, 1978. https://doi.org/10.1145/359545.359563 (PDF: https://lamport.azurewebsites.net/pubs/time-clocks.pdf)
+    21(7):558–565, 1978. https://doi.org/10.1145/359545.359563 (DOI returns HTTP 403 to scripts; bibliographic data checked via Crossref; PDF: https://lamport.azurewebsites.net/pubs/time-clocks.pdf)
 19. F. Mattern. "Virtual Time and Global States of Distributed Systems." 1989.
     https://pages.cs.wisc.edu/~remzi/Classes/739/Fall2018/Papers/mattern89.pdf
 20. G. DeCandia et al. "Dynamo: Amazon's Highly Available Key-value Store." SOSP 2007.
@@ -735,3 +738,4 @@ All URLs accessed 2026-11-19 unless noted.
 37. etcd-io/etcd. GitHub releases (v3.7.4, v3.6.17, v3.5.36, November 2026). https://github.com/etcd-io/etcd/releases
 38. L. Lamport, R. Shostak, M. Pease. "The Byzantine Generals Problem." *ACM TOPLAS* 4(3):382–401, 1982.
     https://www.microsoft.com/en-us/research/publication/byzantine-generals-problem/
+39. TiKV. raft-rs README ("This Raft implementation in Rust..."). https://github.com/tikv/raft-rs (accessed 2026-11-20)

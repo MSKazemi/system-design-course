@@ -83,8 +83,9 @@ steps.
 
 **Visual:** gateway with an "endpoint picker" choosing among pods annotated with cache and queue gauges. Icons: `proxy-envoy`, `devops-kubernetes`, `arch-load-balancer`.
 
-**Speaker notes:** llm-d reports 3× throughput and 2× faster TTFT with prefix-aware routing in one partner deployment —
-vendor-reported, so treat it as a direction, not a law.
+**Speaker notes:** llm-d reports 3× throughput and 2× faster TTFT with prefix-aware routing in one Red Hat/Tesla
+deployment (Llama 3.1 70B on 4 × AMD MI300X), a before/after on that running deployment rather than a controlled
+benchmark — vendor-reported, so treat it as a direction, not a law.
 
 ## Slide 8 — Autoscaling on the right signals
 
@@ -146,7 +147,7 @@ storage, people and idle capacity.
 
 ## Slide 13 — The engine landscape (as of 2026-11)
 
-- vLLM v0.34.0 — broad default; SGLang v0.5.23 — prefix-heavy and structured; TensorRT-LLM 1.4 RCs — NVIDIA-max
+- vLLM v0.34.0 — broad default; SGLang v0.5.23 — prefix-heavy and structured; TensorRT-LLM 1.2.1 stable (1.4 RCs out) — NVIDIA-max
 - TGI — maintenance mode, archived; README recommends vLLM/SGLang
 - llama.cpp / Ollama — laptops and edge
 - Above engines: llm-d v1.0.0, NVIDIA Dynamo v1.6.2, KServe v0.21.0, vLLM production-stack

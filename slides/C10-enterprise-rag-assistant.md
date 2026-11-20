@@ -60,7 +60,7 @@
 **Speaker notes:** Users with narrow access get empty answers unless the engine handles restrictive filters.
 
 ## Slide 9 — Permission sync as an SLA
-- Groups as tokens: removing a user from a group = one row, not 450,000 chunks
+- Groups as tokens: removing a user from a group = one row, not 400,000 chunks
 - Webhooks + change feeds + reconciliation
 - Propagation lag p99 ≤ 5 min, alerted like availability
 **Visual:** user → groups → token set; one edge removed. Icons: `security-key`, `ops-slo`.
@@ -90,9 +90,9 @@
 ## Slide 13 — STRESS, operate, modern twist
 - Missed webhook, source outage, big onboarding, embedding change (blue/green), missing tenant filter
 - SLOs: 0 leaks, revocation ≤ 5 min, freshness ≤ 15 min, TTFT < 2.5 s
-- 2026: agentic retrieval, MCP connectors, embeddings as personal data, EU residency
+- 2026: agentic retrieval, MCP connectors, embeddings treated as personal data, EU residency
 **Visual:** failure table + KPI tiles. Icons: `ops-incident`, `arch-region`.
-**Speaker notes:** Embeddings can be inverted to text; they follow the same residency and deletion rules.
+**Speaker notes:** Short texts can be recovered from embeddings for some encoders, so vectors follow the same residency and deletion rules as the text.
 
 ## Slide 14 — WRAP
 - Junior: chunk, embed, top-k, citations

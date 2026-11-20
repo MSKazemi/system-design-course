@@ -10,9 +10,12 @@ and how long until enough users are admitted to sell out?
 
 <details><summary>Answer</summary>
 
-Admission ≤ 800 / 0.5 = 1,600 users/s. Admissions needed ≈ 30,000 / 0.5 = 60,000 → ≈ 38 s. Add a margin below the
-limit (e.g. admit 1,400/s) because conversion varies and the provider may slow down; let the controller raise the rate
-if payment latency stays healthy.
+Admission ≤ 800 / 0.5 = 1,600 users/s. Stock is taken at reservation, so all 30,000 units are *held* after
+30,000 / 1,600 ≈ 19 s. About 60,000 admissions are needed in total (30,000 / 0.5), but the second 30,000 cannot be
+admitted at 1,600/s: they are admitted one per unit released as unpaid reservations expire, over the TTL tail. So
+admit stock plus a small buffer at full rate, then pace by releases; tell everyone ranked beyond ≈ 60,000 "sold out"
+at once. Add a margin below the limit (e.g. admit 1,400/s) because conversion varies and the provider may slow down;
+the 800/s cap is conservative anyway, since think time spreads payments over minutes.
 </details>
 
 ## 2. [Core] Poll interval
@@ -47,10 +50,14 @@ How many stock buckets for 100,000 units at 3,300 reservations/s? What happens n
 
 <details><summary>Answer</summary>
 
-Pick a per-row write rate the database handles comfortably (assume ≤ 100/s with headroom) → ≥ 33 buckets; 100 gives
-≈ 33/s each. Near sell-out many buckets are empty: a reservation tries a random non-empty bucket, retries a bounded
-number of times, and refreshes the list of non-empty buckets (a small cached set). "Sold out" is declared when the sum
-of `available` is 0 and pushed to the edge.
+The row lock is held until commit, so buckets ≥ reservation rate × commit latency, plus headroom. With a same-region
+synchronous replica (commit ≈ 1–2 ms, assumption) a row handles hundreds of decrements/s; 100 buckets at ≈ 33/s each
+are ample. With synchronous commit to another region (assume 100–200 ms), one row sustains only 5–10/s, so 3,300/s
+needs ≈ 330–660 buckets (say 1,000 of 100 units), or keep synchronous replicas in-region and replicate cross-region
+asynchronously with reconciliation. Near sell-out many buckets are empty: a reservation tries a random non-empty
+bucket, retries a bounded number of times, and refreshes the list of non-empty buckets (a small cached set). "No stock
+now" is when the sum of `available` is 0; "sold out for good" also needs no held reservations. Push either state to
+the edge.
 </details>
 
 ## 5. [Interview] Fairness policy

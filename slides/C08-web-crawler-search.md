@@ -27,6 +27,7 @@
 - ≤ 1 request/s per host → ≥ 9,300 hosts fetched concurrently
 - Async fetchers: connections are cheap; ready hosts are scarce
 - Group by IP too: shared hosting is one server
+- A host with > 864,000 pages cannot be refreshed in 10 days at 1 req/s
 **Visual:** many small per-host lanes each with a speed limit. Icons: `pattern-rate-limiter`, `arch-worker`.
 **Speaker notes:** The bottleneck is not CPU; it is how many distinct hosts have work ready.
 
@@ -84,7 +85,7 @@
 ## Slide 12 — STRESS and scale ×10
 - Spider traps → per-host budgets, depth limits, SimHash feedback
 - Hot shard → replicas, hedged requests, partial results
-- ×10: ≈ 93,000 pages/s, 1,000-way fan-out → tiered indexes, two-level aggregation
+- ×10: ≈ 93,000 pages/s; 1,000-way fan-out → ≈ 100,000 naive query nodes, so tiered indexes, early termination and two-level aggregation
 **Visual:** failure table. Icons: `ops-warning`, `pattern-fan-out`.
 **Speaker notes:** At ×10 the priority function decides coverage more than hardware does.
 

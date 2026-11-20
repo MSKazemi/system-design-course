@@ -3,7 +3,7 @@ id: SYSDESIGN-03
 title: "Scaling compute: stateless services, L4/L7 load balancing, algorithms, health checks, autoscaling"
 part: "I — Classical foundations"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01, SYSDESIGN-02]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Serve 6,000 requests/s at peak with p99 < 300 ms, lose any one instance or one zone without user-visible errors, and deploy 20 times a day without dropping a request"
@@ -133,7 +133,8 @@ The two-tier shape above is common at scale. L4 spreads connections across a fle
 proxies make per-request decisions. One trap catches everyone once: **HTTP/2 and gRPC multiplex many requests on
 one long-lived connection, so an L4 balancer balances connections, not load.** If ten client pods each open one
 gRPC connection to a three-replica service through an L4 balancer, the split of connections, and hence of load,
-can be badly uneven, and it stays that way until the connections reset. Use an L7 proxy, or client-side load
+can be badly uneven: at best 4/3/3, and with random or hash placement possibly 6/3/1 (an illustrative split, not
+a measurement). It stays that way until the connections reset. Use an L7 proxy, or client-side load
 balancing that knows about streams.
 
 Client-side balancing (the client library or a sidecar proxy picks the backend from a service-discovery list)
@@ -332,11 +333,14 @@ The standard defences:
 2. **Retry budgets.** Google's SRE book describes a per-request cap of three attempts and a per-client budget
    that allows retries only while they are under 10% of requests. Under sustained failure that keeps
    amplification near 1.1× instead of nearly 3× [19].
-3. **Retry at one layer only.** If every layer of a five-deep call chain retries three times, a failure at the
-   bottom becomes 3⁵ = 243 attempts. The SRE book's advice is to retry only in the layer directly above the
-   one that rejected the request [19].
+3. **Retry at one layer only.** Retries multiply across layers. If each of five layers makes up to 3 attempts at
+   the layer below it, a failure beneath the fifth layer becomes 3⁵ = 243 attempts at the failing service (our
+   arithmetic; the SRE book's own example is three layers that each retry 3 times, 4 attempts each, so 4³ = 64
+   attempts on an overloaded database). The book's advice is to retry only at the layer immediately above the
+   one that is rejecting the requests [19].
 4. **Client-side adaptive throttling.** Clients track how many requests they sent versus how many were accepted
-   (the book suggests a factor K = 2), and reject requests locally once requests exceed K × accepts [19].
+   (the book generally prefers a factor K = 2), and start rejecting a growing fraction of new requests locally,
+   with a probability that rises as requests exceed K × accepts [19].
 5. **Slow start and staggered work.** Ramp new instances, add jitter to reconnects and cron schedules, and
    coalesce identical in-flight requests.
 
@@ -365,22 +369,27 @@ this extra capacity is idle in normal operation: average utilisation at peak is 
 
 **Step 3 — scale-up lag.** During the 90 s lag, traffic growing 2× per 10 min grows by a factor of
 2^(90/600) ≈ **1.11**. So the fleet must hold about 11% headroom above current load *at all times*, or the p99
-target breaks before new instances arrive. With the zone-loss reserve already giving 37% headroom, this
-requirement is met. If you remove the zone reserve by relying on cross-region failover instead, you must add
-the 11% back.
+target breaks before new instances arrive. While all zones are up, capacity is 24 × 400 = 9,600 requests/s
+against 6,000, 1.6× the peak, far above the 1.11× needed. With a zone down it is only 16 × 400 = 6,400
+requests/s, 1.07× the peak, below the 1.11× that a surge during the lag needs. So the zone reserve covers
+scale-up lag only in normal operation. If you remove the zone reserve by relying on cross-region failover
+instead, you must add the 11% back.
 
 **Step 4 — deploys.** A rolling deploy that takes one instance per zone out at a time (3 of 24) removes 12.5% of
-capacity. That fits inside the headroom. Taking 25% at a time during peak would not, once you also allow for a
-zone failure in the middle of a deploy.
+capacity: 21 × 400 = 8,400 requests/s, still above 6,000. If a zone is already down, the same deploy leaves
+14 instances = 5,600 requests/s, below the peak. So either pause deploys while a zone is down, or provision
+9 per zone (27 in total), so that zone loss plus a rolling deploy still leaves 16 × 400 = 6,400 requests/s.
 
 **Answer: 24 instances at peak, 8 per zone, with autoscaling allowed to go higher but never below 8 per zone
-during business hours.**
+during business hours, and deploys paused while a zone is down. If deploys must continue through a zone
+outage at peak, provision 27 (9 per zone).**
 
 ### Worked example: how fast do health checks find a dead instance?
 
-HAProxy with `inter 1s fall 2`: a dead instance is marked down after about **2 s** (two failed probes, plus up
-to one interval of phase offset, so at most about 3 s). At 6,000 requests/s spread over 24 instances (250
-requests/s each), up to 3 s of detection lets roughly **500–750 requests** reach the dead instance. If the
+HAProxy with `inter 1s fall 2`: HAProxy marks a server down after `fall` consecutive failed checks, so a dead
+instance is detected after at most about fall × inter = **2 s** (plus `timeout check` when the host hangs instead
+of refusing the connection). At 6,000 requests/s spread over 24 instances (250 requests/s each), that window
+lets about **500 requests** reach the dead instance (more if probes time out). If the
 balancer retries failed *connections* elsewhere (HAProxy's `retries` with `option redispatch`), most of those
 are saved, because a refused connection never reached the server, so the request is safe to resend. A request
 that was *in flight* on the dead instance can't be retried blindly unless it is idempotent. That is why
@@ -611,12 +620,12 @@ in the lab README.
 
 [1] M. Mitzenmacher, *The Power of Two Choices in Randomized Load Balancing*, IEEE Transactions on Parallel and Distributed Systems 12(10):1094–1104, October 2001. https://www.eecs.harvard.edu/~michaelm/postscripts/tpds2001.pdf (accessed 2026-11)
 [2] Y. Azar, A. Z. Broder, A. R. Karlin, E. Upfal, *Balanced Allocations*, SIAM Journal on Computing 29(1):180–200, 1999. https://homes.cs.washington.edu/~karlin/papers/AzarBKU99.pdf (accessed 2026-11)
-[3] M. Mitzenmacher, *How Useful Is Old Information?*, IEEE Transactions on Parallel and Distributed Systems 11(1):6–20, January 2000. https://doi.org/10.1109/71.824633 (accessed 2026-11)
-[4] D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, *Consistent Hashing and Random Trees*, Proc. STOC 1997, pp. 654–663, https://doi.org/10.1145/258533.258660 ; V. Mirrokni, M. Thorup, M. Zadimoghaddam, *Consistent Hashing with Bounded Loads*, Proc. SODA 2018, pp. 587–604, arXiv:1608.01350, https://arxiv.org/abs/1608.01350 (accessed 2026-11)
+[3] M. Mitzenmacher, *How Useful Is Old Information?*, IEEE Transactions on Parallel and Distributed Systems 11(1):6–20, January 2000. https://doi.org/10.1109/71.824633 (accessed 2026-11; the IEEE page did not return content, claims checked in the author's copy https://www.eecs.harvard.edu/~michaelm/NEWWORK/postscripts/oldinfo-jver-submit.pdf, abstract and the "herd behavior" section)
+[4] D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, *Consistent Hashing and Random Trees*, Proc. STOC 1997, pp. 654–663, https://doi.org/10.1145/258533.258660 (ACM page blocked automated fetching; title and pages verified via Crossref metadata); V. Mirrokni, M. Thorup, M. Zadimoghaddam, *Consistent Hashing with Bounded Loads*, Proc. SODA 2018, pp. 587–604 (pages verified via Crossref, DOI 10.1137/1.9781611975031.39), arXiv:1608.01350, https://arxiv.org/abs/1608.01350 (accessed 2026-11)
 [5] D. E. Eisenbud et al., *Maglev: A Fast and Reliable Software Network Load Balancer*, Proc. USENIX NSDI 2016, pp. 523–535. https://www.usenix.org/conference/nsdi16/technical-sessions/presentation/eisenbud (accessed 2026-11)
 [6] Envoy project, *Supported load balancers* and *Panic threshold*, Envoy documentation (latest). https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/load_balancers and https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold (accessed 2026-11)
 [7] HAProxy, *Configuration Manual*, version 3.4 (`balance random(<draws>)`, `hash-type`, `hash-balance-factor`, `slowstart`, environment variables). https://git.haproxy.org/?p=haproxy-3.4.git;a=blob_plain;f=doc/configuration.txt (accessed 2026-11)
-[8] N. J. Gunther, *Guerrilla Capacity Planning: A Tactical Approach to Planning for Highly Scalable Applications and Services*, Springer, 2007 (Universal Scalability Law). https://doi.org/10.1007/978-3-540-31010-5 (accessed 2026-11)
+[8] N. J. Gunther, *Guerrilla Capacity Planning: A Tactical Approach to Planning for Highly Scalable Applications and Services*, Springer, 2007 (Universal Scalability Law). https://doi.org/10.1007/978-3-540-31010-5 (accessed 2026-11; publisher page behind a login wall, the formula's location in the book unverified as of 2026-11). The same law, with contention σ and coherency κ, is stated as eq. (5) of N. J. Gunther, *A General Theory of Computational Scalability Based on Rational Functions*, arXiv:0808.1431 (preprint), 2008. https://arxiv.org/abs/0808.1431 (accessed 2026-11)
 [9] NGINX, *Module ngx_http_upstream_module* (`random [two [method]]`, `least_conn`) and *Module ngx_http_upstream_hc_module* ("available as part of our commercial subscription"). https://nginx.org/en/docs/http/ngx_http_upstream_module.html and https://nginx.org/en/docs/http/ngx_http_upstream_hc_module.html (accessed 2026-11)
 [10] Kubernetes, *Horizontal Pod Autoscaling* (algorithm, 15 s sync period, 0.1 tolerance, 300 s downscale stabilisation; per-HPA tolerance stable since v1.37). https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/ (accessed 2026-11)
 [11] Kubernetes, *Releases* (latest minor 1.37). https://kubernetes.io/releases/ (accessed 2026-11)
@@ -624,11 +633,11 @@ in the lab README.
 [13] Kubernetes, *Pod termination* (default `terminationGracePeriodSeconds` 30 s). https://kubernetes.io/docs/concepts/workloads/pods/pod-termination/ (accessed 2026-11)
 [14] Kubernetes, *EndpointSlices — Conditions* (ready, serving, terminating). https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/ (accessed 2026-11)
 [15] Amazon Web Services, *Edit target group attributes for your Application Load Balancer* (deregistration delay default 300 s; slow start mode). https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html (accessed 2026-11)
-[16] Amazon Web Services, *Predictive scaling for Amazon EC2 Auto Scaling*. https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-predictive-scaling.html (accessed 2026-11)
+[16] Amazon Web Services, *Predictive scaling for Amazon EC2 Auto Scaling*, https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-predictive-scaling.html ; the cited figures (24 hours, 14 days, 48 hours, 6 hours) are on the sub-page *How predictive scaling works*, https://docs.aws.amazon.com/autoscaling/ec2/userguide/predictive-scaling-policy-overview.html (accessed 2026-11)
 [17] Google Cloud, *Scaling based on predictions* (Compute Engine predictive autoscaling). https://docs.cloud.google.com/compute/docs/autoscaler/predictive-autoscaling (accessed 2026-11)
 [18] M. Brooker, *Exponential Backoff And Jitter*, AWS Architecture Blog, 4 March 2015. https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/ (accessed 2026-11)
 [19] *Handling Overload*, in B. Beyer, C. Jones, J. Petoff, N. R. Murphy (eds.), *Site Reliability Engineering*, O'Reilly, 2016, ch. 21; and *Addressing Cascading Failures*, ch. 22. https://sre.google/sre-book/handling-overload/ and https://sre.google/sre-book/addressing-cascading-failures/ (accessed 2026-11)
 [20] *Load Balancing in the Datacenter*, in *Site Reliability Engineering*, O'Reilly, 2016, ch. 20 (subsetting). https://sre.google/sre-book/load-balancing-datacenter/ (accessed 2026-11)
 [21] J. Dean, L. A. Barroso, *The Tail at Scale*, Communications of the ACM 56(2):74–80, February 2013. https://www.barroso.org/publications/TheTailAtScale.pdf (accessed 2026-11)
 [22] Kubernetes SIGs, *Gateway API Inference Extension*. https://gateway-api-inference-extension.sigs.k8s.io/ (accessed 2026-11)
-[23] L. A. Barroso, U. Hölzle, *The Case for Energy-Proportional Computing*, IEEE Computer 40(12):33–37, December 2007. https://doi.org/10.1109/MC.2007.443 (accessed 2026-11)
+[23] L. A. Barroso, U. Hölzle, *The Case for Energy-Proportional Computing*, IEEE Computer 40(12):33–37, December 2007. https://doi.org/10.1109/MC.2007.443 (accessed 2026-11; the IEEE page did not return content, the "about half its full power when doing virtually no work" statement was read in the author's copy https://www.barroso.org/publications/ieee_computer07.pdf)

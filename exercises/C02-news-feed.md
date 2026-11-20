@@ -95,7 +95,7 @@ you need for the heavy ranker at peak? What happens if you cache scores and 40 %
 
 <details><summary>Answer</summary>
 
-70,000 × 500 = 35 M scores/s → ÷ 20,000 = **1,750 accelerators** (plus headroom, say 2,100 at 80 % target utilization).
+70,000 × 500 = 35 M scores/s → ÷ 20,000 = **1,750 accelerators** (plus headroom: 1,750 / 0.8 ≈ 2,190, say about 2,200 at 80 % target utilization).
 With 40 % reuse: 21 M scores/s → 1,050 (≈ 1,300 with headroom). Score caching is valid only if the score does not depend
 on other candidates in the batch — the "candidate isolation" property described in the X repository. Also acceptable:
 shrinking the heavy-ranker set from 500 to 300 (−40 %) if offline evaluation shows little quality loss.
@@ -137,9 +137,10 @@ sides and decide.
 <details><summary>Answer</summary>
 
 For: timelines cost TBs of RAM and billions of inserts per day to supply only 30 % of candidates; an author-indexed
-recent-posts store is much smaller (one copy per post, not one per follower) and removes fan-out lag entirely; X's 2026
-open-source feed uses this shape (Thunder). Against: read fan-in grows with follows (merge hundreds of author lists per
-load), and the "Following" chronological mode — required in the EU as a non-profiling option for very large platforms —
-needs fast in-network reads. Decision: likely move to pull with a well-partitioned in-memory author index and keep
+recent-posts store is much smaller (one copy per post, not one per follower) and removes fan-out lag entirely; X's open-source feed uses an in-memory
+author-indexed source of this shape (Thunder), though it does not state its reasons. Against: read fan-in grows with follows (merge hundreds of author lists per
+load), and the "Following" chronological mode needs fast in-network reads — the EU DSA requires very large platforms
+to offer some recommender option not based on profiling (Art. 38), and a chronological Following tab is a natural way
+to meet it. Decision: likely move to pull with a well-partitioned in-memory author index and keep
 materialized timelines only for heavy users who follow thousands of accounts, after measuring p99 fan-in latency.
 </details>

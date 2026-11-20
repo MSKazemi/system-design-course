@@ -30,7 +30,7 @@ silent correctness bug.
 
 **Visual:** recall vs latency curve with a "knee"; icons `ops-latency`, `arch-search-index`.
 **Speaker notes:** The design decision is a point on a curve, and the curve depends on your data. L24 shows the
-same index giving 0.97 recall on one dataset and 0.64 on a harder one at the same setting.
+same index reaching 0.97 recall at `ef_search` 40 on one dataset, but only 0.84 even at 320 on a harder one.
 
 ## Slide 4 — HNSW in one picture
 - Multi-layer proximity graph, greedy descent
@@ -56,7 +56,7 @@ benchmark, so measure yours.
 - 50M × 1,024 × 4 B = 204.8 GB float32
 - HNSW graph ≈ M × 8–10 B/vector → 6.4–8 GB
 - int8 51 GB · PQ-64 3.2 GB · binary 6.4 GB
-- "200 GB RAM" → "≈10 GB RAM + SSD"
+- "200 GB RAM" → "≈3–7 GB RAM for codes (≈13–14 GB with an in-RAM HNSW graph) + ≈205 GB SSD"
 
 **Visual:** bar chart of the compression menu (values from the lesson table).
 **Speaker notes:** The vectors dominate, not the graph. Compression moves data between tiers.

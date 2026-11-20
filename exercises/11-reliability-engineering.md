@@ -100,7 +100,7 @@ total **90 instances** (1.5× = N/(N−1) for N = 3). (b) With 2 AZs each must c
 More AZs reduce the overhead (4 AZs → 80, 1.33×). (c) Scaling up is a **control-plane** action — launching instances,
 pulling images, warming caches — that may be impaired during the very event (the October 2025 AWS event impaired EC2
 launches for hours) and is slow relative to the failure. Static stability means the data plane keeps working with no
-control-plane action [Weiss & Furr; AWS DR whitepaper].
+control-plane action [Furr, "Static stability using Availability Zones"; AWS DR whitepaper].
 </details>
 
 ## 7. Diagnose a metastable failure [Deep]
@@ -188,8 +188,9 @@ the `naive` result using the terms trigger, vulnerable state and sustaining effe
 
 <details><summary>Answer</summary>
 
-(a) Read your own table: compare the `after5-15` success column. Expect `none`, `budget` and `shed` to recover and
-`naive` (and possibly `backoff`) to stay degraded; the README records the outcome observed when the lab was tested.
+(a) Compare the `after0-5` column of your own table. In the recorded run (lab README) `none` (100%) and `budget`
+(93.6%) are back within 5 s; `shed` needs the 5-15 s window (84.1% in `after5-15`); `naive` and `backoff` stay at 0%
+for all 15 s. Your numbers may differ; the README records the outcome observed when the lab was tested.
 (b) The backend's capacity (~200 req/s) exceeds normal load (125 req/s), so the system is stable — but with up to 4
 attempts per request it is **vulnerable**: any trigger that makes most attempts fail drives offered attempts toward
 4 × 125 = 500 req/s. The latency toxic is the **trigger**. Once queued work exceeds what can be served within the

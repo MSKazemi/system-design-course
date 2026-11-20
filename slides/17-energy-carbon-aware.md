@@ -17,8 +17,8 @@
 
 - IEA: data centres about 415 TWh in 2024 (about 1.5% of global electricity), about 945 TWh by 2030 (Base Case)
 - EU: about 68 TWh (2024) → about 114 TWh (2030), per IEA figures cited by the Commission
-- EU law: ≥ 500 kW data centres report KPIs annually; A–G label proposed September 2026
-- SCI became ISO/IEC 21031:2024; SCI for AI ratified December 2025
+- EU law: ≥ 500 kW data centres report KPIs annually (by 15 May); rating scheme adopted 21 September 2026, A to G classes for PUE and WUE, under scrutiny
+- SCI published as ISO/IEC 21031:2024; SCI for AI ratified December 2025
 
 **Visual:** Bar pair 2024 vs 2030 (global TWh), labelled "IEA Base Case". Icons: `arch-datacenter`, `ops-metrics`.
 
@@ -39,7 +39,7 @@
 ## Slide 4 — PUE: useful, and limited
 
 - PUE = total facility energy / IT energy (The Green Grid); ideal 1.0
-- Uptime 2025 survey average 1.54 (flat six years); Google fleet 1.09 (2025)
+- Uptime 2025 survey: respondents' average 1.54, as quoted by Google (flat six years); Google fleet 1.09 (2025)
 - "Not a data center productivity metric"; idle servers can have great PUE
 - Also reported in the EU: WUE, ERF, REF
 
@@ -52,7 +52,7 @@
 - Place: EU 213 vs US 361 gCO₂/kWh (Ember, 2024 averages)
 - Time: German grid −25.9% on weekends vs workdays (2020 data, Wiesner et al.)
 - Average (Electricity Maps) vs marginal (WattTime MOER, 5-minute data)
-- Reporting uses average; decisions may use either; never mix
+- Reporting usually uses average; SCI allows either if stated; decisions may use either; never mix
 
 **Visual:** Two-row table, average vs marginal, "question it answers". Icons: `arch-region`, `ops-clock`.
 
@@ -60,7 +60,7 @@
 
 ## Slide 6 — Embodied carbon and idle hardware
 
-- Manufacturing emits before the first request (Gupta et al., HPCA 2021)
+- Manufacturing emits before the first request (Gupta et al., HPCA 2021): manufacturing share of iPhone life-cycle emissions 49% (3GS) → 86% (iPhone 11)
 - Amortise over lifetime ÷ work done
 - A GPU at 20% utilisation carries 5× the embodied carbon per request of one at 100%
 - Clean grid → embodied dominates
@@ -126,7 +126,7 @@
 
 ## Slide 12 — HPC lesson: telemetry at plant scale
 
-- ExaMon (Univ. Bologna / CINECA): MQTT plugins → Cassandra/KairosDB → online analytics
+- ExaMon (Univ. Bologna, deployed at CINECA): MQTT plugins → Cassandra/KairosDB → online analytics
 - M100 ExaData: about 2.5 years of Marconi100 telemetry, 49.9 TB, public
 - Out-of-band power sampling down to 20 µs (DiG)
 - Transfer: bus between sensors and storage, shared time axis, scheduler as actuator

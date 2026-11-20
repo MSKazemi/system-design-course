@@ -27,8 +27,10 @@ A majority quorum with *n* = 2*f* + 1 members tolerates *f* failures [8].
   So the strict requirement (b) needs nine members in three zones. That is above the etcd FAQ's suggested maximum of
   seven, and writes slow down as members are added [8]. The pragmatic answer is five members 2-2-1: they survive any
   zone loss (3 of 5 left) *or* any two member failures. Then schedule upgrades so a member is never down during
-  elevated zone risk. More failure domains change the arithmetic. With four zones, seven members placed 2-2-2-1 survive
-a zone loss plus one more failure (4 of 7 left).
+  elevated zone risk.
+
+  More failure domains change the arithmetic. With four zones, seven members placed 2-2-2-1 survive a zone loss plus
+  one more failure (4 of 7 left).
 
 The general lesson: count the members a single correlated failure removes, add the independent failures you want to
 tolerate, and check that the remainder is still a majority.
@@ -60,8 +62,8 @@ what happens on both sides for the next few seconds, and what a client writing t
 
 - **Majority side {S3, S4, S5}.** They stop receiving heartbeats. After an election timeout, one of them (say S4)
   becomes a candidate for term 8. It wins votes from S3 and S5 if its log is at least as up to date, which it is if it
-  has every committed entry, and it becomes leader. Writes to S4 commit with acks from 2 of the 3 reachable members
-  plus itself (3 of 5).
+  has every committed entry, and it becomes leader. Writes to S4 commit once both S3 and S5 acknowledge, so the leader S4
+  plus S3 and S5 make 3 of 5.
 - **Minority side {S1, S2}.** S1 still thinks it is the term-7 leader. It can append client commands to its log but can
   never get 3 acks, so **nothing commits** and no client receives success. With the "step down when quorum is lost"
   check, S1 steps down after a timeout [6]. S2 may time out and start elections, but it can never win with only 2 votes.

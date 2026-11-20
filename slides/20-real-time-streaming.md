@@ -102,7 +102,7 @@ Source lesson: [course/02-modern-requirements/20-real-time-streaming.md](../cour
 - Layer 2: output log exactly once (Kafka transactions, read_committed)
 - Layer 3: external side effects — needs idempotency keys
 - Kafka Streams `exactly_once_v2`; Flink sink commits on checkpoint completion
-- Price: visibility delay ≥ checkpoint interval; stuck transactions block readers
+- Price: visibility delay of up to one checkpoint interval plus the checkpoint duration; stuck transactions block readers
 
 **Visual:** Sequence diagram: write in txn → barrier → pre-commit → checkpoint complete → commit → visible. Icons: `pattern-idempotency`, `messaging-kafka`, `data-flink`.
 

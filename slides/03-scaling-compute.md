@@ -44,7 +44,7 @@ and a decision per request.
 
 **Visual:** Two-tier diagram: L4 → L7 proxies → apps (from the lesson); icons `arch-load-balancer`, `proxy-envoy`, `proxy-haproxy`.
 
-**Speaker notes:** Ten long-lived gRPC connections over three replicas can split 6/3/1 and stay that way.
+**Speaker notes:** Ten long-lived gRPC connections over three replicas can split 6/3/1 (an illustrative split) and stay that way.
 
 ## Slide 5 — Algorithms
 
@@ -129,7 +129,7 @@ when latency improves, which makes latency worse.
 - Synchronised retries, reconnect storms, cache expiry, cold starts, cron at :00
 - Jittered exponential backoff (Brooker 2015)
 - Retry budgets: 3 attempts, 10% per client → ≈ 1.1× instead of ≈ 3× (SRE book)
-- Retry at one layer only: 3⁵ = 243 attempts otherwise
+- Retry at one layer only: 3 attempts at each of 5 layers → 3⁵ = 243 at the failing service (our arithmetic; SRE book example: 4³ = 64)
 
 **Visual:** A wave of requests hitting one server at the same instant, then the same requests spread out by jitter; icons `pattern-retry`, `pattern-backpressure`.
 
@@ -139,7 +139,8 @@ when latency improves, which makes latency worse.
 
 - 6,000 / 400 per instance = 15
 - Zone loss, 3 zones: × 3/2 → 24 (8 per zone)
-- Scale-up lag 90 s at 2× per 10 min → 11% headroom (covered)
+- Scale-up lag 90 s at 2× per 10 min → 11% headroom (covered only while all zones are up)
+- Zone down + rolling deploy → 14 × 400 = 5,600 < 6,000: pause deploys, or 27 (9 per zone)
 - 63% of knee at normal peak; that is the price of zone tolerance
 
 **Visual:** The step-by-step table with the final "24 instances"; icons `ops-cost`, `arch-region`.

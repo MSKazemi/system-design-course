@@ -41,7 +41,8 @@ clicks then skip the shortener entirely. **Gain:** one fewer round trip for repe
 repeat visits, the ability to change the destination, and — critically — the ability to take down a link the victim
 already visited. Proposal: `302 Found` with `Cache-Control: public, s-maxage=60, max-age=0`. The CDN caches for 60 s
 (most of the speed: the redirect is answered at a nearby PoP), browsers revalidate every time (analytics and takedown
-keep working). If the customer insists, offer 301 per link with documented trade-offs.
+keep working). Note that `s-maxage=60` bounds only *passive* CDN staleness (plus any stale-while-revalidate window);
+a 60 s takedown still needs an active CDN purge that bypasses stale-while-revalidate and stale-if-error. If the customer insists, offer 301 per link with documented trade-offs.
 </details>
 
 ## 4. [Deep] Choosing a code generator
@@ -98,7 +99,8 @@ the per-minute quota. What change halves it?
 
 <details><summary>Answer</summary>
 
-Using the lesson's bound: excess ≈ (regions − 1) × rate × interval = 2 × 20 /s × 2 s = **80 requests per interval**.
+Using the lesson's worst-case burst bound (it assumes a region admits at most the full per-second rate for one
+interval): excess ≈ (regions − 1) × rate × interval = 2 × 20 /s × 2 s = **80 requests per interval**.
 Over a minute's quota of 1,200 that is ≈ 6.7 % — above a 5 % accuracy target. Halving the interval to 1 s halves the
 bound to 40 (≈ 3.3 %). Alternatives: a cheap "burst detector" that triggers an immediate sync when a region's local
 consumption jumps, or pinning very small quotas to a home region (exact but adds a cross-region round trip). The skill
@@ -146,5 +148,6 @@ Browser: with `max-age=0` on a 302 the browser revalidates on every click, so it
 might not ask at all — this is why the lesson rejects 301 by default.) Edge: TTL 60 s bounds staleness; an explicit
 purge call removes the entry immediately. Regional cache: invalidation event on takedown. In-process LRU: 5 s TTL (or
 subscribe to the same event). Store: status set to `flagged`, so a fresh lookup returns an interstitial or 410.
-Worst case without purge ≈ 65 s; with purge, seconds. Make it an SLO with a synthetic probe from several PoPs.
+Worst case without purge ≈ 65 s (more if stale-while-revalidate or stale-if-error serve the old entry); with a purge
+that bypasses those stale windows, seconds. Make it an SLO with a synthetic probe from several PoPs.
 </details>

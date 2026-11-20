@@ -10,7 +10,7 @@ with int8 scalar quantization and with PQ at 96 bytes per vector.
 <details><summary>Answer</summary>
 
 Vectors: 20×10⁶ × 768 × 4 B = 61.4 GB. Graph: hnswlib's rule of thumb is about `M × 8–10` bytes per element, so
-256–320 B × 20M = 5.1–6.4 GB. Total ≈ **67–68 GB** before allocator and OS overhead. Plan for ~80 GB nodes or
+256–320 B × 20M = 5.1–6.4 GB. Total ≈ **67 GB** (66.6–67.8 GB) before allocator and OS overhead. Plan for ~80 GB nodes or
 shard across two.
 
 int8 SQ: 768 B per vector → 15.4 GB + the same graph ≈ **21–22 GB**. That fits on a single 32 GB node, and you can
@@ -50,7 +50,7 @@ Expected matches among 40 candidates ≈ 40 × 0.005 = **0.2 rows**. Most querie
 
 Fixes:
 1. **Iterative index scans** (pgvector ≥ 0.8: `hnsw.iterative_scan`). Correct counts. Latency grows with
-   selectivity (the lab measured p50 ≈ 19 ms vs 2 ms at 1%) and is capped by `hnsw.max_scan_tuples`.
+   selectivity (the lab measured p50 ≈ 19 ms at 1%, vs ≈1.4 ms for unfiltered HNSW at `ef_search = 40`) and is capped by `hnsw.max_scan_tuples`.
 2. **Pre-filter plan** (B-tree on `tenant_id`, exact scan of the tenant's rows). Perfect recall, cost ∝ tenant size.
    Great for small tenants, bad for huge ones.
 3. **Physical partitioning** per tenant (partitions, collections, or Qdrant `is_tenant` sub-indexes). Filter-free
@@ -84,7 +84,7 @@ estimate its cost using the lesson's assumptions.
 <details><summary>Answer</summary>
 
 Cost: 50M × 300 tokens = 15×10⁹ tokens. At the assumed 20k tokens/s per GPU, that is ≈ 208 GPU-hours (for example 26
-GPUs for 8 hours). Storage roughly doubles during the overlap (v2 float32 alone is 205 GB).
+GPUs for 8 hours). Storage grows by about 2.3× during the overlap (v1 768-d float32 is 153.6 GB, v2 1,024-d adds 204.8 GB, ≈358 GB together).
 
 Plan (blue/green):
 1. Create index v2 with its own `model_version` and dimension. Never mix vectors in one index.

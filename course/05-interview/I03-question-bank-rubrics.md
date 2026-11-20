@@ -3,7 +3,7 @@ id: SYSDESIGN-I03
 title: "Question bank & rubrics: 77 questions by category and level, what good looks like, red flags"
 part: "V — Interview track"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-I01, SYSDESIGN-I02]
 estimated_time: "Reference unit — 1h to read the rubric; 45–60 min per practice question"
 requirement: "Practice any system design prompt you might be asked in 2026, know which unit of this course prepares you for it, and score your answer the way an interviewer would."
@@ -18,7 +18,7 @@ last_reviewed: 2026-11-20
 # I03 — Question bank & rubrics
 
 > **The requirement.** You have four to eight weeks before a loop of interviews. You need to practice prompts like the
-> ones you will get, know which material prepares you for each one, and score yourself honestly. Most question lists
+> ones you will get, know which material prepares you for each one, and score yourself honestly. Many question lists
 > give you prompts without saying what "good" looks like. This unit gives you 77 prompts with what each one tests,
 > its key trade-offs, the course units that cover it, and a scoring rubric for each.
 
@@ -49,7 +49,27 @@ prompts rather than as standalone questions. The categories below reflect that m
 3. **Score** with the six-dimension rubric first, then with the question's own rubric.
 4. **Study the gaps** in the linked units, then re-run the same prompt a week later with one constraint changed.
 
-**Level key:** J = junior (new grad), M = mid, S = senior, St = staff, P = principal.
+**Level key:** J = junior (new grad), M = mid, S = senior, St = staff, P = principal. The band shows the lowest and
+highest level at which the prompt is asked; the first letter is the entry level.
+
+**Questions by category and entry level** (counted from the `Level:` lines below):
+
+| Category | J | M | S | St | Total |
+|---|---|---|---|---|---|
+| Classical (CL) | 8 | 5 | 3 | 0 | 16 |
+| Data-intensive (DI) | 1 | 2 | 6 | 1 | 10 |
+| Real-time (RT) | 1 | 4 | 4 | 1 | 10 |
+| Infrastructure and platform (IP) | 1 | 1 | 8 | 1 | 11 |
+| AI/LLM (AI) | 1 | 2 | 9 | 1 | 13 |
+| Agentic (AG) | 0 | 2 | 5 | 1 | 8 |
+| Security and compliance (SC) | 1 | 1 | 6 | 1 | 9 |
+| **All** | **13** | **17** | **41** | **6** | **77** |
+
+**Junior track.** Thirteen questions start at junior level: CL-01, CL-02, CL-04, CL-05, CL-10, CL-12, CL-14, CL-16,
+DI-03, RT-10, IP-08, AI-06 and SC-01. Each has a **Junior scope** line that narrows the prompt (fewer regions,
+smaller scale, fewer features) and a **Junior hire** anchor that says what a hire looks like on that narrower scope.
+Run the junior scope first; the full prompt and its four rubric outcomes then show what the next level adds. The
+junior anchors are course judgment, aligned with the junior row of the level calibration table below.
 **Unit links** use this course's canonical paths. Some linked units may still be in draft.
 
 ## The course rubric: six dimensions
@@ -83,14 +103,18 @@ domain-specific signals.
 - **Prompt:** Lumen lets customers create short links on their own domains (`go.example.com/abc`) with click counts per day.
 - **Tests:** ID generation, read-heavy caching, write path vs analytics path separation, multi-tenant routing.
 - **Key trade-offs:** random vs sequential IDs (enumeration risk vs simplicity); synchronous vs asynchronous click counting; cache TTL vs link edits; per-tenant domain TLS certificates.
+- **Junior scope:** one Lumen-owned domain (`go.example.com`) instead of customer domains, and daily click totals only; skip certificate automation.
 - **Rubric.** *No hire:* counts clicks with a synchronous database update on the redirect path. *Lean:* caches redirects but has no plan for ID collisions or analytics volume. *Hire:* 301 vs 302 trade-off explained, async click events, collision-free ID scheme, cache sized from QPS. *Strong hire:* custom-domain certificate automation, abuse (phishing) controls, and analytics as a stream with late events.
+- **Junior hire (on the junior scope):** a cache in front of the link store on the redirect path, an ID scheme with a stated collision check, and clicks recorded off the redirect path (an event queue aggregated later).
 
 #### CL-02 · A distributed rate limiter for a public API
-**Level:** M → S · **Units:** [C01](../04-case-studies/C01-url-shortener-rate-limiter.md), [10](../01-foundations/10-apis-communication.md), [11](../01-foundations/11-reliability-engineering.md)
+**Level:** J → S · **Units:** [C01](../04-case-studies/C01-url-shortener-rate-limiter.md), [10](../01-foundations/10-apis-communication.md), [11](../01-foundations/11-reliability-engineering.md)
 - **Prompt:** Enforce per-key limits (e.g. 100 requests/s, 1 M/day) across 40 gateway nodes in 3 regions.
 - **Tests:** algorithms (token bucket, sliding window), shared state, accuracy vs latency, failure behavior.
 - **Key trade-offs:** central counter (exact, slow) vs local buckets with periodic sync (fast, approximate); fail open vs fail closed; per-region vs global limits.
+- **Junior scope:** one region and one gateway cluster, a single per-key limit of 100 requests/s; skip daily quotas and cross-region sync.
 - **Rubric.** *No hire:* one counter in one database on every request with no failure plan. *Lean:* knows token bucket but not how to share it across nodes. *Hire:* compares algorithms, uses an atomic increment or script in an in-memory store, states the over-admission bound. *Strong hire:* hierarchical limits, local pre-allocation of tokens, explicit fail-open policy by endpoint risk, and headers that let clients back off.
+- **Junior hire (on the junior scope):** explains token bucket or a sliding window, keeps counters in a shared in-memory store with an atomic increment and an expiry, and says what happens to requests when that store is down.
 
 #### CL-03 · Home timeline with creator accounts
 **Level:** M → St · **Units:** [C02](../04-case-studies/C02-news-feed.md), [04](../01-foundations/04-caching.md), [08](../01-foundations/08-async-event-driven.md)
@@ -100,18 +124,22 @@ domain-specific signals.
 - **Rubric.** *No hire:* one SQL join over all followed users on every feed read at scale. *Lean:* fan-out on write without addressing large accounts. *Hire:* hybrid fan-out with a stated follower threshold, timeline cache sized in GB, pagination. *Strong hire:* quantified threshold choice, backfill when following someone new, ranking stage separated from candidate retrieval, and deletion/visibility propagation.
 
 #### CL-04 · Group chat with presence and offline delivery
-**Level:** M → S · **Units:** [C03](../04-case-studies/C03-chat-presence.md), [10](../01-foundations/10-apis-communication.md), [06](../01-foundations/06-replication-consistency.md)
+**Level:** J → S · **Units:** [C03](../04-case-studies/C03-chat-presence.md), [10](../01-foundations/10-apis-communication.md), [06](../01-foundations/06-replication-consistency.md)
 - **Prompt:** Lumen workspaces get chat channels of up to 50,000 members, read receipts and online status.
 - **Tests:** long-lived connections, per-channel ordering, delivery to offline devices, presence fan-out cost.
 - **Key trade-offs:** WebSocket gateway stickiness vs rebalancing; per-channel sequence numbers vs global order; presence accuracy vs fan-out traffic.
+- **Junior scope:** one-to-one chats and small groups (up to 100 members), no read receipts; online status optional.
 - **Rubric.** *No hire:* polling the database for new messages. *Lean:* WebSockets but no ordering or reconnection story. *Hire:* connection gateway plus message service, per-channel sequence, sync-from-cursor on reconnect, push for offline. *Strong hire:* presence throttled or aggregated for large channels, Little's-law connection sizing, multi-device read state, and gateway drain during deploys.
+- **Junior hire (on the junior scope):** persistent connections (for example WebSockets) through a gateway, messages stored with a per-chat sequence number, and a reconnecting client fetching everything after its last-seen sequence.
 
 #### CL-05 · Video upload, transcoding and adaptive streaming
-**Level:** M → St · **Units:** [C04](../04-case-studies/C04-video-streaming.md), [13](../01-foundations/13-data-at-scale.md), [16](../02-modern-requirements/16-cost-as-requirement.md)
+**Level:** J → St · **Units:** [C04](../04-case-studies/C04-video-streaming.md), [13](../01-foundations/13-data-at-scale.md), [16](../02-modern-requirements/16-cost-as-requirement.md)
 - **Prompt:** Lumen adds recorded meeting videos: upload, transcode into several renditions, and stream worldwide.
 - **Tests:** resumable uploads, async pipelines, object storage, CDN economics.
 - **Key trade-offs:** transcode all renditions upfront vs on demand; storage tiers by popularity; CDN vs origin egress cost.
+- **Junior scope:** upload and playback in one region with one or two renditions; leave out worldwide delivery economics.
 - **Rubric.** *No hire:* uploads through the application servers into a database. *Lean:* object storage and a queue, but no idea of egress scale. *Hire:* presigned multipart uploads, a DAG of transcode jobs, HLS/DASH renditions, CDN; bandwidth estimated. *Strong hire:* cost model of storage vs egress, popularity-based tiering, idempotent job retries, and per-region processing for residency.
+- **Junior hire (on the junior scope):** uploads go straight to object storage through a presigned URL, a queue triggers transcode workers, the user sees processing status, and playback is served from object storage behind a CDN.
 
 #### CL-06 · Proximity matching for field technicians
 **Level:** M → S · **Units:** [C05](../04-case-studies/C05-ride-hailing-proximity.md), [07](../01-foundations/07-partitioning-sharding.md)
@@ -146,7 +174,9 @@ domain-specific signals.
 - **Prompt:** Suggest completions within 50 ms as users type, mixing popular queries and the user's own documents.
 - **Tests:** prefix structures, precomputation, personalization, latency budgets.
 - **Key trade-offs:** trie vs sorted prefix index in a search engine; global vs per-user suggestions; update frequency vs freshness.
+- **Junior scope:** global suggestions from popular queries only, without the user's own documents; keep the 50 ms target.
 - **Rubric.** *No hire:* `LIKE 'abc%'` on the primary database per keystroke. *Lean:* a trie, but no plan for updates or memory. *Hire:* precomputed top-k per prefix, client debouncing, cache at the edge for global suggestions, per-tenant isolation. *Strong hire:* blending global and private results without leaking private titles across tenants, and offline popularity aggregation.
+- **Junior hire (on the junior scope):** top-k completions precomputed per prefix and served from memory, client-side debouncing, and a scheduled job that rebuilds popularity counts.
 
 #### CL-11 · File sync and sharing
 **Level:** M → St · **Units:** [05](../01-foundations/05-choosing-storage.md), [08](../01-foundations/08-async-event-driven.md), [13](../01-foundations/13-data-at-scale.md)
@@ -156,11 +186,13 @@ domain-specific signals.
 - **Rubric.** *No hire:* re-uploads whole files on every change. *Lean:* chunks but no conflict policy. *Hire:* metadata service with versioned file tree, content-addressed chunks, per-user change journal with cursor. *Strong hire:* conflict copies with a clear rule, dedup economics, and permission changes propagating to offline clients.
 
 #### CL-12 · Notification platform
-**Level:** M → St · **Units:** [I01 mock](I01-interview-playbook.md#worked-mock-interview-a-notification-service-for-lumen), [08](../01-foundations/08-async-event-driven.md), [11](../01-foundations/11-reliability-engineering.md)
+**Level:** J → St · **Units:** [I01 mock](I01-interview-playbook.md#worked-mock-interview-a-notification-service-for-lumen), [08](../01-foundations/08-async-event-driven.md), [11](../01-foundations/11-reliability-engineering.md)
 - **Prompt:** A shared service that delivers push, email, SMS and in-app notifications for every Lumen team.
 - **Tests:** priority isolation, preferences, dedup, provider failure, cost.
 - **Key trade-offs:** one queue vs priority lanes; at-least-once plus idempotent send vs best-effort; per-user caps vs producer freedom.
+- **Junior scope:** email and push only, one priority level, no quiet hours.
 - **Rubric.** *No hire:* synchronous send in the producer's request. *Lean:* a queue but no priority isolation. *Hire:* priority lanes, preference lookups with cache, dedup keys, per-channel senders with circuit breakers. *Strong hire:* unknown-outcome send handling, quiet-hours scheduling with jitter, cost (SMS) as a first-class constraint.
+- **Junior hire (on the junior scope):** producers enqueue a request instead of sending, workers look up preferences and call the provider, retries use backoff, and a dedup key stops a retry from sending twice.
 
 #### CL-13 · Ticket booking with seat holds
 **Level:** M → St · **Units:** [C14](../04-case-studies/C14-global-flash-sale.md), [05](../01-foundations/05-choosing-storage.md), [09](../01-foundations/09-coordination-consensus.md)
@@ -174,7 +206,9 @@ domain-specific signals.
 - **Prompt:** Generate sortable, unique 64-bit IDs for messages across 3 regions without a central bottleneck.
 - **Tests:** ID layout, clocks, coordination avoidance.
 - **Key trade-offs:** time-ordered layouts (timestamp + node + sequence) vs random UUIDs; clock skew handling; ID space exhaustion.
-- **Rubric.** *No hire:* database auto-increment shared by all regions. *Lean:* timestamp + random, without collision math. *Hire:* bit layout with stated years of headroom, node ID assignment, sequence per millisecond. *Strong hire:* clock rollback behavior, leased node IDs with fencing, and when UUIDv7-style IDs (RFC 9562) are good enough.
+- **Junior scope:** one region; design the 64-bit layout and explain how each generator gets its node ID.
+- **Rubric.** *No hire:* database auto-increment shared by all regions. *Lean:* timestamp + random, without collision math. *Hire:* bit layout with stated years of headroom, node ID assignment, sequence per millisecond. *Strong hire:* clock rollback behavior, leased node IDs with fencing, and when a 128-bit UUIDv7 (RFC 9562 [4]) is acceptable because the 64-bit requirement can be relaxed.
+- **Junior hire (on the junior scope):** a timestamp + node + sequence layout with bits per field and the years of headroom computed, and a stated rule for a clock that moves backwards (wait, or refuse to issue IDs).
 
 #### CL-15 · A distributed job scheduler
 **Level:** S → St · **Units:** [09](../01-foundations/09-coordination-consensus.md), [08](../01-foundations/08-async-event-driven.md)
@@ -188,7 +222,9 @@ domain-specific signals.
 - **Prompt:** A weekly leaderboard for a Lumen learning challenge: 5 M participants, rank lookups and top-100 views.
 - **Tests:** sorted structures, sharding of ranks, approximate vs exact.
 - **Key trade-offs:** single sorted set vs sharded with merge; exact rank vs percentile buckets.
+- **Junior scope:** one region and one leaderboard; exact rank for the top 100 and for the user's own entry.
 - **Rubric.** *No hire:* `ORDER BY score` over the full table per request. *Lean:* sorted set but no persistence or scale plan. *Hire:* in-memory sorted set with persistence, sized in memory, top-k cached. *Strong hire:* shard-by-score-range or approximate rank for the tail, anti-cheat, and weekly reset without downtime.
+- **Junior hire (on the junior scope):** an in-memory sorted set with its memory estimated from entries × bytes per entry, scores also persisted to a database, and the top 100 cached.
 
 ## Data-intensive (DI)
 
@@ -207,11 +243,13 @@ domain-specific signals.
 - **Rubric.** *No hire:* one relational table of samples. *Lean:* a TSDB but no cardinality control. *Hire:* sharded ingestion, compressed chunks, rollups for old data, rule evaluation separated from queries. *Strong hire:* per-tenant cardinality budgets, alerting that survives the outage it reports on, and burn-rate alerts.
 
 #### DI-03 · Log ingestion and search
-**Level:** M → S · **Units:** [13](../01-foundations/13-data-at-scale.md), [12](../01-foundations/12-observability.md)
+**Level:** J → S · **Units:** [13](../01-foundations/13-data-at-scale.md), [12](../01-foundations/12-observability.md)
 - **Prompt:** 5 TB/day of application logs, searchable within 30 s, kept 30 days hot and 1 year cold.
 - **Tests:** buffering, indexing cost, tiered storage.
 - **Key trade-offs:** full-text index vs label index plus brute-force scan; hot vs cold tiers; sampling.
+- **Junior scope:** about 50 GB/day from a handful of services, searchable within a minute, 7 days of retention, no cold tier.
 - **Rubric.** *No hire:* writes logs synchronously from apps into a search cluster with no buffer. *Lean:* a buffer, but storage cost not estimated. *Hire:* agent → log → indexers, index sizing, object-storage cold tier. *Strong hire:* cost per GB ingested and retained, label-only indexing as a cheaper option, and PII scrubbing at ingestion.
+- **Junior hire (on the junior scope):** agents ship logs to a buffer (a queue or log), an indexer writes to a search store, indexes are dropped by age, and storage is estimated as GB/day × retention days × replicas.
 
 #### DI-04 · Product analytics lakehouse
 **Level:** S → St · **Units:** [13](../01-foundations/13-data-at-scale.md), [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md)
@@ -229,7 +267,7 @@ domain-specific signals.
 
 #### DI-06 · GDPR erasure across a distributed estate
 **Level:** S → P · **Units:** [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md), [13](../01-foundations/13-data-at-scale.md)
-- **Prompt:** Delete one user's personal data within 30 days across databases, caches, search, logs, backups and ML training sets.
+- **Prompt:** Delete one user's personal data within GDPR's one-month response window (Art. 12(3), extendable by two further months where necessary [8]) across databases, caches, search, logs, backups and ML training sets.
 - **Tests:** data inventory, propagation, proof of deletion, backups.
 - **Key trade-offs:** physical deletion vs crypto-shredding; backup rewrite vs expiry; retaining legally required records.
 - **Rubric.** *No hire:* "run DELETE in the user table". *Lean:* lists stores but no propagation mechanism. *Hire:* deletion events with per-system acknowledgements, audit trail, per-user keys for crypto-shredding where it fits. *Strong hire:* lineage to derived datasets and models, legal-hold exceptions, and a verifiable completion report.
@@ -328,11 +366,13 @@ domain-specific signals.
 - **Rubric.** *No hire:* features recomputed nightly only. *Lean:* streaming features with no plan for training data. *Hire:* one feature definition for streaming and batch, online store, logged features at serving time. *Strong hire:* point-in-time joins for training, freshness SLOs, and the cost of keeping features fresh vs measured lift.
 
 #### RT-10 · Webhook delivery platform
-**Level:** M → S · **Units:** [08](../01-foundations/08-async-event-driven.md), [11](../01-foundations/11-reliability-engineering.md)
+**Level:** J → S · **Units:** [08](../01-foundations/08-async-event-driven.md), [11](../01-foundations/11-reliability-engineering.md)
 - **Prompt:** Deliver Lumen events to 30 k customer endpoints with retries, ordering per subscription and signatures.
 - **Tests:** retry policies, isolation from slow endpoints, security.
 - **Key trade-offs:** per-endpoint queues vs shared; ordering vs throughput; retry duration vs storage.
+- **Junior scope:** 500 endpoints, at-least-once delivery, no ordering requirement.
 - **Rubric.** *No hire:* synchronous calls from the producing service. *Lean:* a queue with retries but a slow endpoint blocks others. *Hire:* per-endpoint isolation, exponential backoff with jitter, DLQ, signed payloads, replay API. *Strong hire:* automatic endpoint disabling with notification, SSRF protection on customer URLs, and ordering only where subscribers ask for it.
+- **Junior hire (on the junior scope):** events in a durable queue, delivery workers with exponential backoff and a maximum retry period, a dead-letter store the customer can replay from, and HMAC signatures so receivers can verify the sender.
 
 ## Infrastructure and platform (IP)
 
@@ -386,11 +426,13 @@ domain-specific signals.
 - **Rubric.** *No hire:* CPU threshold for everything. *Lean:* different signals but no stability controls. *Hire:* per-workload signal (RPS, queue age, KV-cache usage or waiting requests for LLMs), cooldowns, min capacity. *Strong hire:* predictive scaling for diurnal load, GPU cold-start cost analysis, and capacity reservations.
 
 #### IP-08 · A distributed cache fleet
-**Level:** M → S · **Units:** [04](../01-foundations/04-caching.md), [07](../01-foundations/07-partitioning-sharding.md)
+**Level:** J → S · **Units:** [04](../01-foundations/04-caching.md), [07](../01-foundations/07-partitioning-sharding.md)
 - **Prompt:** A shared cache service for Lumen: 20 TB of data, 5 M ops/s, p99 < 2 ms.
 - **Tests:** sharding, hot keys, failure behavior, consistency with the source.
 - **Key trade-offs:** client-side vs proxy sharding; replication vs none; invalidation vs TTL.
+- **Junior scope:** one cache cluster in front of one service's database (for example 50 GB and 50 k ops/s), no multi-tenancy.
 - **Rubric.** *No hire:* one big cache server. *Lean:* sharding but no hot-key or failure plan. *Hire:* consistent hashing, replica for hot shards, stampede protection, node-failure warm-up. *Strong hire:* per-tenant quotas, local near-caches for very hot keys, and stale-while-revalidate during source outages.
+- **Junior hire (on the junior scope):** cache-aside reads with TTLs, keys spread across nodes (consistent hashing or a managed cluster), and a check that the database survives the miss rate when a cache node is lost.
 
 #### IP-09 · Secrets and workload identity
 **Level:** S → St · **Units:** [18](../02-modern-requirements/18-security-by-design.md)
@@ -451,11 +493,13 @@ domain-specific signals.
 - **Rubric.** *No hire:* first-come-first-served without gang scheduling. *Lean:* quotas, but no topology awareness. *Hire:* gang scheduling, topology-aware placement, priority with checkpoint-aware preemption, inference reserved capacity. *Strong hire:* goodput as the objective, failure recovery for 1,000-GPU jobs, and an internal pricing model for fair sharing.
 
 #### AI-06 · Semantic cache for LLM responses
-**Level:** M → S · **Units:** [26](../03-ai-systems/26-llm-gateways-llmops.md), [04](../01-foundations/04-caching.md)
+**Level:** J → S · **Units:** [26](../03-ai-systems/26-llm-gateways-llmops.md), [04](../01-foundations/04-caching.md)
 - **Prompt:** Cut Lumen Help's LLM cost by reusing answers to semantically similar questions.
 - **Tests:** similarity thresholds, correctness risk, invalidation, privacy.
 - **Key trade-offs:** exact-match vs embedding similarity; threshold vs wrong-answer rate; per-tenant vs global cache.
+- **Junior scope:** an exact-match cache (normalized question text → answer) for one tenant; no embeddings.
 - **Rubric.** *No hire:* caches any answer globally by embedding with no threshold reasoning. *Lean:* similarity cache without invalidation. *Hire:* threshold tuned on a labelled set, tenant scoping, TTL plus invalidation on source updates. *Strong hire:* measures false-hit rate as an SLI, never caches personalized answers, and compares the result with prefix caching.
+- **Junior hire (on the junior scope):** text normalization, a key that includes tenant, model and prompt version, a TTL, a hit-rate metric, and one sentence on why similarity matching is riskier.
 
 #### AI-07 · Vector search over a billion items
 **Level:** S → St · **Units:** [24](../03-ai-systems/24-retrieval-vector-systems.md), [07](../01-foundations/07-partitioning-sharding.md)
@@ -567,11 +611,13 @@ domain-specific signals.
 ## Security and compliance (SC)
 
 #### SC-01 · Authentication and session service
-**Level:** M → S · **Units:** [18](../02-modern-requirements/18-security-by-design.md), [10](../01-foundations/10-apis-communication.md)
+**Level:** J → S · **Units:** [18](../02-modern-requirements/18-security-by-design.md), [10](../01-foundations/10-apis-communication.md)
 - **Prompt:** Login, SSO, MFA and sessions for Lumen's web, mobile and API clients.
 - **Tests:** token design, revocation, availability of auth, account takeover defenses.
 - **Key trade-offs:** stateless tokens vs server sessions (revocation); token lifetime; central vs edge validation.
+- **Junior scope:** email-and-password login with sessions for the web app only; no SSO or API clients.
 - **Rubric.** *No hire:* long-lived tokens with no revocation. *Lean:* short tokens but no refresh or revocation design. *Hire:* short access tokens plus refresh tokens, revocation list, SSO via a standard protocol, rate limiting on login. *Strong hire:* auth outage behavior, credential-stuffing defenses, and step-up auth for sensitive actions.
+- **Junior hire (on the junior scope):** passwords stored with a slow salted hash (for example Argon2 or bcrypt), server-side sessions or short-lived tokens with a logout that really revokes, login rate limiting, and secure cookie flags.
 
 #### SC-02 · Tamper-evident audit log
 **Level:** S → St · **Units:** [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md), [18](../02-modern-requirements/18-security-by-design.md)
@@ -631,8 +677,8 @@ domain-specific signals.
 
 ## Ten red flags
 
-These patterns most often turn a "hire" into a "lean" or worse. Each is a course synthesis, consistent with the public
-guidance cited in [I01](I01-interview-playbook.md) [1][2][3].
+These patterns can turn a "hire" into a "lean" or worse. The list is course synthesis: items 1–3 echo the public
+guidance cited in [I01](I01-interview-playbook.md) [1][2][3]; the rest are course judgment.
 
 1. **Designing before clarifying.** Drawing in the first minute, then discovering the real requirement at minute 30.
 2. **Boxes without reasons.** Components named by brand with no requirement behind them.
@@ -661,30 +707,39 @@ guidance cited in [I01](I01-interview-playbook.md) [1][2][3].
 
 ## Self-study plans
 
-Both plans assume 6–10 hours per week. Each week ends with timed mocks from this bank, scored with the six-dimension
-rubric. Track your scores in a table and repeat questions with changed constraints.
+**How the hours are computed.** Each week's load is the sum of: the `estimated_time` reading figure in each unit's
+front matter for units marked **read** (labs are optional and not counted); 1 hour for each unit marked **skim**
+(Core ideas, Numbers that matter and Interview angle only, a labelled assumption); and 1 hour per 45-minute mock,
+including scoring (assumption). With those rules the 4-week plan needs **≈ 8–11 hours per week** and the 8-week plan
+**≈ 8.5–11 hours per week**. If you have less time, drop the skims first, never the mocks. Each week ends with timed
+mocks from this bank, scored with the six-dimension rubric. Track your scores in a table and repeat questions with
+changed constraints. Junior candidates should draw their mocks from the junior track above and run the junior scope.
 
 ### 4-week plan (you already work on distributed systems)
 
-| Week | Read | Practice (45-min mocks) |
-|---|---|---|
-| 1 — Method and numbers | [I01](I01-interview-playbook.md), [I02](I02-numbers-cheat-sheets.md), [01](../00-orientation/01-requirements-to-numbers.md), skim [04](../01-foundations/04-caching.md), [06](../01-foundations/06-replication-consistency.md), [07](../01-foundations/07-partitioning-sharding.md) | CL-01, CL-12 (compare with the I01 mock), CL-14 |
-| 2 — Classical depth | [08](../01-foundations/08-async-event-driven.md), [11](../01-foundations/11-reliability-engineering.md), cases [C02](../04-case-studies/C02-news-feed.md), [C03](../04-case-studies/C03-chat-presence.md), [C06](../04-case-studies/C06-payments-ledger.md) | CL-03, CL-04, CL-07, DI-05 |
-| 3 — AI-era systems | [21](../03-ai-systems/21-llm-inference-anatomy.md), [22](../03-ai-systems/22-serving-llms-at-scale.md), [24](../03-ai-systems/24-retrieval-vector-systems.md), [I04](I04-ml-llm-interviews.md), cases [C09](../04-case-studies/C09-llm-chat-service.md), [C10](../04-case-studies/C10-enterprise-rag-assistant.md) | AI-01, AI-02, AI-03 |
-| 4 — Your target mix | Units matching your target role (platform: [14](../02-modern-requirements/14-cloud-native-platforms.md), [15](../02-modern-requirements/15-multi-region-edge.md); AI: [25](../03-ai-systems/25-agentic-systems.md), [26](../03-ai-systems/26-llm-gateways-llmops.md); security: [18](../02-modern-requirements/18-security-by-design.md), [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md)) | Four mocks from the target category; two with a peer as interviewer |
+| Week | Read / skim | Practice (45-min mocks) | Hours |
+|---|---|---|---|
+| 1 — Method and numbers | Read [I01](I01-interview-playbook.md) (2.5 h), [I02](I02-numbers-cheat-sheets.md) (1.5 h); skim [01](../00-orientation/01-requirements-to-numbers.md), [06](../01-foundations/06-replication-consistency.md), [07](../01-foundations/07-partitioning-sharding.md) (3 h) | CL-01, CL-12 (compare with the I01 mock), CL-14 (3 h) | ≈ 10 |
+| 2 — Classical depth | Skim [04](../01-foundations/04-caching.md), [08](../01-foundations/08-async-event-driven.md), [11](../01-foundations/11-reliability-engineering.md) (3 h); read cases [C02](../04-case-studies/C02-news-feed.md) (2 h), [C06](../04-case-studies/C06-payments-ledger.md) (2.5 h) | CL-03, CL-07, DI-05 (3 h) | ≈ 10.5 |
+| 3 — AI-era systems | Read [21](../03-ai-systems/21-llm-inference-anatomy.md) (3 h), [I04](I04-ml-llm-interviews.md) (3 h); skim [22](../03-ai-systems/22-serving-llms-at-scale.md), [24](../03-ai-systems/24-retrieval-vector-systems.md), [C10](../04-case-studies/C10-enterprise-rag-assistant.md) (3 h) | AI-01, AI-02 (2 h) | ≈ 11 |
+| 4 — Your target mix | Skim two units for your target role (2 h): platform [14](../02-modern-requirements/14-cloud-native-platforms.md), [15](../02-modern-requirements/15-multi-region-edge.md); AI [25](../03-ai-systems/25-agentic-systems.md), [26](../03-ai-systems/26-llm-gateways-llmops.md); security [18](../02-modern-requirements/18-security-by-design.md), [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md). Read one matching case, for example [C09](../04-case-studies/C09-llm-chat-service.md) (2–2.5 h) | Four mocks from the target category; two with a peer as interviewer (4 h) | ≈ 8–8.5 |
 
 ### 8-week plan (building foundations, or targeting staff+)
 
-| Week | Read | Practice |
-|---|---|---|
-| 1 — Method | [00](../00-orientation/00-how-to-use-this-course.md), [01](../00-orientation/01-requirements-to-numbers.md), [I01](I01-interview-playbook.md), [I02](I02-numbers-cheat-sheets.md) | Estimation drills from exercises/I02; CL-16, CL-10 |
-| 2 — Request path and compute | [02](../01-foundations/02-anatomy-of-a-request.md), [03](../01-foundations/03-scaling-compute.md), [04](../01-foundations/04-caching.md), [C01](../04-case-studies/C01-url-shortener-rate-limiter.md) | CL-01, CL-02, IP-08 |
-| 3 — Data | [05](../01-foundations/05-choosing-storage.md), [06](../01-foundations/06-replication-consistency.md), [07](../01-foundations/07-partitioning-sharding.md), [C07](../04-case-studies/C07-distributed-kv-store.md) | CL-08, DI-07, DI-08 |
-| 4 — Async, coordination, APIs | [08](../01-foundations/08-async-event-driven.md), [09](../01-foundations/09-coordination-consensus.md), [10](../01-foundations/10-apis-communication.md), [C03](../04-case-studies/C03-chat-presence.md), [C06](../04-case-studies/C06-payments-ledger.md) | CL-04, CL-07, CL-15, RT-10 |
-| 5 — Reliability, observability, data at scale | [11](../01-foundations/11-reliability-engineering.md), [12](../01-foundations/12-observability.md), [13](../01-foundations/13-data-at-scale.md), [20](../02-modern-requirements/20-real-time-streaming.md), [C08](../04-case-studies/C08-web-crawler-search.md) | DI-01, DI-02, RT-03 |
-| 6 — Modern requirements | [14](../02-modern-requirements/14-cloud-native-platforms.md)–[19](../02-modern-requirements/19-privacy-compliance-sovereignty.md), [C14](../04-case-studies/C14-global-flash-sale.md) | IP-03, SC-03, CL-13, IP-10 |
-| 7 — AI systems | [21](../03-ai-systems/21-llm-inference-anatomy.md)–[24](../03-ai-systems/24-retrieval-vector-systems.md), [C09](../04-case-studies/C09-llm-chat-service.md), [C10](../04-case-studies/C10-enterprise-rag-assistant.md), [I04](I04-ml-llm-interviews.md) | AI-01, AI-02, AI-07, AI-05 |
-| 8 — Agents, governance, full mocks | [25](../03-ai-systems/25-agentic-systems.md)–[28](../03-ai-systems/28-ai-trust-safety-governance.md), [C11](../04-case-studies/C11-coding-agent-platform.md), [C12](../04-case-studies/C12-realtime-fraud-recsys.md), [C13](../04-case-studies/C13-gpu-cluster-telemetry.md) | AG-01, AG-03, SC-07, plus two 60-minute mocks with a peer |
+| Week | Read / skim | Practice | Hours |
+|---|---|---|---|
+| 1 — Method | Read [00](../00-orientation/00-how-to-use-this-course.md) (1 h), [01](../00-orientation/01-requirements-to-numbers.md) (3 h), [I01](I01-interview-playbook.md) (2.5 h), [I02](I02-numbers-cheat-sheets.md) (1.5 h) | Estimation drills from exercises/I02 (1 h); CL-16 (1 h) | ≈ 10 |
+| 2 — Request path and compute | Read [02](../01-foundations/02-anatomy-of-a-request.md) (2.5 h), [04](../01-foundations/04-caching.md) (3 h), [C01](../04-case-studies/C01-url-shortener-rate-limiter.md) (2 h); skim [03](../01-foundations/03-scaling-compute.md) (1 h) | CL-01, CL-10 (2 h) | ≈ 10.5 |
+| 3 — Data | Read [05](../01-foundations/05-choosing-storage.md) (3.5 h), [06](../01-foundations/06-replication-consistency.md) (3.5 h); skim [07](../01-foundations/07-partitioning-sharding.md), [C07](../04-case-studies/C07-distributed-kv-store.md) (2 h) | CL-08, IP-08 (2 h) | ≈ 11 |
+| 4 — Async, coordination, APIs | Read [08](../01-foundations/08-async-event-driven.md) (3 h), [C03](../04-case-studies/C03-chat-presence.md) (2 h); skim [09](../01-foundations/09-coordination-consensus.md), [10](../01-foundations/10-apis-communication.md) (2 h) | CL-04, CL-15, RT-10 (3 h) | ≈ 10 |
+| 5 — Reliability, observability, data at scale | Read [11](../01-foundations/11-reliability-engineering.md) (3 h); skim [12](../01-foundations/12-observability.md), [13](../01-foundations/13-data-at-scale.md), [20](../02-modern-requirements/20-real-time-streaming.md) (3 h) | DI-01, DI-02, RT-03 (3 h) | ≈ 9 |
+| 6 — Modern requirements | Skim [14](../02-modern-requirements/14-cloud-native-platforms.md), [15](../02-modern-requirements/15-multi-region-edge.md), [16](../02-modern-requirements/16-cost-as-requirement.md), [18](../02-modern-requirements/18-security-by-design.md), [19](../02-modern-requirements/19-privacy-compliance-sovereignty.md) (5 h); read [C14](../04-case-studies/C14-global-flash-sale.md) (2 h) | IP-03, SC-03, CL-13 (3 h) | ≈ 10 |
+| 7 — AI systems | Read [21](../03-ai-systems/21-llm-inference-anatomy.md) (3 h), [I04](I04-ml-llm-interviews.md) (3 h); skim [22](../03-ai-systems/22-serving-llms-at-scale.md), [24](../03-ai-systems/24-retrieval-vector-systems.md), [C09](../04-case-studies/C09-llm-chat-service.md) (3 h) | AI-01, AI-02 (2 h) | ≈ 11 |
+| 8 — Agents, governance, full mocks | Skim [25](../03-ai-systems/25-agentic-systems.md), [26](../03-ai-systems/26-llm-gateways-llmops.md), [28](../03-ai-systems/28-ai-trust-safety-governance.md), [C11](../04-case-studies/C11-coding-agent-platform.md) (4 h) | AG-01, AG-03 (2 h), plus two 60-minute mocks with a peer (≈ 2.5 h) | ≈ 8.5 |
+
+Units not listed (for example [17](../02-modern-requirements/17-energy-carbon-aware.md), [23](../03-ai-systems/23-gpu-infrastructure.md),
+[27](../03-ai-systems/27-ml-platforms.md) and most case studies) are for after the plan, or replace a skim in the
+week where they match your target role.
 
 **Staff and principal add-on.** In weeks 6–8, for every mock, finish with a five-minute "evolution" segment. Explain
 how you would get from a simpler existing system to your design, what you would build first, and what you would
@@ -692,7 +747,8 @@ how you would get from a simpler existing system to your design, what you would 
 
 ## Numbers that matter
 
-Practice-time arithmetic: 77 questions × 45 minutes ≈ 58 hours, more than either plan allows. Choose ≈ 15–25 questions
+Practice-time arithmetic: 77 questions × 45 minutes ≈ 58 hours, more than either plan allows (the 4-week plan has 12
+mock slots, the 8-week plan 20). Choose ≈ 15–25 questions
 that cover every category at your target level, and repeat 5–8 of them with changed constraints. Repetition with
 variation builds more skill than one pass through everything (a practice heuristic, not a measured result).
 
@@ -704,6 +760,38 @@ variation builds more skill than one pass through everything (a practice heurist
 | Depth (few questions, repeated with twists) | Final weeks; fixing specific rubric dimensions | Narrow coverage |
 | Solo recorded mocks | Any time; cheap | No outside probing |
 | Peer mocks | You need realistic redirects | Scheduling; peer quality varies |
+
+## Frontier [Frontier]
+
+As of 2026-11, the AI/LLM and agentic categories move fastest. Tool-calling prompts such as AG-02 are framed
+around a standard protocol, the Model Context Protocol, whose current specification is dated 2026-07-28 [11]; for EU-facing prompts
+(SC-03), the AI Act as published applies from 2 August 2026, with its prohibitions in force since 2 February 2025 [9].
+Regulation (EU) 2026/1744 (the "Digital Omnibus on AI", in force 27 July 2026) moved the high-risk obligations to
+2 December 2027 for Annex III systems and 2 August 2028 for Annex I systems [13]; quote those dates, not the original
+2 August 2026 one, for high-risk prompts. Re-check the versions you quote, and expect the categories to shift again within a year.
+
+## Failure modes and operations
+
+Self-scoring goes wrong in predictable ways (course observations, not measured results):
+
+| Failure | Symptom | Guard |
+|---|---|---|
+| Generous self-scores | Every mock scores "hire" while real interviews do not | Score from the recording, not memory; ask a peer to score one mock a week |
+| Practicing only favourite categories | Strong in CL, blank on AI or SC prompts | Pick mocks by the count table, at least one per category |
+| Reading rubrics before answering | Answers recite the rubric's words | Answer first, read the rubric only when scoring |
+| Wrong level | Junior candidates drown in staff-level scope; seniors coast | Run the junior scope at junior level; add the full prompt's twists at senior+ |
+| No repeats | Same weak dimension in every mock | Re-run one prompt a week with a changed constraint |
+
+## Interview angle
+
+How to pick and run a question from this bank as an interviewer or a practice partner:
+
+1. **Choose by level.** Use the entry level in the count table; for juniors, give the junior scope.
+2. **Read only the prompt aloud.** Keep the trade-offs and rubric hidden until scoring.
+3. **Probe the shaping constraint.** Each question's *Key trade-offs* line lists where to push.
+4. **Change one constraint at minute 30** (region, scale ×10, cost cap) and watch whether the design changes visibly.
+5. **Score the six dimensions first,** then the question's own four outcomes, and write one sentence of evidence per
+   score.
 
 ## Common mistakes
 
@@ -728,14 +816,44 @@ No lab for this unit. The practice loop (mock, score, study, repeat with a twist
 ## Further reading
 
 - The public guidance cited in [I01](I01-interview-playbook.md): Meta [1], Amazon [2], Google SRE Workbook [3].
+
+**Further sources by question** (primary sources for facts the rubrics rely on; all accessed 2026-11-20):
+
+| Question | Fact in the rubric | Source |
+|---|---|---|
+| CL-01 | 301 (Moved Permanently) vs 302 (Found) semantics | RFC 9110 §15.4.2–15.4.3 [5] |
+| CL-08 | Quorum rule R + W > N, sloppy quorum and hinted handoff | DeCandia et al., Dynamo, SOSP 2007 [6] |
+| CL-04, RT-02 | Little's law for connection sizing | Little, 1961 [7] |
+| CL-14 | UUIDs are 128 bits; UUIDv7 layout | RFC 9562 [4] |
+| DI-06 | One-month response window (Art. 12(3)); right to erasure (Art. 17) | GDPR, Regulation (EU) 2016/679 [8] |
+| SC-03 | AI Act application dates as published (2 Feb 2025 prohibitions; 2 Aug 2026 general application); later amendments may move high-risk dates | Regulation (EU) 2024/1689, Art. 113 [9] |
+| IP-05, SC-05 | Supply-chain levels and build provenance | SLSA specification v1.2 [10] |
+| AG-02 | Tool and resource protocol (JSON-RPC 2.0 based) | Model Context Protocol specification, 2026-07-28 [11] |
+| IP-09 | Workload identity documents (X.509-SVID, JWT-SVID) | SPIFFE overview [12] |
 - Each linked unit's **Interview angle** section: model answer outlines and follow-ups for its topic.
 
 ## References
 
 1. Meta Careers, *Preparing for your Software Engineering Interview at Meta*, updated 2022-10-06.
-   https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/ (accessed 2026-11)
+   https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/ (accessed 2026-11-20; archived copy:
+   https://web.archive.org/web/20260610131027/https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/)
 2. Amazon, *SDE III/Sr. SDE Interview Prep*. https://amazon.jobs/content/en/how-we-hire/sde-iii-interview-prep (accessed 2026-11)
 3. S. Virji et al., "Non-Abstract Large System Design", *The Site Reliability Workbook*, ch. 12.
    https://sre.google/workbook/non-abstract-design/ (accessed 2026-11)
 4. K. Davis, B. Peabody, P. Leach, *Universally Unique IDentifiers (UUIDs)*, RFC 9562, May 2024 (UUIDv7, referenced in CL-14).
-   https://www.rfc-editor.org/rfc/rfc9562
+   https://www.rfc-editor.org/rfc/rfc9562 (accessed 2026-11-20)
+5. R. Fielding, M. Nottingham, J. Reschke (eds.), *HTTP Semantics*, RFC 9110, June 2022, §15.4.
+   https://www.rfc-editor.org/rfc/rfc9110 (accessed 2026-11-20)
+6. G. DeCandia et al., "Dynamo: Amazon's Highly Available Key-value Store", SOSP 2007.
+   https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf (accessed 2026-11-20)
+7. J. D. C. Little, "A Proof for the Queuing Formula: L = λW", *Operations Research* 9(3):383–387, 1961.
+   https://doi.org/10.1287/opre.9.3.383 (publisher blocks automated fetches; metadata confirmed via
+   https://api.crossref.org/works/10.1287/opre.9.3.383, accessed 2026-11-20)
+8. Regulation (EU) 2016/679 (General Data Protection Regulation), Art. 12(3) and Art. 17.
+   https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng (accessed 2026-11-20)
+9. Regulation (EU) 2024/1689 (Artificial Intelligence Act), Art. 113 and recital 179 (application dates).
+   https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng (accessed 2026-11-20)
+10. SLSA project, *SLSA specification*, version 1.2. https://slsa.dev/spec/v1.2/ (accessed 2026-11-20)
+11. *Model Context Protocol specification*, version 2026-07-28. https://modelcontextprotocol.io/specification/2026-07-28 (accessed 2026-11-20)
+12. SPIFFE project, *SPIFFE overview*. https://spiffe.io/docs/latest/spiffe-about/overview/ (accessed 2026-11-20)
+13. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), amending Regulation (EU) 2024/1689, OJ L, 24.7.2026. https://eur-lex.europa.eu/eli/reg/2026/1744/oj (accessed 2026-11)

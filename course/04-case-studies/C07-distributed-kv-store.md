@@ -3,7 +3,7 @@ id: SYSDESIGN-C07
 title: "Distributed key-value store (Dynamo-style)"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-05, SYSDESIGN-06, SYSDESIGN-07, SYSDESIGN-09]
 estimated_time: "2.5h reading + exercises"
 requirement: "Design a key-value store that is always writable, serves 1 million operations per second with p99.9 under 10 ms within a region, holds 100 TB of data across three availability zones, survives the loss of any node or zone without losing acknowledged writes, and lets each application choose its own consistency/latency trade-off."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Reason about quorums (N, R, W), sloppy quorums, hinted handoff, vector clocks and last-write-wins, including what each does not guarantee"
   - "Describe an LSM-tree storage engine, tombstones and why repair must run within the tombstone grace period"
   - "Compare the Dynamo design with 2026 alternatives: leader-based replication (Multi-Paxos/Raft), transactional metadata, and object-storage-tiered engines"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C07 — Distributed key-value store (Dynamo-style)
@@ -55,7 +55,7 @@ twist), and when you would choose a consensus-based design instead.
 |---|---|---|
 | Write availability | writes accepted even when replicas are unreachable | the Dynamo requirement: carts must always accept writes [1] |
 | Latency | p99.9 < 10 ms in-region for 1 KB values | tail latency of a dependency becomes tail latency of every page; Dynamo framed its SLA at the 99.9th percentile [1] |
-| Durability | acknowledged writes survive any single node or zone loss | data loss is unacceptable |
+| Durability | acknowledged writes survive any single node or zone loss — holds for W ≥ 2 on distinct-zone replicas; W = 1 and hint-only acknowledgements trade it away (a per-keyspace choice) | data loss is unacceptable |
 | Scalability | add nodes without downtime; incremental data movement | growth is continuous |
 | Operability | self-healing for transient failures; explicit operator action for permanent membership changes | avoid flapping membership |
 
@@ -79,8 +79,8 @@ All values are **labelled assumptions**.
 | Per-node replica ops | 2.2 M ÷ 150 | ≈ 14,700 /s per node |
 | Write network | 200,000 × 1 KB × 3 | ≈ 600 MB/s cluster-wide |
 | Rebuild one failed node, single stream at 200 MB/s | 2 TB ÷ 200 MB/s | ≈ 10,000 s ≈ 2.8 h |
-| Same, streaming from 20 peers in parallel (vnodes) | | ≈ 8 min if network and disks allow |
-| Hints for a node down 1 h (it replicates 3/150 of the writes) | 200,000 × 3/150 × 3,600 × 1 KB | ≈ 14 GB of hints |
+| Same, streaming from 20 peers in parallel (vnodes) | 2 TB ÷ (20 × 200 MB/s) = 500 s | ≈ 8 min only if the receiver can ingest 4 GB/s (≈ 32 Gbit/s); with a 1.5 GB/s ingest cap ≈ 22 min (exercise 2 method) |
+| Hints for a node down 1 h (it replicates 3/150 of the writes) | 200,000 × 3/150 × 3,600 × 1 KB | ≈ 14 GB of hints (cluster-wide, spread over the other nodes) |
 
 **What the numbers say.** Per-node load (≈ 15,000 replica ops/s) is comfortable for NVMe-backed LSM nodes, so the
 design is driven by **tail latency, failure handling and data movement**, not raw throughput. Two numbers matter most:
@@ -182,8 +182,10 @@ a failed write that reached only one replica may later surface. Say this explici
 N healthy nodes" walking the ring; a replica that stands in for a down node stores the write with a *hint* naming the
 intended owner and hands it back when the owner recovers [1]. Availability improves — and the overlap guarantee
 disappears, because the W nodes that acknowledged may not be among the R nodes a later read contacts. Cassandra treats
-hints and read repair as best-effort convergence mechanisms, not guarantees [3]. Bound the hint window (our estimate:
-≈ 14 GB per hour of outage) and rely on repair beyond it.
+hints and read repair as best-effort convergence mechanisms, not guarantees [3]. Bound the hint window: Cassandra stops
+generating hints for a replica that has been down longer than `max_hint_window` (default 3 h) [18]; at our rates that is
+≈ 14 GB per hour of outage (our estimate), ≈ 43 GB cluster-wide at the default window, and repair must converge
+anything beyond it.
 
 **Versions: vector clocks or last-write-wins.** Dynamo captured causality with **vector clocks** — lists of
 (node, counter) pairs — so the system can tell whether one version supersedes another or whether they are concurrent
@@ -328,8 +330,10 @@ timestamps, on top of RocksDB [7]. CockroachDB replicates each *range* through i
 proposes writes through a *leaseholder* co-located with the Raft leader in most cases [8]. ScyllaDB now distributes data
 in *tablets* by default, moved and split by a background load balancer and paired with consistent, Raft-based topology
 updates [9]. Cassandra itself is moving cluster metadata from gossip to a transactional log: CEP-21 "Transactional
-Cluster Metadata" (accepted) replaces gossip for membership and data-placement changes [10], arriving with the 6.0 line,
-which as of 2026-11 is in pre-release while 5.0.9 (August 2026) is the latest GA release [11]. FoundationDB (SIGMOD 2021)
+Cluster Metadata" (accepted) replaces gossip for membership and data-placement changes [10]. It ships in the 6.0 line —
+the `cassandra-6.0` branch's NEWS.txt describes the new Cluster Metadata Service and its extra upgrade steps [19] —
+which as of 2026-11 exists only as pre-releases: 6.0-alpha1 in the ASF release catalog [20] and 6.0-alpha2 (August
+2026) on the ASF archive [21], with no 6.0 GA, while 5.0.9 (2026-08-07) is the latest GA release [11]. FoundationDB (SIGMOD 2021)
 shows the "unbundled" alternative: separate transaction, log and storage roles providing strictly serializable
 transactions over a distributed KV store [12]. Use a consensus-based design when applications need linearizable
 single-key operations or multi-key transactions and can accept unavailability of a range during leader failover; use a
@@ -345,13 +349,15 @@ and treats local disks and memory as caches:
   (vendor-reported) [14].
 - **WarpStream** applied the idea to Kafka: stateless agents write directly to S3 and acknowledge only after durable
   persistence; its 2023 launch post reported produce p99 of about 400 ms and end-to-end p99 of about 1 s, in exchange
-  for avoiding inter-zone replication traffic (vendor-reported) [15].
+  for avoiding inter-zone replication traffic (vendor-reported 2023 figures; an update note on the same post now
+  advertises produce latency "tunable down to ~33ms median" with a lower-latency tier) [15].
 - Two S3 features make this practical: **conditional writes** (`If-None-Match` on PutObject/CompleteMultipartUpload,
   announced August 2024) let concurrent writers coordinate without a separate lock service [16], and **S3 Express One
   Zone** advertises single-digit-millisecond latency and up to 10× faster access than S3 Standard [17].
 
 The trade-off is plain in those numbers: object storage gives cheap, durable, zone-redundant bytes without managing
-replication — but write latency is in the tens to hundreds of milliseconds, not single digits. For our 10 ms p99.9
+replication — but with standard object storage, write latency is in the tens to hundreds of milliseconds, not single
+digits (lower-latency tiers such as S3 Express One Zone and vendor fast paths narrow the gap). For our 10 ms p99.9
 requirement, a Dynamo- or Raft-style hot tier remains necessary; object storage fits as the cold tier (old SSTables,
 backups, snapshots) or for workloads whose latency budget is 100 ms+.
 
@@ -401,15 +407,15 @@ alternative).
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20.
 
 1. G. DeCandia et al., "Dynamo: Amazon's Highly Available Key-value Store," SOSP 2007. https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
 2. M. Elhemali et al., "Amazon DynamoDB: A Scalable, Predictably Performant, and Fully Managed NoSQL Database Service," USENIX ATC 2022. https://www.usenix.org/conference/atc22/presentation/elhemali (PDF: https://www.usenix.org/system/files/atc22-elhemali.pdf)
 3. Apache Cassandra documentation, "Dynamo" architecture page (5.0 docs: vnodes, NetworkTopologyStrategy, consistency levels, hints, read repair, Merkle-tree repair, gossip, phi accrual, LWW). https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html
 4. Apache Cassandra documentation, "Storage engine" (commit log sync modes, memtables, SSTables, Bloom filters, compaction). https://cassandra.apache.org/doc/latest/cassandra/architecture/storage-engine.html
 5. Apache Cassandra documentation, "Tombstones" (gc_grace_seconds default 864,000 s; zombie data). https://cassandra.apache.org/doc/latest/cassandra/managing/operating/compaction/tombstones.html
-6. D. Ongaro, J. Ousterhout, "In Search of an Understandable Consensus Algorithm (Extended Version)" (Raft), USENIX ATC 2014. https://raft.github.io/
-7. TiKV documentation, "Architecture overview" (Regions as Raft groups, Placement Driver, RocksDB). https://tikv.org/docs/latest/reference/architecture/overview/
+6. D. Ongaro, J. Ousterhout, "In Search of an Understandable Consensus Algorithm" (Raft), USENIX ATC 2014. https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro (project site: https://raft.github.io/)
+7. TiKV documentation v7.1, "Architecture overview" (Regions as Raft groups, Placement Driver, RocksDB; `/docs/latest/` redirects to v7.1). https://tikv.org/docs/7.1/reference/architecture/overview/
 8. Cockroach Labs, "Replication Layer" (Raft per range, leaseholders, leader leases). https://docs.cockroachlabs.com/docs/stable/architecture/replication-layer
 9. ScyllaDB documentation, "Data Distribution with Tablets" (tablets by default; load balancing; Raft-based consistent topology). https://docs.scylladb.com/manual/stable/architecture/tablets.html
 10. Apache Cassandra, "CEP-21: Transactional Cluster Metadata" (state: Accepted). https://cwiki.apache.org/confluence/display/CASSANDRA/CEP-21%3A+Transactional+Cluster+Metadata
@@ -420,3 +426,7 @@ All accessed 2026-11-19.
 15. R. Artoul, "Kafka is dead, long live Kafka," WarpStream blog, 2023-07-25 (vendor-reported latencies). https://www.warpstream.com/blog/kafka-is-dead-long-live-kafka
 16. Amazon Web Services, "Amazon S3 now supports conditional writes," 2024-08-20. https://aws.amazon.com/about-aws/whats-new/2024/08/amazon-s3-conditional-writes/
 17. Amazon Web Services, "Amazon S3 Express One Zone" (single-digit-millisecond latency; up to 10× faster than S3 Standard). https://aws.amazon.com/s3/storage-classes/express-one-zone/
+18. Apache Cassandra documentation, "Hints" (`max_hint_window` default 3 h). https://cassandra.apache.org/doc/latest/cassandra/managing/operating/hints.html
+19. Apache Cassandra, NEWS.txt on the `cassandra-6.0` branch (Cluster Metadata Service from CEP-21; upgrade steps). https://github.com/apache/cassandra/blob/cassandra-6.0/NEWS.txt
+20. ASF Release Catalog, "Apache Cassandra 6.0-alpha1" (archived 21 Mar 2026). https://release-catalog.apache.org/cassandra/6.0-alpha1/index.html
+21. Apache Software Foundation, Cassandra distribution archive (directories `6.0-alpha1/` and `6.0-alpha2/`, the latter dated 2026-08-07). https://archive.apache.org/dist/cassandra/

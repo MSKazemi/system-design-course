@@ -3,7 +3,7 @@ id: SYSDESIGN-C14
 title: "Global flash sale"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-04, SYSDESIGN-07, SYSDESIGN-08, SYSDESIGN-10, SYSDESIGN-11, SYSDESIGN-C06]
 estimated_time: "2h reading + exercises"
 requirement: "Sell exactly 100,000 units of a limited item worldwide at 12:00:00 UTC to an audience of 20 million, with zero oversell, one unit per customer, fair access, bots kept out, and a site that stays up for everyone else."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Design a virtual waiting room with signed queue tickets and a fair admission policy"
   - "Design idempotent checkout and payment integration with reservation expiry and reconciliation"
   - "Plan bot defences, pre-scaling, degradation and multi-region placement, and explain failover risks to the zero-oversell invariant"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C14 — Global flash sale
@@ -21,7 +21,8 @@ last_reviewed: 2026-11-19
 > **The requirement.** Lumen Store will release 100,000 units of a limited console at 12:00:00 UTC. Twenty million
 > people have signed up for notifications; many will open the page in the same second, plus an unknown army of bots.
 > The business rules are absolute: **never sell unit 100,001**, one unit per customer, and "fair" — not "whoever has
-> the fastest script". The rest of the store must stay up. It is hard because the demand is 200× the supply and
+> the fastest script". The rest of the store must stay up. It is hard because the demand is 200× the supply (20 M
+> sign-ups for 100 k units) and
 > arrives in seconds, every request wants to write to the *same* counter, and the cheapest way to scale reads (caches,
 > replicas, async replication) is exactly what breaks a correctness invariant on writes.
 
@@ -98,12 +99,19 @@ Work backwards from the narrowest pipe — usually the payment provider.
 | Checkout service capacity (load-tested) | assumption | 5,000 orders/s |
 | Fraction of admitted users who complete payment within the window | assumption | 60 % |
 | **Safe admission rate** | 2,000 / 0.6 | **≈ 3,300 users/s** (below the checkout limit) |
-| Admissions needed to sell out | 100 k / 0.6 | ≈ 167 k |
-| Time to admit enough users | 167 k / 3,300 | ≈ 50 s |
+| **All stock held** (stock is taken at reservation, not at payment) | 100 k / 3,300 | **≈ 30 s** |
+| Admissions needed to sell out eventually | 100 k / 0.6 | ≈ 167 k |
 | Reservation TTL (pay within) | business choice | 10 min |
 
-So the sale *could* be over in about a minute of admissions plus the payment tail; most of the 12 M people will only
-ever see "sold out". Telling them **quickly and honestly** is part of the design.
+The 2,000/s cap is conservative: user think time smears payments over minutes, so ~35 s of admissions at 3,300/s
+does not produce 2,000 authorisations every second. The real shape: every unit is *held* about 30 s after T0, but the
+≈ 40 k units of holders who never pay return only as their reservations expire. So admit about stock plus a buffer
+(say 110 k) in the first ~35 s, then **one more user per released unit**. Tell everyone ranked beyond the plausible
+re-admission depth (≈ 170 k) "sold out" at once; show the next band "waiting for released units" until
+confirmed = total stock or no held reservation remains. If 40 % of each round abandons, unsold stock after *k* TTL
+rounds is 100 k × 0.4^*k*: ≈ 1 % after 5 rounds, 0.4 % after 6, so meeting the ≤ 0.5 % undersell target takes about
+an hour at a 10-min TTL, or less with a shorter TTL and early release on abandoned checkouts or failed payments.
+Most of the 12 M people will only ever see "sold out"; telling them **quickly and honestly** is part of the design.
 
 ### Inventory write rate and storage
 
@@ -165,7 +173,7 @@ GET  /v1/orders/{order_id}
 | `reservation` | reservation_id; unique (sale_id, user_id) | bucket_no, user_id, status (`held`/`confirmed`/`expired`/`released`), expires_at | SQL, same database as buckets |
 | `order` | order_id; unique (sale_id, user_id) | reservation_id, amount, payment_intent_id, status | SQL |
 | `idempotency_record` | (scope, key) | request hash, response, created_at | KV/SQL, TTL ≥ 24 h |
-| `queue_ticket` | in a signed cookie/token | sale, user/device, joined_at, random draw, signature | stateless at the edge; counters in an edge KV |
+| `queue_ticket` | in a signed cookie/token | sale, user/device, joined_at, random draw, signature | stateless at the edge (rank lives in the ticket); no per-request counters |
 | `outbox` | event_id | type, payload, published_at | same SQL transaction as `order` |
 
 The **unique constraint on (sale_id, user_id)** in `reservation` and `order` is the per-customer limit enforced by
@@ -185,22 +193,28 @@ UPDATE stock SET available = available - 1
 RETURNING available;          -- 0 rows → sold out
 ```
 
-Correct by construction under any isolation level that serialises writes to a row (the `WHERE available > 0`
-check and the decrement happen atomically on the row). The problem is throughput: every reservation waits for the
+Correct by construction under any isolation level that serialises writes to a row: in PostgreSQL's Read Committed, a
+second updater waits for the first to commit, then re-evaluates the `WHERE` clause on the updated row [1]. The problem is throughput: every reservation waits for the
 same row lock; lock queues grow, connection pools exhaust, and latency explodes exactly at T0. A single hot row is the
 hot-key problem from [SYSDESIGN-07](../01-foundations/07-partitioning-sharding.md).
 
 **Option B — stock buckets (sharded counter).** Split 100,000 units into, say, 100 rows of 1,000. A reservation
 picks a random bucket with stock (or the bucket derived from the admission token) and runs the same conditional
-decrement on *that* row. Each bucket absorbs ≈ 33 writes/s at our admission rate. The invariant still holds because
-each bucket's `available` never goes below zero and buckets are disjoint. Costs: near the end some buckets are empty
-while others have units, so a failed decrement retries another bucket (bounded tries, then re-read the bucket list);
-"sold out" requires all buckets to be empty. Keep the bucket rows and the `reservation` insert in **one
+decrement on *that* row — the sharded-counter pattern, whose write throughput grows linearly with the number of
+shards [2]. The invariant still holds because each bucket's `available` never goes below zero and buckets
+are disjoint. **Size buckets by lock-hold time**, because the row lock is held until commit: buckets ≥ reservation
+rate × commit latency, plus headroom. With a same-region synchronous replica (commit ≈ 1–2 ms, assumption) 100 buckets
+at ≈ 33 writes/s each are ample. With synchronous commit to another region (each commit waits for the standby's
+confirmation [3]; assume 100–200 ms), one row sustains only 5–10 reservations/s, so 3,300/s needs ≈ 330–660
+buckets — or keep synchronous replicas in-region and replicate cross-region asynchronously with reconciliation. Costs:
+near the end some buckets are empty while others have units, so a failed decrement retries another bucket (bounded
+tries, then re-read the bucket list); "no stock now" requires all buckets to be empty, and "sold out for good" also
+requires no held reservations. Keep the bucket rows and the `reservation` insert in **one
 transaction in one database** so the reservation and the decrement commit together.
 
 **Option C — in-memory counter (Redis) as the gate.** A Redis `DECR` or a Lua script is atomic on one node and fast
-[1][2]. The trap is failover: Redis replication is asynchronous by default, and even `WAIT` "does not turn a set of
-Redis instances into a CP system": acknowledged writes can still be lost during a failover [3]. A lost decrement
+[4][5]. The trap is failover: Redis replication is asynchronous by default, and even `WAIT` "does not turn a set of
+Redis instances into a CP system": acknowledged writes can still be lost during a failover [6]. A lost decrement
 after a failover means the new primary believes there is more stock than there is — **oversell**. Use Redis as a
 **soft gate** (admission tokens, "probably sold out" fast path) in front of the strongly consistent bucket rows, never
 as the source of truth for the invariant.
@@ -242,7 +256,10 @@ it, the queue lives at the edge, where each waiting user costs a cookie and a ch
 2. The **admission controller** publishes a single number per sale per second: the admission threshold (e.g. "all
    tickets with draw rank ≤ N"), computed from downstream health — reservation-service latency, payment-provider
    acceptance rate, checkout error rate. It is a feedback controller: if p95 rises, admit fewer.
-3. Polls compare the ticket's rank with the threshold at the edge (an edge KV or config push) and either say
+3. Polls compare the ticket's rank with the threshold at the edge. The threshold is one small value per sale that
+   edge workers fetch from the controller with a short cache TTL (say 5 s, assumption) and request coalescing, so
+   staleness stays well inside the 15 s status target. Not an eventually consistent edge KV: Cloudflare Workers KV,
+   for example, says changes "may take up to 60 seconds or more" to reach other locations [7]. Polls either say
    "waiting, poll again in *n* seconds" (jittered, server-controlled) or issue a short-lived **admission token**
    bound to the user and ticket.
 4. The API gateway rejects reservation/checkout calls without a valid admission token. The token is single-use per
@@ -250,7 +267,8 @@ it, the queue lives at the edge, where each waiting user costs a cookie and a ch
 
 **Fair ordering at T0.** Pure FIFO at T0 rewards whoever's packet arrived first — scripts on low-latency links.
 Cloudflare's waiting room, for example, offers both **FIFO** (ordered by entry time) and **Random** (visitors chosen
-at random when spots open, with earlier arrivals getting more chances) queueing methods [4]. A common policy for
+at random when spots open, with earlier arrivals getting more chances) queueing methods; methods other than FIFO
+are plan-dependent [8]. A common policy for
 drops: everyone who joins in a **pre-queue window** (say T0 − 15 min to T0) receives a random rank, admitted in that
 order; later arrivals go FIFO after them. This removes the incentive to hammer refresh at 11:59:59.999. Publish the
 policy — fairness that users cannot understand is not perceived as fair.
@@ -258,16 +276,17 @@ policy — fairness that users cannot understand is not perceived as fair.
 **Hot keys beyond inventory.** The product page, the sale's config, the admission threshold and the "sold out"
 flag are read by everyone: serve them from CDN/edge config with short TTLs and **request coalescing**, never from a
 single cache key that all origin servers stampede ([SYSDESIGN-04](../01-foundations/04-caching.md)). The sold-out
-flag should be **pushed** to the edge (config push or short-TTL object), so 12 M waiting users learn within seconds.
+flag should be **pushed** to the edge (config push or short-TTL object, with a stated propagation bound), so 12 M
+waiting users learn within seconds.
 
 ### Deep dive 3 — idempotent checkout and payment integration
 
 **Idempotency end to end.** Users double-click, mobile networks retry, gateways retry on timeout. Every mutating call
 carries an `Idempotency-Key`; the server stores `(key → request hash, response)` and returns the stored response for
-a repeat. Stripe's API is a well-documented reference: keys up to 255 characters, the first response's status and body
-are saved (including 500 errors in API v1), reused keys with different parameters are rejected, and keys may be pruned
-after 24 hours [5]. The IETF `Idempotency-Key` HTTP header is still an Internet-Draft (revision 08, October 2026, as of
-2026-11) [6] — use the pattern, but do not claim it is an RFC.
+a repeat. Stripe's API is a well-documented reference: keys up to 255 characters, reused keys with different
+parameters are rejected, and in API v1 the first response's status and body are saved (including 500 errors) and keys
+may be pruned after 24 hours; API v2 behaves differently [9]. The IETF `Idempotency-Key` HTTP header is still an Internet-Draft (revision 08, October 2026, as of
+2026-11) [10] — use the pattern, but do not claim it is an RFC.
 
 **Checkout flow** (a saga, [SYSDESIGN-08](../01-foundations/08-async-event-driven.md)):
 
@@ -297,9 +316,9 @@ Rules:
 
 - **Order ID as the provider's idempotency key**: a retried checkout cannot create a second charge.
 - **Webhooks are the truth** for asynchronous outcomes (3-D Secure challenges, bank delays); poll the provider for
-  orders stuck in `pending`. Webhooks themselves arrive at least once and out of order — handle them idempotently by
-  event ID and state machine.
-- **The reservation TTL must exceed the payment timeout.** If a 3DS challenge can take 5 minutes, a 10-minute TTL with
+  orders stuck in `pending`. Webhooks themselves can arrive more than once and out of order [11] — handle
+  them idempotently by event ID and state machine.
+- **The reservation TTL must exceed the payment timeout.** If a 3DS challenge can take 5 minutes (assumption), a 10-minute TTL with
   an extension on `requires_action` avoids releasing a unit that is about to be paid for. If a payment succeeds
   *after* the reservation expired and the unit was resold, you must refund — design so this is rare and automatic.
 - **Payment-provider rate limits** cap the sale; the admission controller watches the provider's error/latency and
@@ -307,18 +326,20 @@ Rules:
 
 ### Deep dive 4 — fairness and bots, pre-scaling, degradation
 
-**Bots.** Assume most traffic at T0 is automated. Layered controls, cheapest first:
+**Bots.** Assume much of the traffic at T0 is automated: across the web, automated traffic was 51 % of all traffic
+in Imperva's 2025 report [12], and a hyped drop is a target (assumption). Layered controls, cheapest first:
 
 1. **Identity before the event**: require a verified account (email/phone, account age, prior purchases) to join;
    optionally a lottery registration in the days before.
 2. **At join**: device and behaviour signals, rate limits per account, device, IP range and payment instrument
    ([SYSDESIGN-10](../01-foundations/10-apis-communication.md)); challenges (CAPTCHA or proof-of-work) for suspicious
-   sessions — proof-of-work raises cost per attempt without blocking humans outright.
+   sessions — proof-of-work [13] raises cost per attempt without blocking humans outright.
 3. **At reservation/order**: the unique `(sale_id, user_id)` constraint, plus limits per payment fingerprint and
    shipping address, enforced in the database.
 4. **After the sale**: cancel orders that violate limits (shared addresses, card fingerprints) before shipping.
 
-**Pre-scaling and load testing.** Autoscaling reacts in minutes; the spike arrives in seconds. Pre-scale the edge
+**Pre-scaling and load testing.** Autoscaling is too slow: the Kubernetes HPA evaluates metrics every 15 s by default
+[14], then pods (and maybe nodes) must be scheduled and started; the spike arrives in seconds. Pre-scale the edge
 (notify the CDN provider), API gateway, reservation and checkout services and database connection pools to the
 estimated peak **before T0**, warm caches, and run a **full-scale load test** with recorded traffic shapes (a step
 to peak, not a ramp) weeks before. Agree rate limits and capacity with the payment provider in advance.
@@ -329,7 +350,7 @@ to peak, not a ramp) weeks before. Agree rate limits and capacity with the payme
 |---|---|
 | Reservation p95 > 1 s | lower admission rate (automatic) |
 | Payment provider errors > 2 % | pause admissions; extend reservation TTLs |
-| Origin overload | waiting room switches to "hold all" (Cloudflare calls a static-page mode "Reject" [4]); static "please wait" page |
+| Origin overload | waiting room switches to "hold all" (Cloudflare calls a static-page mode "Reject" [8]); static "please wait" page |
 | Rest of store at risk | isolate: separate cluster/cell for the sale; shed recommendations, reviews, personalisation (brownout) |
 | Database primary failure | stop admissions until failover completes; never fall back to Redis as source of truth |
 
@@ -339,7 +360,7 @@ to peak, not a ramp) weeks before. Agree rate limits and capacity with the payme
 |---|---|---|---|
 | Redis primary fails over mid-sale | lost decrements → **oversell** if Redis were the truth | replication offset gap | Redis only as soft gate; SQL buckets are the invariant |
 | SQL primary fails over | writes pause; with async replication, committed reservations could be lost | failover alerts | synchronous/consensus replication for the sale DB; reconcile after; pause admissions during failover |
-| Retry storm after a brief outage | 10× load on reservation | retry rate, idempotency hits | client back-off with jitter; server-controlled `poll_after`; admission tokens make retries cheap to reject |
+| Retry storm after a brief outage | 10× load on reservation (assumption) | retry rate, idempotency hits | client back-off with jitter [15]; server-controlled `poll_after`; admission tokens make retries cheap to reject |
 | Payment provider slow | reservations expire before payment completes; undersell | payment latency | pause admissions, extend TTLs, second provider for failover |
 | Sold-out flag lags | users wait for nothing | time from last unit to edge flag | push the flag to the edge; derive from bucket sum |
 | Sweeper falls behind | expired units not returned; undersell | held-past-expiry count | partitioned sweepers; delayed-queue releases |
@@ -348,8 +369,9 @@ to peak, not a ramp) weeks before. Agree rate limits and capacity with the payme
 **Multi-region.** Two models ([SYSDESIGN-15](../02-modern-requirements/15-multi-region-edge.md)):
 
 - **Home region per sale**: the inventory database lives in one region; the waiting room is global at the edge;
-  admitted users' reservation calls cross regions (≈ 100–200 ms extra, acceptable for a few calls). Simple, one
-  source of truth; region loss pauses the sale (fail over the database with RPO = 0 replication to a second region).
+  admitted users' reservation calls cross regions (≈ 100–200 ms extra, assumption; acceptable for a few calls).
+  Simple, one source of truth; region loss pauses the sale. RPO = 0 to a second region means synchronous cross-region
+  commits: size the buckets for that lock-hold time (deep dive 1).
 - **Stock allocated per region**: split 100,000 units by expected demand (e.g. 40/35/25 %), each region sells its
   allocation locally; after N minutes, leftover units are rebalanced by moving bucket ownership. Lower latency and no
   single region dependency, but fairness differs by region and rebalancing is a distributed transaction to design
@@ -376,7 +398,7 @@ bucket's decrement and reservation insert on the same shard.
 **Cost.** The expensive parts are **pre-scaled capacity for a short window** (hours of over-provisioning for a
 minutes-long event) and **CDN/edge requests** (≈ 3 M req/s at T0). The cheapest path is to make every waiting user
 cost as little as possible: static pages, edge-verified tickets, polls with server-controlled intervals of 15–30 s
-instead of 1 s (a 15× difference in edge requests). Bots are a cost line too: every bot request you serve is paid for.
+instead of 1 s (a 15–30× difference in edge requests). Bots are a cost line too: every bot request you serve is paid for.
 
 **Energy.** Short, sharp events waste energy mostly through idle pre-scaled capacity and bot traffic; scale down
 promptly after sell-out (the "sold out" flag is also a scale-in trigger) and block bots at the edge before they reach
@@ -387,18 +409,21 @@ compute ([SYSDESIGN-17](../02-modern-requirements/17-energy-carbon-aware.md)).
 What 2026 changes (as of 2026-11):
 
 - **AI agents as shoppers.** Some "bots" are now users' own AI assistants buying on their behalf. Protocols are
-  emerging for this: the Agentic Commerce Protocol published by OpenAI and Stripe [7], and Google's Agent Payments
+  emerging for this: the Agentic Commerce Protocol developed by Stripe and OpenAI [16], and Google's Agent Payments
   Protocol (AP2), announced in September 2025, which focuses on authorisation "mandates" that prove the user approved
-  a purchase [8]. Design implication: distinguish *authorised agents acting for a verified account* (admit through the
+  a purchase [17]; the protocol site now announces its donation to the FIDO Alliance, and the Universal Commerce
+  Protocol (UCP), whose site lists Google and Shopify among its co-developers, is a further entrant [18]. The field
+  is moving: pin versions. Design implication: distinguish *authorised agents acting for a verified account* (admit through the
   same queue, same limits, one unit per human) from *unattributed automation* (challenge or block). Per-account
   limits matter more than per-IP limits.
-- **Edge compute waiting rooms.** Waiting-room logic increasingly runs in edge functions with edge KV state, so the
-  origin sees only admitted users; your admission controller becomes a config publisher.
+- **Edge compute waiting rooms.** Waiting-room logic increasingly runs in edge functions, so the origin sees only
+  admitted users; your admission controller becomes a config publisher. Keep fast-changing values (threshold,
+  sold-out flag) off eventually consistent edge KV [7].
 - **Pre-warmed serverless and cells.** Serverless functions and per-event "cells" (an isolated copy of the sale stack)
-  are pre-warmed or given reserved concurrency for T0, limiting blast radius to the sale cell
+  are pre-warmed or given reserved concurrency for T0, limiting blast radius to the sale cell [19]
   ([SYSDESIGN-14](../02-modern-requirements/14-cloud-native-platforms.md)).
 - **Idempotency is being standardised.** The IETF `Idempotency-Key` header draft is close to the patterns payment APIs
-  already use [6].
+  already use [10].
 
 ## WRAP: interview summary
 
@@ -439,13 +464,24 @@ See [exercises/C14-global-flash-sale.md](../../exercises/C14-global-flash-sale.m
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-20.
 
-1. Redis, "DECR" command documentation. https://redis.io/docs/latest/commands/decr/
-2. Redis, "Scripting with Lua" (atomic script execution). https://redis.io/docs/latest/develop/programmability/eval-intro/
-3. Redis, "Redis replication" (asynchronous by default; `WAIT` does not make Redis CP; acknowledged writes can be lost during failover). https://redis.io/docs/latest/operate/oss_and_stack/management/replication/
-4. Cloudflare, "Waiting Room — Queueing methods" (FIFO, Random, Passthrough, Reject). https://developers.cloudflare.com/waiting-room/reference/queueing-methods/
-5. Stripe, "Idempotent requests" API reference. https://docs.stripe.com/api/idempotent_requests
-6. J. Jena, S. Dalal, D. Tishkin, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header-08 (Internet-Draft, work in progress), October 2026. https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
-7. Agentic Commerce Protocol (OpenAI and Stripe), specification site. https://agenticcommerce.dev/
-8. Google Cloud, "Announcing Agent Payments Protocol (AP2)," September 2025; protocol site https://ap2-protocol.org/. https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol
+1. PostgreSQL Global Development Group, "Transaction Isolation" (Read Committed: a second updater waits for the first to commit, then re-evaluates the `WHERE` clause), PostgreSQL current docs. https://www.postgresql.org/docs/current/transaction-iso.html
+2. Google Firebase, "Distributed counters" (Firestore; write throughput grows linearly with the number of shards). https://firebase.google.com/docs/firestore/solutions/counters
+3. PostgreSQL Global Development Group, "Log-Shipping Standby Servers", §Synchronous Replication ("each commit of a write transaction will wait until confirmation is received"), PostgreSQL current docs. https://www.postgresql.org/docs/current/warm-standby.html
+4. Redis, "DECR" and "INCR" command documentation (INCR: "atomic increment/decrement commands like DECR"). https://redis.io/docs/latest/commands/decr/ ; https://redis.io/docs/latest/commands/incr/
+5. Redis, "Scripting with Lua" (atomic script execution). https://redis.io/docs/latest/develop/programmability/eval-intro/
+6. Redis, "Redis replication" (asynchronous by default; `WAIT` does not make Redis CP; acknowledged writes can be lost during failover). https://redis.io/docs/latest/operate/oss_and_stack/management/replication/
+7. Cloudflare, "How KV works" (Workers KV is eventually consistent; changes "may take up to 60 seconds or more" to be visible in other locations). https://developers.cloudflare.com/kv/concepts/how-kv-works/
+8. Cloudflare, "Waiting Room — Queueing methods" (FIFO, Random, Passthrough, Reject). https://developers.cloudflare.com/waiting-room/reference/queueing-methods/
+9. Stripe, "Idempotent requests" API reference. https://docs.stripe.com/api/idempotent_requests
+10. J. Jena, S. Dalal, D. Tishkin, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header-08 (Internet-Draft, work in progress), October 2026. https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
+11. Stripe, "Receive Stripe events in your webhook endpoint" (sections "Handle duplicate events" and "Event ordering"). https://docs.stripe.com/webhooks
+12. Imperva (Thales), "2025 Bad Bot Report" (automated traffic 51 % of all web traffic; general web, not flash sales). https://www.imperva.com/resources/resource-library/reports/2025-bad-bot-report/
+13. A. Back, "Hashcash — A Denial of Service Counter-Measure," 2002. http://www.hashcash.org/papers/hashcash.pdf
+14. Kubernetes, "Horizontal Pod Autoscaling" (`--horizontal-pod-autoscaler-sync-period`, default 15 s). https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/
+15. M. Brooker, "Timeouts, retries, and backoff with jitter," Amazon Builders' Library, 2019 (now hosted on AWS Builder Center). https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
+16. Agentic Commerce Protocol, specification site ("Stripe and OpenAI developed the Agentic Commerce Protocol"). https://www.agenticcommerce.dev/
+17. Google Cloud, "Announcing Agent Payments Protocol (AP2)," September 2025; protocol site https://ap2-protocol.org/ (announces "AP2 v0.2 Release and FIDO Alliance Donation"). https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol
+18. Universal Commerce Protocol (UCP), specification site (lists Google, Shopify and others as co-developers). https://ucp.dev/
+19. AWS Well-Architected, "Reducing the Scope of Impact with Cell-Based Architecture: What is a cell-based architecture?" https://docs.aws.amazon.com/wellarchitected/latest/reducing-scope-of-impact-with-cell-based-architecture/what-is-a-cell-based-architecture.html

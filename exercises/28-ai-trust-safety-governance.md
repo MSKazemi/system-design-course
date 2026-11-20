@@ -13,7 +13,8 @@ question in Basque that the guard classifier was never trained on.
 
 <details><summary>Answer</summary>
 
-(a) **Direct.** The attacker is the user, so the risk is mostly system-prompt leakage (OWASP LLM07). Mitigation:
+(a) **Direct.** The attacker is the user, so the risk is mostly hidden-context (system-prompt) leakage (OWASP LLM08 Hidden Context Exposure in the 2026 edition; LLM07 System
+Prompt Leakage in 2025). Mitigation:
 keep secrets and enforcement out of the prompt.
 (b) **Indirect.** The attacker controls content the system reads, which can manipulate a high-stakes decision
 (screening for employment is an Annex III area under the AI Act). Mitigation: map-reduce style isolated
@@ -129,7 +130,8 @@ Chapter III Sections 1–3 for Annex III high-risk systems (employment is an Ann
 2027**, and for Annex I products to 2 August 2028.
 
 What applies today: the Article 5 prohibitions (since 2 February 2025; two new ones from 2 December 2026); the
-reworded Article 4 AI-literacy duty; Article 50 transparency, applicable since 2 August 2026, including telling
+reworded Article 4 AI-literacy duty; Article 50 transparency, applicable since 2 August 2026 (for machine-readable marking under Art. 50(2),
+systems already on the market have until 2 December 2026), including telling
 people they are interacting with an AI system; and, if Lumen provides a GPAI model, the Chapter V obligations
 since 2 August 2025.
 

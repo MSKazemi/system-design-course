@@ -103,7 +103,7 @@
 
 ## Slide 10 — Lambda vs Kappa
 
-- Lambda (Marz 2011): batch layer + speed layer, merge at query time
+- Lambda (Marz's 2011 design, named later): batch layer + realtime (speed) layer, merge at query time
 - Kreps (2014): two code paths that must agree is the real cost
 - Kappa: replay the log into a new table when logic changes
 - 2026: stream jobs commit to lakehouse tables read by batch engines

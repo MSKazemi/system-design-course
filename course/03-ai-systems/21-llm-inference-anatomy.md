@@ -3,7 +3,7 @@ id: SYSDESIGN-21
 title: "Anatomy of LLM inference"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01, SYSDESIGN-04, SYSDESIGN-10]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Lumen chat must show the first token within 500 ms (p95) and stream at least 20 tokens/s to every user. How many users can one GPU carry, and what limits it?"
@@ -152,6 +152,9 @@ Apply it to the big matrix multiplies with BF16 weights (2 bytes per weight):
   The tensor cores are mostly idle, waiting for HBM.
 - **Prefill of *N* tokens.** Each weight is reused for *N* tokens → AI ≈ *N*. A 2,000-token prompt sits far above the
   ridge: compute-bound.
+- **Where decode crosses over.** Because AI ≈ *B*, the weight matrix multiplies reach the ridge at *B* ≈ ridge — about
+  295 on an H100 (BF16 weights against the BF16 ridge, or FP8 weights against the FP8 ridge). In practice KV capacity
+  caps the batch long before that: Step 3 below fits only ≈ 177 sequences at 2k context.
 
 Attention during decode is worse, and batching does **not** rescue it. For each sequence, the step reads that
 sequence's own K and V for all *T* previous tokens and does ≈ 4 × *h* × *d<sub>head</sub>* × *T* FLOPs per layer
@@ -222,7 +225,10 @@ generation.
 **TPOT vs ITL.** TPOT is a per-request average; ITL is the distribution of individual gaps. A request can have a fine
 TPOT and a terrible p99 ITL if a long prefill was scheduled in the middle of its stream — the user sees a freeze.
 vLLM's documentation names exactly this as a reason to disaggregate prefill: "vLLM may insert some prefill jobs during
-the decoding of one request. This results in higher tail latency" [9].
+the decoding of one request. This results in higher tail latency" [9]. Two measurement caveats: vLLM's server-side
+TPOT histogram records requests that generate no more than one token as zero, while `vllm bench serve` excludes them,
+so the two TPOT figures differ; and ITL is measured between consecutive *streamed outputs*, which equals a per-token gap
+only when each output carries one token [5].
 
 **Goodput.** DistServe [11] defines the goal as the maximum request rate served "within both TTFT and TPOT
 constraints"; vLLM's benchmark computes `request_goodput` as good completed requests ÷ duration [6]. Throughput without
@@ -260,8 +266,8 @@ is a **labelled assumption**, not a measurement.
 ### Worked example: Qwen3-8B on one H100 SXM
 
 **Model facts** (from the official model card and `config.json`, accessed 2026-11 [1][2]): 8.2 B parameters;
-36 layers; 32 query heads and **8 KV heads**; head dimension 128; native context 32,768 tokens; weights published in
-BF16.
+36 layers; 32 query heads and **8 KV heads**; head dimension 128; native context 32,768 tokens (model card [1]; `config.json` lists `max_position_embeddings`
+40,960 [2]); weights published in BF16.
 
 **Hardware facts** (NVIDIA H100 SXM datasheet [23]): 80 GB HBM3; 3.35 TB/s; BF16 tensor core 1,979 TFLOPS *with
 sparsity*, so **≈ 989.5 TFLOPS dense**; FP8 3,958 TFLOPS with sparsity (≈ 1,979 dense).
@@ -271,7 +277,7 @@ sparsity*, so **≈ 989.5 TFLOPS dense**; FP8 3,958 TFLOPS with sparsity (≈ 1,
 | Precision | Bytes/param | Qwen3-8B weights | Notes |
 |---|---|---|---|
 | BF16/FP16 | 2 | 8.2 × 2 = **16.4 GB** | as published |
-| FP8 | 1 | **8.2 GB** | W8A8 FP8 runs on Hopper/Blackwell-class tensor cores |
+| FP8 | 1 | **8.2 GB** | W8A8 FP8 needs FP8-capable hardware (Ada, Hopper, Blackwell; AMD per vLLM's support matrix [10]) |
 | INT4 (weight-only, e.g. AWQ/GPTQ) | 0.5 + scales | 4.1 GB + ≈ 3 % for one FP16 scale per 128 weights ≈ **4.2 GB** | group size 128 is a common choice (assumption); some layers often stay at 16-bit |
 
 **Step 2 — KV cache per token** (BF16 KV, 2 bytes):
@@ -288,7 +294,10 @@ sparsity*, so **≈ 989.5 TFLOPS dense**; FP8 3,958 TFLOPS with sparsity (≈ 1,
 A single user at the full native 32,768-token context holds **4.5 GiB** of KV — more than a quarter of the BF16 weights.
 
 **Step 3 — how many tokens fit?** Assume vLLM may use 90 % of HBM (72 GB) and that activations, CUDA graphs and
-fragmentation take 2 GB (assumption; measure it — vLLM logs the KV capacity it actually allocated at start-up).
+fragmentation take 2 GB (assumption; measure it — vLLM logs the KV capacity it actually allocated at start-up). The
+90 % is a planning margin, not v0.34.0's behaviour: with the extensible KV cache on (the default on CUDA and ROCm),
+an unset `gpu_memory_utilization` means 1.0 and the cache is sized from memory actually free after warm-up [32], so
+read the logged KV capacity rather than trusting the estimate.
 
 KV budget ≈ 72 − 16.4 − 2 = **53.6 GB** → 53.6 × 10⁹ ÷ 147,456 ≈ **363,000 tokens** → ≈ **88 concurrent
 4,096-token conversations**, or ≈ 177 at 2,048 tokens. With FP8 weights the budget grows by 8.2 GB; with an FP8 KV
@@ -343,7 +352,10 @@ decode. Chapter 23 covers accelerators in depth.
 The lab serves **Qwen2.5-0.5B-Instruct** (0.49 B parameters, 24 layers, 14 query / 2 KV heads, head dimension 64 [26])
 on a CPU. KV per token = 24 × 2 × 2 × 64 × 2 B = **12 KiB** in BF16, or 24 KiB in the FP32 the lab uses on
 AVX2-only laptops; weights are ≈ 1 GB in BF16 and ≈ 2 GB in FP32. (The lab's engine log reported 87,296 KV tokens for a
-2 GiB FP32 budget: 2 GiB ÷ 24 KiB = 87,381, rounded down to whole 64-token blocks — the formula, confirmed.) Divide your
+2 GiB FP32 budget. The formula gives 2 GiB ÷ 24 KiB = 87,381 tokens; a plain floor to whole 64-token blocks would be
+1,365 blocks = 87,360, and the log shows 1,364 blocks — within one 64-token block (0.07 %) of the formula. The engine
+allocates whole blocks; why it lands one block below the plain floor was not investigated. The BF16 run's 174,720
+tokens is exactly the floor, 2,730 blocks.) Divide your
 machine's memory bandwidth by the weight bytes and you have an upper bound on single-stream decode tokens/s to compare
 with what you measure.
 
@@ -353,7 +365,7 @@ with what you measure.
 |---|---|---|---|
 | **Bigger batch (more concurrency per GPU)** | cost per token matters; SLOs have slack | higher TPOT; more KV memory; longer queues at saturation | every continuous-batching server |
 | **Smaller batch / reserved capacity** | strict interactive or voice latency | GPU mostly idle; high cost per token | latency-tier deployments |
-| **FP8 weights** | Hopper/Blackwell-class hardware; bandwidth-bound decode | small accuracy risk, must evaluate; calibration step | vLLM FP8 W8A8 via LLM Compressor [10] |
+| **FP8 weights** | FP8-capable hardware (Ada, Hopper, Blackwell; AMD per vLLM's matrix); bandwidth-bound decode | small accuracy risk, must evaluate; calibration step | vLLM FP8 W8A8 via LLM Compressor [10] |
 | **INT4 weight-only (AWQ [27], GPTQ [28])** | memory-limited GPUs, edge, single-stream | larger accuracy risk; prefill gains smaller (weights dequantised) | vLLM, llama.cpp GGUF |
 | **FP8 KV cache** | long contexts, high concurrency | small accuracy risk on attention | vLLM `--kv-cache-dtype fp8` |
 | **Shorter context limit (`max_model_len`)** | protects KV capacity and tail latency | product limitation | any server |
@@ -529,7 +541,7 @@ standard-library Python client to measure TTFT, TPOT, ITL and throughput. You va
 TPOT barely moves), output length (E2E grows linearly), and concurrency (aggregate throughput grows while per-user speed
 falls), and compare measured decode speed with the bandwidth bound from this chapter. A llama.cpp fallback is included
 for machines where the vLLM CPU image is impractical. On the 2026-11-20 test run (6-core AVX2 laptop, FP32), the
-engine's own KV sizing matched this chapter's formula exactly, TTFT grew from ≈ 0.35 s to ≈ 8 s as prompts went from
+engine's own KV sizing matched this chapter's formula to within one 64-token block, TTFT grew from ≈ 0.35 s to ≈ 8 s as prompts went from
 66 to 1,564 tokens while TPOT stayed ≈ 0.1 s, and 8 concurrent requests gave 3.6× the aggregate tokens/s of one — see
 the lab's test record for the full numbers and caveats.
 
@@ -550,12 +562,12 @@ the lab's test record for the full numbers and caveats.
 2. Qwen Team, *Qwen3-8B config.json* (num_hidden_layers 36, num_attention_heads 32, num_key_value_heads 8, head_dim 128, vocab_size 151936). https://huggingface.co/Qwen/Qwen3-8B/blob/main/config.json (accessed 2026-11)
 3. Qwen Team, *Qwen3-32B model card and config.json* (64 layers, 64 Q / 8 KV heads, 32.8 B parameters). https://huggingface.co/Qwen/Qwen3-32B (accessed 2026-11)
 4. W. Kwon et al., *Efficient Memory Management for Large Language Model Serving with PagedAttention*, SOSP 2023. arXiv:2309.06180. https://arxiv.org/abs/2309.06180
-5. vLLM project, *Metrics (design doc)*, docs.vllm.ai. https://docs.vllm.ai/en/latest/design/metrics.html (accessed 2026-11)
+5. vLLM project, *Metrics (design doc)*, docs.vllm.ai. https://docs.vllm.ai/en/v0.34.0/design/metrics/ (accessed 2026-11)
 6. vLLM project, *vllm/benchmarks/serve.py* (TTFT, TPOT, ITL, request_goodput definitions), v0.34.0. https://github.com/vllm-project/vllm/blob/v0.34.0/vllm/benchmarks/serve.py (accessed 2026-11)
 7. vLLM Team, *vLLM V1: A Major Upgrade to vLLM's Core Architecture*, 2025-01-27. https://vllm.ai/blog/2025-01-27-v1-alpha-release (accessed 2026-11)
-8. vLLM project, *OpenAI-Compatible Server*. https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html (accessed 2026-11)
+8. vLLM project, *OpenAI-Compatible Server*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/online_serving/ (accessed 2026-11)
 9. vLLM project, *Disaggregated Prefilling (experimental)*, docs/features/disagg_prefill.md, v0.34.0. https://github.com/vllm-project/vllm/blob/v0.34.0/docs/features/disagg_prefill.md (accessed 2026-11)
-10. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), docs/configuration/optimization.md, v0.34.0; and *Quantization* docs. https://docs.vllm.ai/en/latest/configuration/optimization.html (accessed 2026-11)
+10. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), docs/configuration/optimization.md, v0.34.0; and *Quantization* docs (hardware support matrix). https://docs.vllm.ai/en/v0.34.0/configuration/optimization/ and https://docs.vllm.ai/en/v0.34.0/features/quantization/ (accessed 2026-11)
 11. Y. Zhong et al., *DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving*, OSDI 2024. arXiv:2401.09670. https://www.usenix.org/conference/osdi24/presentation/zhong-yinmin
 12. P. Patel et al., *Splitwise: Efficient Generative LLM Inference Using Phase Splitting*, ISCA 2024. arXiv:2311.18677. https://arxiv.org/abs/2311.18677
 13. R. Sennrich, B. Haddow, A. Birch, *Neural Machine Translation of Rare Words with Subword Units*, ACL 2016. arXiv:1508.07909. https://arxiv.org/abs/1508.07909
@@ -576,5 +588,5 @@ the lab's test record for the full numbers and caveats.
 28. E. Frantar et al., *GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers*, ICLR 2023. arXiv:2210.17323. https://arxiv.org/abs/2210.17323
 29. OpenAI, *gpt-oss-120b config.json* (num_local_experts 128, num_experts_per_tok 4, sliding_window 128). https://huggingface.co/openai/gpt-oss-120b/blob/main/config.json (accessed 2026-11)
 30. A. Agrawal et al., *SARATHI: Efficient LLM Inference by Piggybacking Decodes with Chunked Prefills*, 2023. arXiv:2308.16369 (preprint). https://arxiv.org/abs/2308.16369
-31. vLLM project, *Speculative Decoding*. https://docs.vllm.ai/en/latest/features/speculative_decoding/ (accessed 2026-11)
-32. vLLM project, *Release v0.34.0* (2026-11-16): default block size 64, extensible KV cache on by default. https://github.com/vllm-project/vllm/releases/tag/v0.34.0 (accessed 2026-11)
+31. vLLM project, *Speculative Decoding*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/ (accessed 2026-11)
+32. vLLM project, *Release v0.34.0* (2026-11-16): default block size 64, extensible KV cache on by default, `gpu_memory_utilization` defaults to 1.0 when unset. https://github.com/vllm-project/vllm/releases/tag/v0.34.0 (accessed 2026-11)

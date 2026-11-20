@@ -102,7 +102,7 @@ path.
 
 ## Slide 10 — Anycast vs GeoDNS
 
-- Anycast: one prefix, many PoPs, BGP picks the "closest"; fast failover
+- Anycast: one prefix, many PoPs, BGP path selection picks the "nearest" (not always geography or latency); fast failover
 - GeoDNS: per-country control; bounded by caches
 - Common combination: anycast to the edge, logic at the edge picks the origin
 
@@ -113,7 +113,7 @@ path.
 ## Slide 11 — The budget, worked
 
 - Direct, TCP + TLS 1.3: 225 ms (cached DNS); fails 200 ms
-- QUIC direct or edge-terminated: ≈ 165 ms; HTTP/3 at the edge: 145 ms
+- QUIC direct, or TCP + TLS 1.3 via an edge: 165 ms; HTTP/3 via an edge: 145 ms
 - Returning user with an open connection: 110 ms; fails 100 ms
 - Shell cached at the edge: ≈ 21 ms
 

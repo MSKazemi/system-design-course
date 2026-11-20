@@ -21,8 +21,8 @@ something is always failing.
 
 - 150 nodes, 2 TB data each (50 % fill)
 - ≈ 15,000 replica ops/s per node
-- Rebuild 2 TB: ≈ 2.8 h from one peer, ≈ 8 min from 20
-- 1 h outage ≈ 14 GB of hints
+- Rebuild 2 TB: ≈ 2.8 h from one peer; from 20 peers ≈ 8 min only at 4 GB/s ingest, ≈ 22 min at 1.5 GB/s
+- 1 h outage ≈ 14 GB of hints, cluster-wide
 
 **Visual:** Rebuild bar shrinking from hours to minutes as streams multiply.
 Icons: `arch-servers-cluster`, `arch-storage-disk`, `ops-clock`.
@@ -71,7 +71,7 @@ Icons: `pattern-consistency`, `pattern-cap-theorem`.
 - Write to the first N *healthy* nodes; stand-ins keep a hint
 - Hints replay when the owner returns
 - Availability up, overlap guarantee gone
-- Bound the hint window; repair beyond it
+- Bound the hint window (Cassandra `max_hint_window`, default 3 h); repair beyond it
 
 **Visual:** The lesson's write sequence with a stand-in node holding a hint.
 Icons: `pattern-failover`, `arch-queue`.
@@ -141,8 +141,8 @@ Icons: `pattern-horizontal-scaling`, `ops-incident`.
 ## Slide 12 — Modern twist
 
 - DynamoDB (ATC 2022): Multi-Paxos per partition, leader + lease; 89.2 M req/s peak
-- Raft per range: TiKV, CockroachDB; ScyllaDB tablets; Cassandra CEP-21 TCM (6.0 pre-release; GA 5.0.9)
-- Object storage tier: SlateDB, turbopuffer, WarpStream (writes ~100s of ms, vendor-reported)
+- Raft per range: TiKV, CockroachDB; ScyllaDB tablets; Cassandra CEP-21 TCM in 6.0 (alpha1/alpha2 pre-releases, no GA as of 2026-11; GA 5.0.9)
+- Object storage tier: SlateDB, turbopuffer, WarpStream (standard-tier writes tens to hundreds of ms, vendor-reported; faster tiers emerging)
 - S3 conditional writes (2024) and Express One Zone (single-digit ms)
 
 **Visual:** Design-space map: leaderless ↔ leader-based on one axis, local disk ↔ object storage on the other.

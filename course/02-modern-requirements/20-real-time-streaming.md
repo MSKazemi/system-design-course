@@ -3,7 +3,7 @@ id: SYSDESIGN-20
 title: "Real-time & streaming systems"
 part: "II — Modern requirements"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-06, SYSDESIGN-08, SYSDESIGN-13]
 estimated_time: "3h reading"
 requirement: "Reflect every document edit in Lumen's search and RAG answers within 5 s (p99), show per-tenant usage dashboards with ≤ 10 s freshness at 50k events/s peak, and never lose or double-count a billable token"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Compare at-least-once, effectively-once (idempotent sinks) and transactional exactly-once, and estimate their latency cost"
   - "Design a streaming pipeline from an OLTP database to a vector index, a real-time analytics store and an ML feature store"
   - "Diagnose consumer lag, stuck watermarks, state growth and replication-slot WAL bloat"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 20 — Real-time & streaming systems
@@ -42,7 +42,8 @@ a number you can put in an SLO.
 
 - **CDC became the default integration pattern.** Instead of asking every service to publish events correctly, teams
   read the database's own replication log. PostgreSQL's logical decoding with the built-in `pgoutput` plug-in and
-  open-source connectors such as Debezium (3.7 is the latest stable series as of 2026-11 [15][17]) make this a
+  open-source connectors such as Debezium (3.7 is the latest stable series as of 2026-11, 3.7.1.Final released in early
+  November 2026 [15][17]) make this a
   configuration task rather than a research project.
 - **Stream processors grew up.** Apache Flink 2.3.0 (released 2026-06-25, latest stable as of 2026-11 [27]) and Kafka
   Streams (shipped with Apache Kafka; 4.4.0 released 2026-10-22 [28]) both offer stateful processing with exactly-once
@@ -141,8 +142,8 @@ A **watermark** is the stream processor's estimate of event-time progress. In Fl
 that event time has reached `t` in that stream, meaning no more elements with timestamp `t' <= t` are expected [8].
 Events that arrive with a timestamp the watermark has already passed are **late** [8].
 
-The most common strategy is **bounded out-of-orderness**: watermark = highest timestamp seen − a fixed bound (Flink's
-`forBoundedOutOfOrderness`) [9]. Choose the bound from data, not hope: measure the distribution of
+The most common strategy is **bounded out-of-orderness**: watermark = highest timestamp seen − a fixed bound (minus
+1 ms in Flink's own implementation, `forBoundedOutOfOrderness`) [9]. Choose the bound from data, not hope: measure the distribution of
 `processing_time − event_time` per source and pick a high percentile. A larger bound means fewer late events and higher
 latency; a smaller bound means fresher results and more corrections.
 
@@ -347,8 +348,12 @@ drain at peak. Headroom is a freshness SLO decision, not waste (queueing intuiti
 | Slack | 1.0 s |
 | **Total** | **5.0 s** |
 
+Summing per-stage p99 targets gives a conservative budget, not the end-to-end p99: the p99 of a sum is usually lower
+than the sum of the p99s, so meeting every stage budget leaves margin.
+
 Now notice what a transactional exactly-once sink would do here: with a 10 s checkpoint interval, results would become
-visible only at checkpoint completion [12], adding up to 10 s and blowing the budget by itself. That single observation
+visible only at checkpoint completion [12], adding up to 10 s plus the checkpoint duration and blowing the budget by
+itself. That single observation
 drives the main design decision below.
 
 ## Design choices and trade-offs
@@ -368,8 +373,10 @@ drives the main design decision below.
 |---|---|---|---|
 | **Kafka Streams** (library) | Kafka in, Kafka out; you want to deploy as an ordinary app | Kafka-only I/O; state restoration from changelog topics can be slow for big state | Microservice-embedded aggregations |
 | **Apache Flink** (cluster runtime) | Many sources/sinks, large state, event-time-heavy logic, SQL | A runtime to operate (job manager, checkpoints, upgrades via savepoints) | Lumen's pipelines; managed Flink offerings exist on major clouds |
-| **Spark Structured Streaming** (micro-batch by default) | You already run Spark; seconds-level latency is fine | Micro-batch latency floor; different state model | Lakehouse ETL (see [SYSDESIGN-13](../01-foundations/13-data-at-scale.md)) |
+| **Spark Structured Streaming** (micro-batch by default) | You already run Spark; sub-second to seconds-level latency is fine | Micro-batch latency floor (about 100 ms per the Spark guide); Real-time Mode, added in Spark 4.1.0, removes the batch boundary but supports only stateless queries there, with a first set of stateful queries from Spark 4.3.0 (as of 2026-11) [31]; different state model | Lakehouse ETL (see [SYSDESIGN-13](../01-foundations/13-data-at-scale.md)) |
 | **Streaming database / materialized views** | Logic is SQL views over CDC streams | Less control over operators; newer ecosystem | Incrementally maintained dashboards |
+
+The managed-Flink and streaming-database entries are the author's survey of the market, not sourced claims.
 
 ### Lambda versus Kappa
 
@@ -384,7 +391,7 @@ lakehouse.
 
 | Option | Wins when | Costs | Watch out for |
 |---|---|---|---|
-| **Apache Druid** | Time-partitioned event analytics, many concurrent dashboard users | Several service roles to run [21] | Updates are not its natural mode |
+| **Apache Druid** | Time-partitioned event analytics, many concurrent dashboard users | Several service roles to run [33] | Updates are not its natural mode |
 | **Apache Pinot** | User-facing analytics with upserts by key | Key-map memory; stream must be partitioned by key [23] | Partition count cannot grow later for upsert tables [23] |
 | **ClickHouse** | Very fast scans and aggregations, SQL-first, simple ops | Eventual dedup with ReplacingMergeTree [24] | Forgetting `FINAL` or idempotent design gives inflated counts |
 | Your OLTP database | Small volume, few readers | Analytic scans hurt the primary workload | The 3 a.m. lock contention |
@@ -426,7 +433,8 @@ That is effectively-once with a measurable cost of replays.
 - The **last stable offset (LSO)** is the offset below which every transaction is decided. `read_committed` consumers
   never read past it, so **one long-running or stuck transaction stalls every read_committed consumer of that partition**;
   KIP-98 itself warns that a transaction left open can prevent the LSO from advancing and consumers from making progress,
-  which is one reason `transaction.timeout.ms` exists [5]. This is a real failure mode when a Flink job with an
+  which is why transaction timeouts exist: the producer's `transaction.timeout.ms`, capped by the broker's
+  `max.transaction.timeout.ms` [5]. This is a real failure mode when a Flink job with an
   exactly-once sink hangs.
 - **Zombie fencing**: when a producer with the same `transactional.id` re-initializes, the coordinator bumps an epoch and
   rejects the old instance's writes [5]. This is why each Flink job needs a unique `transactionalIdPrefix` on a shared
@@ -450,14 +458,14 @@ A logical replication slot pins WAL until its consumer confirms it. If the Debez
 slot is not), the primary keeps WAL indefinitely: PostgreSQL's `max_slot_wal_keep_size` defaults to `-1`, meaning slots may
 retain unlimited WAL [18]. The primary's disk fills, and the *OLTP database* goes down because an *analytics* consumer
 stopped. Mitigations: set `max_slot_wal_keep_size` (accepting that a slot past the limit may no longer be able to continue
-and will need a re-snapshot [18]); recent PostgreSQL versions also document `idle_replication_slot_timeout`, which
-invalidates slots inactive beyond a duration [18]; alert on `pg_replication_slots` retained WAL; and treat slot creation
+and will need a re-snapshot [18]); PostgreSQL 18 and later add `idle_replication_slot_timeout`, which invalidates
+slots inactive beyond a duration (default 0, disabled) [18]; alert on `pg_replication_slots` retained WAL; and treat slot creation
 and deletion as part of the connector's lifecycle. On restart, Debezium resumes from its stored log position, and with
 `snapshot.mode=when_needed` it re-snapshots if that position is no longer available [15].
 
 A related subtlety: on a quiet table in a busy database, the connector may not receive events for its tables while other
-tables generate WAL, so its confirmed position does not advance. Debezium's heartbeat setting exists for this case (check
-the connector reference for your version [15]).
+tables generate WAL, so its confirmed position does not advance. Enable Debezium's `heartbeat.interval.ms` (default 0,
+disabled) so the slot position advances on quiet tables [15].
 
 ### Joins in streams
 
@@ -486,7 +494,8 @@ state access latency now depends on object-store behaviour and cache hit ratio �
   revoked document must leave the index, and erasure requests must reach derived stores
   (see [SYSDESIGN-19](19-privacy-compliance-sovereignty.md) and [SYSDESIGN-24](../03-ai-systems/24-retrieval-vector-systems.md)).
 - **Streaming features for ML.** Feature stores accept streaming writes: Feast's push sources write stream-computed
-  features into the online (and optionally offline) store, and its `StreamFeatureView` is documented as alpha [26]. The
+  features into the online (and optionally offline) store [26], and its stream feature views are labelled alpha
+  [32]. The
   hard problem is training/serving consistency — the same feature definition must produce the same value offline and
   online, at the same point in time (see [SYSDESIGN-27](../03-ai-systems/27-ml-platforms.md) and
   [C12](../04-case-studies/C12-realtime-fraud-recsys.md)).
@@ -578,8 +587,8 @@ Kappa replay into a new table, then switch). "How do you delete a user's data fr
 ## Check yourself
 
 1. Why does one idle Kafka partition stop all event-time windows in a Flink job, and what fixes it?
-2. A Flink job writes to Kafka with `EXACTLY_ONCE` and a 30 s checkpoint interval. What is the minimum visibility delay
-   for `read_committed` readers, and why?
+2. A Flink job writes to Kafka with `EXACTLY_ONCE` and a 30 s checkpoint interval. What are the worst-case and average
+   visibility delays for `read_committed` readers, and why?
 3. Give two reasons CDC from the WAL is safer than application dual writes.
 4. Which delivery guarantee would you use for Lumen's vector index, and what key makes it correct?
 5. What happens to a PostgreSQL primary if a Debezium connector is stopped for a week with default slot settings?
@@ -647,9 +656,9 @@ exercise file sketches a self-built CDC → Kafka → Flink experiment you can r
     https://debezium.io/documentation/reference/stable/connectors/postgresql.html (accessed 2026-11)
 16. Debezium documentation. "Outbox Event Router."
     https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html (accessed 2026-11)
-17. Debezium. "Releases" (3.7 latest stable series; 3.7.1.Final, 2026-11-06). https://debezium.io/releases/ (accessed 2026-11)
-18. PostgreSQL documentation (current). "Server Configuration — Replication" (`max_slot_wal_keep_size`,
-    `idle_replication_slot_timeout`). https://www.postgresql.org/docs/current/runtime-config-replication.html
+17. Debezium. "Releases" (3.7 latest stable series; 3.7.1.Final, early November 2026). https://debezium.io/releases/ (accessed 2026-11)
+18. PostgreSQL 18 documentation. "Server Configuration — Replication" (`max_slot_wal_keep_size`,
+    `idle_replication_slot_timeout`). https://www.postgresql.org/docs/18/runtime-config-replication.html
     (accessed 2026-11)
 19. A. Andreakis, I. Papapanagiotou. "DBLog: A Watermark Based Change-Data-Capture Framework." arXiv:2010.12597, 2020
     (preprint). https://arxiv.org/abs/2010.12597 (accessed 2026-11)
@@ -673,3 +682,9 @@ exercise file sketches a self-built CDC → Kafka → Flink experiment you can r
     https://kafka.apache.org/41/getting-started/upgrade/ (accessed 2026-11)
 30. Apache Kafka. "Apache Kafka 4.1.0 Release Announcement" (KIP-932 Queues for Kafka in preview), 2025-09-04.
     https://kafka.apache.org/blog/2025/09/04/apache-kafka-4.1.0-release-announcement/ (accessed 2026-11)
+31. Apache Spark 4.3 documentation. "Structured Streaming Programming Guide — Real-time Mode."
+    https://spark.apache.org/docs/latest/streaming/real-time-mode.html (accessed 2026-11)
+32. Feast documentation. "Feature view" (section "[Alpha] Stream feature views").
+    https://docs.feast.dev/getting-started/concepts/feature-view (accessed 2026-11)
+33. Apache Druid documentation (latest). "Architecture" (service types). https://druid.apache.org/docs/latest/design/architecture/
+    (accessed 2026-11)

@@ -27,7 +27,8 @@ Lesson: [SYSDESIGN-26](../../course/03-ai-systems/26-llm-gateways-llmops.md).
 
 - Docker Engine 29.x and Compose v5 (tested: 29.10.0 / v5.8.0). Python 3.9+ on the host (standard library only).
 - Images (pinned): `docker.litellm.ai/berriai/litellm:v1.108.12-lts` (~1.8 GB unpacked),
-  `ghcr.io/ggml-org/llama.cpp:server-b12464`, `postgres:18.6-alpine`.
+  `ghcr.io/ggml-org/llama.cpp:server-b12464`, `postgres:18.6-alpine` (18.6 is the tested tag; 18.7 was published
+  on 2026-11-18 and has not been run with this lab yet).
 - ~3 GB RAM (two model replicas + gateway + Postgres). Internet on first run (~430 MB GGUF from Hugging Face).
 - Host ports: `127.0.0.1:12600` (gateway), `12611` / `12612` (replicas, debug only).
 - No provider API keys. The master key in `compose.yaml` is a lab-only value.

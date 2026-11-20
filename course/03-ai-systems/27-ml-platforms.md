@@ -3,7 +3,7 @@ id: SYSDESIGN-27
 title: "ML platforms & data for AI"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-13, SYSDESIGN-20, SYSDESIGN-23]
 estimated_time: "3h reading"
 requirement: "Ship a model change from a notebook to production in under a day, serve features at p99 < 10 ms, and prove that what the model saw in training is what it sees in production"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Compute a checkpoint interval from failure rate and checkpoint cost"
   - "Design a two-tower retrieval + ranking recommender and size its embedding index"
   - "Diagnose data drift, concept drift and silent data-quality failures, and choose a detection method"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 27 — ML platforms & data for AI
@@ -51,8 +51,8 @@ Three shifts from 2023 to 2026 changed what "ML platform" means.
    hardware issues, and GPU issues alone were 58.7% [14]. Checkpointing and automatic restart are now core
    platform features, not nice-to-haves.
 3. **The open-source stack consolidated.** Ray joined the PyTorch Foundation in October 2025 [17]. KServe
-   became a CNCF incubating project in late 2025 [19]. Kubeflow moved to calendar-versioned platform
-   releases (26.03) and shipped Trainer v2 [18]. Feast and MLflow kept monthly release trains (as of 2026-11:
+   was accepted as a CNCF incubating project (announced 11 November 2025) [19]. Kubeflow moved to
+   calendar-versioned platform releases (26.03) and shipped Trainer v2 [18]. Feast and MLflow kept monthly release trains (as of 2026-11:
    Feast v0.68.0, MLflow 3.18.0) [6][7]. You can now assemble a credible platform from open parts. The design
    question is less "what tool" and more "which contracts between the parts".
 
@@ -159,8 +159,9 @@ features. Offline metrics look excellent and online metrics collapse.
 Feast's historical retrieval implements this as a **point-in-time join**. You provide an *entity dataframe*
 of (entity key, event timestamp) rows. For each row, Feast scans backward from that row's timestamp up to the
 feature view's TTL and takes the latest value it finds. The TTL is measured from each entity timestamp, not
-from when the query runs [4]. A `filter_by_created_timestamp` option also excludes values that were *written*
-after the event time, which keeps backfilled corrections from leaking into training [4].
+from when the query runs [4]. A `filter_by_created_timestamp` option additionally requires each value's created
+timestamp to be at or before the row's timestamp, which keeps later backfills from leaking into training. It is
+off by default, and not all offline stores support it [4].
 
 ```mermaid
 sequenceDiagram
@@ -224,7 +225,7 @@ technical-documentation duties ask for in high-risk systems ([SYSDESIGN-28](28-a
 | **Streaming** | Score as events arrive; push results to a store | Near-real-time alerts; reactions to events, not requests | Stream infrastructure; replay and exactly-once concerns |
 | **Hybrid** | Precompute heavy parts (embeddings, candidates) in batch; finish online | Recommenders; RAG | Two code paths to keep consistent |
 
-Most production recommenders and fraud systems are hybrid. Rule of thumb: precompute whatever does not depend
+Many production recommenders and fraud systems are hybrid (an observation, not a survey result). Rule of thumb: precompute whatever does not depend
 on the request, and compute online only what does.
 
 ### Two-tower retrieval plus ranking
@@ -279,7 +280,7 @@ detectors empirically and found that "a two-sample-testing-based approach, using
 dimensionality reduction, performs best" among those they studied [16]. In practice:
 
 1. Alert on **data-quality** breaks first: schema, null rate, freshness, volume. These are bugs, not drift,
-   and they are the most common cause of "model got worse".
+   and in practice they are a frequent cause of "model got worse" (operating experience, not a measured rate).
 2. Watch **prediction distribution** and **business KPIs** next. They are label-free and fast.
 3. Measure **actual performance** when labels arrive. Labels can take seconds (clicks) or months
    (chargebacks; see [C12](../04-case-studies/C12-realtime-fraud-recsys.md)).
@@ -337,7 +338,8 @@ activations [21].
 
 **4. Checkpoint interval.**
 Young's first-order approximation gives the optimal checkpoint interval as T ≈ √(2·C·M), where C is the time
-to write a checkpoint and M is the mean time between failures [22]. Using Meta's figure of 419 unexpected
+training is blocked while a checkpoint is taken and M is the mean time between failures [22]. For asynchronous
+saves C is the short blocking part, provided the background write finishes before the next checkpoint starts. Using Meta's figure of 419 unexpected
 interruptions in 54 days [14], M ≈ (54 × 24 h) / 419 ≈ 3.1 h ≈ 186 min for that very large job.
 Assume C = 2 min (an asynchronous, sharded save; this is an assumption).
 T ≈ √(2 × 2 × 186) ≈ √744 ≈ 27 min.
@@ -498,8 +500,8 @@ An evaluation gate is a set of checks a candidate must pass before the registry 
    distributions and, as labels arrive, outcomes.
 6. **Canary:** a small percentage of live traffic, with automated rollback on guardrail metrics.
 
-Steps 5–6 use the same alias mechanism. `challenger` receives shadow or canary traffic, and promotion is an
-alias swap [7].
+Steps 5–6 use the same alias mechanism. By convention (the MLflow docs show a `champion` alias), a `challenger`
+alias receives shadow or canary traffic, and promotion is an alias swap [7].
 
 ### Embedding versioning: the two-tower trap
 
@@ -522,15 +524,18 @@ The same rule applies to RAG embedding models ([SYSDESIGN-24](24-retrieval-vecto
   read the project's security advisories before exposing the feature server on a network: it sits on the
   hot path and holds data about every user.
 - **MLflow 3.x** (3.18.0 released 4 November 2026 [7]) has broadened from classical experiment tracking to
-  GenAI: traces, evaluation, prompt and agent registries. The model registry centers on aliases.
-- **Kubeflow** moved to calendar-versioned platform releases (Kubeflow 26.03 bundles Pipelines v2.16.0 and
-  Trainer v2.2.0). Trainer v2 offers one `TrainJob` API across frameworks. v2.2 (March 2026) added JAX and
-  XGBoost runtimes and Flux for HPC-style scheduling [18].
+  GenAI: tracing, evaluation, prompt management, and skill and MCP registries (the Skill Registry, new in 3.18.0,
+  is marked experimental). The model registry centers on aliases.
+- **Kubeflow** moved to calendar-versioned platform releases (Kubeflow 26.03, released 22 March 2026, bundles
+  Pipelines v2.16.0, KServe v0.16.0 and Trainer v2.1.0). Trainer v2 offers one `TrainJob` API across frameworks
+  and ships on its own cadence: v2.2 (March 2026) added JAX and XGBoost runtimes and Flux for HPC-style
+  scheduling, and v2.4.0 (6 November 2026) is the latest release [18].
 - **KServe** joined the CNCF as an incubating project (CNCF announcement dated 11 November 2025) [19] and is the
   common Kubernetes model-serving layer, increasingly for LLMs (see
   [SYSDESIGN-22](22-serving-llms-at-scale.md)).
-- **Ray** is now a PyTorch Foundation project alongside PyTorch and vLLM (October 2025) [17]. The docs at access
-  were for Ray 2.6x and mention token authentication becoming the default in recent releases [24].
+- **Ray** is now a PyTorch Foundation project alongside PyTorch and vLLM (October 2025) [17]. The Ray overview docs
+  state that token authentication is on by default for local clusters from Ray 2.59 and for all clusters from
+  2.61 [24].
 - **Real-time recommenders with online training.** ByteDance's Monolith paper describes a recommender with a
   collisionless embedding table that trains in real time [28]. Treat it as a reference design for the
   "continuous learning" row above, with its reproducibility costs.
@@ -631,6 +636,12 @@ A/B.) How do you know whether a drop is drift or a bug? (Data-quality checks fir
 4. Your checkpoint takes 8 minutes and the job's MTBF is 4 hours. What interval does Young's formula suggest?
 5. Why must a two-tower query tower and item index be deployed as one version?
 
+<details><summary>Quick answers to 2 and 4</summary>
+
+2. The 13:50 value: the join looks back from 14:00 over the 1 h TTL window (13:00–14:00), so 12:30 is too old and
+   14:10 is in the future. 4. T ≈ √(2 × 8 × 240) = √3,840 ≈ 62 min.
+</details>
+
 Full set with answers: [exercises/27-ml-platforms.md](../../exercises/27-ml-platforms.md).
 
 ## Lab
@@ -647,7 +658,8 @@ No lab for this unit. The feature-store and two-tower ideas connect to the RAG l
 - Feast docs, *Point-in-time joins* [4]: the clearest short explanation of leakage-free training sets.
 - Polyzotis et al., *Data Validation for Machine Learning* (MLSys 2019) [13]: how data validation works at
   production scale.
-- Covington et al. 2016 [11] and Yi et al. 2019 [12]: the two papers that define modern retrieval + ranking.
+- Covington et al. 2016 [11] and Yi et al. 2019 [12]: two influential YouTube papers on candidate generation,
+  ranking and two-tower retrieval.
 - Hu et al., *LoRA* [9] and Dettmers et al., *QLoRA* [10]: why fine-tuning got cheap.
 - Llama 3 paper, §3.3.4 *Reliability and Operational Challenges* [14]: real failure statistics at 16K GPUs.
 
@@ -664,8 +676,9 @@ No lab for this unit. The feature-store and two-tower ideas connect to the RAG l
 5. J. Hermann and M. Del Balso, "Meet Michelangelo: Uber's Machine Learning Platform," Uber Engineering, 2017.
    https://www.uber.com/blog/michelangelo-machine-learning-platform/ (accessed 2026-11)
 6. feast-dev/feast, GitHub releases (v0.68.0, 2026-11-10). https://github.com/feast-dev/feast/releases (accessed 2026-11)
-7. MLflow documentation, "MLflow Model Registry," and GitHub releases (3.18.0).
-   https://mlflow.org/docs/latest/ml/model-registry/ ; https://github.com/mlflow/mlflow/releases (accessed 2026-11)
+7. MLflow documentation, "MLflow Model Registry" and "GenAI" overview, and GitHub releases (3.18.0, 2026-11-04).
+   https://mlflow.org/docs/latest/ml/model-registry/ ; https://mlflow.org/docs/latest/genai/ ;
+   https://github.com/mlflow/mlflow/releases (accessed 2026-11)
 8. Feast documentation, "Feature view." https://docs.feast.dev/getting-started/concepts/feature-view (accessed 2026-11)
 9. E. J. Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models," arXiv:2106.09685, 2021.
    https://arxiv.org/abs/2106.09685 (accessed 2026-11)
@@ -689,9 +702,11 @@ No lab for this unit. The feature-store and two-tower ideas connect to the RAG l
     Compute Stack," 2025-10-22.
     https://pytorch.org/blog/pytorch-foundation-welcomes-ray-to-deliver-a-unified-open-source-ai-compute-stack/
     (accessed 2026-11)
-18. Kubeflow, "Kubeflow AI reference platform 26.03" and "Kubeflow Trainer v2.2" release blog.
+18. Kubeflow, "Kubeflow AI reference platform 26.03", "Kubeflow Trainer v2.2" release blog (2026-03-20), and
+    Trainer GitHub releases (v2.4.0, 2026-11-06).
     https://www.kubeflow.org/docs/kubeflow-platform/releases/kubeflow-26.03 ;
-    https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/ (accessed 2026-11)
+    https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/ ; https://github.com/kubeflow/trainer/releases
+    (accessed 2026-11)
 19. CNCF, "KServe becomes a CNCF incubating project," 2025-11-11.
     https://www.cncf.io/blog/2025/11/11/kserve-becomes-a-cncf-incubating-project/ (accessed 2026-11)
 20. Bitol, "Open Data Contract Standard (ODCS)." https://bitol-io.github.io/open-data-contract-standard/latest/
@@ -699,7 +714,8 @@ No lab for this unit. The feature-store and two-tower ideas connect to the RAG l
 21. S. Rajbhandari, J. Rasley, O. Ruwase, Y. He, "ZeRO: Memory Optimizations Toward Training Trillion Parameter
     Models," arXiv:1910.02054, 2019. https://arxiv.org/abs/1910.02054 (accessed 2026-11)
 22. J. W. Young, "A first order approximation to the optimum checkpoint interval," Communications of the ACM
-    17(9):530–531, 1974. https://doi.org/10.1145/361147.361115 (accessed 2026-11)
+    17(9):530–531, 1974. https://doi.org/10.1145/361147.361115 (accessed 2026-11; bibliographic data checked via
+    Crossref and Semantic Scholar, ACM full text not fetchable by automation, unverified as of 2026-11)
 23. PyTorch documentation, "Distributed Checkpoint – torch.distributed.checkpoint" (2.15).
     https://docs.pytorch.org/docs/stable/distributed.checkpoint.html (accessed 2026-11)
 24. Ray documentation, "Overview." https://docs.ray.io/en/latest/ray-overview/index.html (accessed 2026-11)

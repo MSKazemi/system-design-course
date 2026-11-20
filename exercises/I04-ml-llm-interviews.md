@@ -62,8 +62,10 @@ review share from 0.3 % to 0.5 %. What changes?
 
 <details><summary>Answer</summary>
 
-Stage 2 load doubles: ≈ 140 items/s at peak → ≈ 21 k uncached prefill tokens/s, still about one H100, plus
-redundancy. Human review grows from 60 k to 100 k items/day → ≈ 250 reviewers at 400 items/day, an increase of about
+Stage 2 load doubles: ≈ 140 items/s at peak → ≈ 21 k prefill tokens/s with the policy prompt prefix-cached (140 × 150;
+≈ 91 k without caching, 140 × 650), so about one H100 with caching and three without, plus redundancy. Twice as many
+items are also held before publish while the label-only stage-2 call runs (≈ 0.5 s p95 each), so check that the
+judge pool keeps that latency at the higher load. Human review grows from 60 k to 100 k items/day → ≈ 250 reviewers at 400 items/day, an increase of about
 100 people. GPU cost barely moves; human cost rises by two-thirds. Ask what quality gain justifies it (measured recall
 improvement on the expert-sampled set), and consider widening the band only for high-severity policies.
 </details>

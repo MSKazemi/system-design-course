@@ -167,7 +167,7 @@ What this shows:
 - Up to ρ ≈ 0.8, the measured mean W is within about 6% of the D/M/1 prediction.
 - At 90–95 requests/s, single 30 s runs are noisy (90 requests/s came out *slower* than 95).
 - At 110 requests/s, throughput capped at 99.4 requests/s and k6 reported 120 dropped iterations.
-- Little's law held at every step: L and λW agree to the third decimal.
+- Little's law held at every step: L and λW agree to within 0.001.
 
 **Other experiments, as run:**
 - **Repeatability (experiment 7).** Two 90 s runs at 90 requests/s gave W = 177 ms (p99 1,225 ms) and W = 65 ms

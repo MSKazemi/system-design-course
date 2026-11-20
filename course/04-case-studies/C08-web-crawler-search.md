@@ -3,7 +3,7 @@ id: SYSDESIGN-C08
 title: "Web crawler & search engine"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-07, SYSDESIGN-08, SYSDESIGN-13]
 estimated_time: "2h reading + exercises"
 requirement: "Design a polite web crawler that keeps a 5-billion-page index fresh and a search service that answers 10,000 queries/s with p95 < 300 ms — and that also feeds a retrieval-augmented (RAG) product."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Explain URL normalisation, exact-hash and SimHash near-duplicate detection, and their costs"
   - "Design an inverted-index build and a sharded query path with BM25 and link-based signals"
   - "Compare recrawl policies for freshness and explain AI-crawler controls and hybrid lexical + vector search"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C08 — Web crawler & search engine
@@ -85,6 +85,9 @@ At ≤ 1 request/s per host, 9,300 pages/s requires **at least 9,300 hosts being
 hosts in the frontier so that each host's queue is not drained. With an average fetch latency of ≈ 1 s (assumption),
 Little's law gives ≈ 9,300 open connections — cheap for asynchronous fetchers (say 30 fetcher nodes × 500
 connections each, assumption). The bottleneck is not CPU; it is **how many distinct hosts have work ready**.
+Politeness also caps freshness: at 1 request/s, a host with more than 864,000 pages (10 days × 86,400 s) cannot be
+fully refreshed within 10 days; it needs a negotiated higher rate, sitemap/`lastmod`-driven partial refresh, or a
+longer SLO.
 
 ### Storage
 
@@ -195,10 +198,11 @@ rules a crawler must implement:
   combine it with your own adaptive rate.
 
 The common interview slip is reading robots.txt once and forgetting it; the correct design stores it in the `host`
-record with `fetched_at`, refreshes it at most every 24 h, and checks every URL before it is *scheduled* (cheap) and
+record with `fetched_at`, refreshes it at least every 24 h (RFC 9309 §2.4), and checks every URL before it is *scheduled* (cheap) and
 again before it is *fetched* (because the file may have changed).
 
-**The frontier.** Mercator (Heydon & Najork, 1999) [3] popularised the two-level structure most crawlers still use:
+**The frontier.** Mercator (Heydon & Najork, 1999) [3] popularised a two-level frontier, described in detail in the
+authors' 2001 report [4]:
 
 ```mermaid
 flowchart LR
@@ -221,8 +225,8 @@ the earliest-eligible host to a fetcher thread.*
 - **Front queues** implement *priority* (importance, freshness need).
 - **Back queues** implement *politeness*: each holds URLs of exactly one host; a min-heap keyed by
   `next_allowed_fetch` releases a host only when its delay has passed. After a fetch, set
-  `next_allowed_fetch = now + max(robots hint, k × last_response_time)` — adaptive delay: slow servers get slower
-  crawling. Back off exponentially on 429/503.
+  `next_allowed_fetch = now + max(robots hint, k × last_response_time)` — adaptive delay (Mercator waited 10× the
+  last download time [4]): slow servers get slower crawling. Back off exponentially on 429/503.
 - **Per-IP politeness** matters too: thousands of hosts on one shared-hosting IP form one server. Group back queues
   by resolved IP (or /24) as well as by host name.
 - **DNS** is a hidden bottleneck: thousands of lookups per second against public resolvers is rude and slow. Run a
@@ -246,13 +250,13 @@ the hash; if a new URL's content hash already exists, record it as an alias of t
 it again.
 
 **Near duplicates** — the same article with a different ad block, date or navigation — defeat exact hashes. **SimHash**
-(Charikar, STOC 2002) [4] maps a document's weighted features (e.g. shingles or terms) to an *f*-bit fingerprint such
+(Charikar, STOC 2002) [5] maps a document's weighted features (e.g. shingles or terms) to an *f*-bit fingerprint such
 that similar documents have fingerprints with small Hamming distance:
 
 1. For each feature, hash it to *f* bits; for each bit, add the feature's weight if the bit is 1, subtract if 0.
 2. The fingerprint's bit *i* is 1 if the *i*-th sum is positive.
 
-Manku, Jain and Das Sarma (WWW 2007) [5] applied this at Google's crawl scale and reported that for about 8 billion
+Manku, Jain and Das Sarma (WWW 2007) [6] applied this at Google's crawl scale and reported that for about 8 billion
 pages, **64-bit fingerprints with a Hamming-distance threshold of k = 3** worked well. The hard part is the lookup:
 "is there any stored fingerprint within 3 bits of this one?" Their solution is to keep several copies of the
 fingerprint table, each with bits permuted and sorted, so that a match within distance *k* must agree exactly on some
@@ -264,12 +268,12 @@ only 40 GB (8 bytes each), so even several permuted copies fit on a handful of m
 | URL normalisation + seen-set | spelling variants of the same URL | lookup per extracted link (billions/day) | Bloom filter in front of the URL table |
 | Exact content hash | mirrors, duplicated pages | one hash per page | trivial; do it always |
 | SimHash (64-bit, k = 3) | boilerplate/date/ads variants | permuted tables, a few probes per page | tune *k* on labelled pairs |
-| MinHash + LSH | set-similarity of shingles; tunable thresholds | larger signatures | common in LLM training-data dedup pipelines |
+| MinHash + LSH | set-similarity of shingles; tunable thresholds | larger signatures | used to deduplicate LLM training data such as C4 [7] |
 
 ### Deep dive 3 — building the inverted index and ranking basics
 
 **Index build.** Parsing produces `(term, doc_id, tf, positions)` tuples. Two classic ways to turn them into posting
-lists [6]: sort-based (write runs, external merge sort by term) and single-pass in-memory indexing (SPIMI: build
+lists [8]: sort-based (write runs, external merge sort by term) and single-pass in-memory indexing (SPIMI: build
 per-term lists in memory until full, flush a sorted segment, merge segments later). At our scale this is a
 MapReduce/Spark-style job ([SYSDESIGN-13](../01-foundations/13-data-at-scale.md)): map emits terms per document,
 shuffle by `(shard, term)`, reduce writes immutable, compressed segments (delta-encoded doc IDs with variable-byte or
@@ -288,19 +292,19 @@ bit-packed integers).
 
 **Ranking basics.** A two-stage pipeline:
 
-1. **Candidate retrieval per shard**: BM25 [7] — term-frequency saturation (*k₁*) and document-length normalisation
+1. **Candidate retrieval per shard**: BM25 [9] — term-frequency saturation (*k₁*) and document-length normalisation
    (*b*) over IDF-weighted terms — plus static signals (link-based importance, spam score, freshness), using
-   early-termination tricks (posting lists ordered by impact, WAND-style skipping) to avoid scoring every match.
+   dynamic pruning such as WAND, which cut full evaluations by more than 90 % on TREC data [10].
 2. **Re-ranking** of the merged top few hundred with a richer model (learned ranking, now often a neural cross-encoder).
 
-**PageRank** (Brin & Page, 1998) [8] is the canonical link-based static signal: a page is important if important pages
+**PageRank** (Brin & Page, 1998) [11] is the canonical link-based static signal: a page is important if important pages
 link to it, computed by power iteration on the link graph, offline. At 5 B nodes and, say, 50 B edges (assumption) one
 iteration is a large but ordinary distributed join; tens of iterations run daily, not per query.
 
 ### Deep dive 4 — freshness and recrawl scheduling
 
 Freshness is a budget problem: you have ≈ 800 M fetches/day and 5 B pages. Uniform recrawl (every page every 10 days)
-wastes fetches on pages that never change and misses news pages that change hourly. Cho and Garcia-Molina [9] model
+wastes fetches on pages that never change and misses news pages that change hourly. Cho and Garcia-Molina [12] model
 page changes as a Poisson process and give estimators for a page's change rate from observed "changed / not changed"
 visits — the foundation of most adaptive schedulers.
 
@@ -314,7 +318,7 @@ A practical scheduler:
 - Prefer **push** where available: sitemaps' `lastmod`, feeds, and change-notification protocols reduce blind polling.
 - A counter-intuitive result from the same authors: to maximise average freshness, a policy proportional to change
   rate can do worse than uniform recrawl, and the optimum visits pages that change *too* often less, because they
-  can never be kept fresh anyway [16]. State it as a trade-off that depends on the objective, not a rule.
+  can never be kept fresh anyway [13]. State it as a trade-off that depends on the objective, not a rule.
 
 SLI: **age of the index** — for a sample of URLs, compare live content with the indexed version (staleness rate),
 measured continuously.
@@ -339,9 +343,10 @@ measured continuously.
 - Politeness becomes the binding constraint: you need ≈ 10× more *ready* hosts; long-tail hosts dominate, so the
   frontier's priority function, not hardware, decides coverage.
 - Storage ≈ 3.7 PB of compressed pages with two versions: tier old versions to cold object storage.
-- Index: ≈ 1,000 shards; a 1,000-way fan-out makes tail latency dominant — move to **two-level aggregation**
-  (rack-level aggregators) and **tiered indexes** (a small high-quality tier answers most queries; the full index
-  only on demand).
+- Index: ≈ 1,000 shards. Fan-out grows with shard count, so 100,000 QPS × 1,000 shards = 10⁸ sub-queries/s; at
+  1,000 per replica the naive fleet is ≈ 100,000 nodes (vs 1,200 today). **Tiered indexes** (a small high-quality tier
+  answers most queries) and early termination become required, not optional; **two-level aggregation** (rack-level
+  aggregators) contains the 1,000-way tail.
 - Link-graph jobs (PageRank on hundreds of billions of edges) need incremental or approximate algorithms.
 
 ## Operate: SLOs, cost, energy
@@ -384,27 +389,29 @@ product tokens:
 
 | Token | Operator | Purpose (per operator docs) |
 |---|---|---|
-| `GPTBot` | OpenAI | crawling content that may be used for training generative foundation models [10] |
-| `OAI-SearchBot` | OpenAI | surfacing sites in ChatGPT search features [10] |
-| `ChatGPT-User` | OpenAI | user-initiated fetches; OpenAI says robots.txt rules may not apply [10] |
-| `Google-Extended` | Google | a robots.txt product token only (no separate user agent) controlling use for Gemini training and grounding; does not affect Google Search [11] |
-| `ClaudeBot`, `Claude-SearchBot`, `Claude-User` | Anthropic | training, search indexing and user-initiated fetches respectively [12] |
-| `CCBot` | Common Crawl | the Common Crawl crawler; blockable via robots.txt [13] |
+| `GPTBot` | OpenAI | crawling content that may be used for training generative foundation models [14] |
+| `OAI-SearchBot` | OpenAI | surfacing sites in ChatGPT search features [14] |
+| `ChatGPT-User` | OpenAI | user-initiated fetches; OpenAI says robots.txt rules may not apply [14] |
+| `Google-Extended` | Google | a robots.txt product token only (no separate user agent) controlling use for Gemini training and grounding; does not affect Google Search [15] |
+| `ClaudeBot`, `Claude-SearchBot`, `Claude-User` | Anthropic | training, search indexing and user-initiated fetches respectively [16] |
+| `CCBot` | Common Crawl | the Common Crawl crawler; blockable via robots.txt [17] |
 
 Design implications: (a) your crawler needs **its own distinct product token per purpose** (search vs AI training),
 so site owners can choose; (b) store the robots decision *per purpose* with the fetched page, because a page allowed
 for search may be disallowed for training; (c) user-initiated fetches by an agent are a separate, low-rate path, still
 rate-limited per host. The IETF **AI Preferences (AIPREF)** working group is standardising a vocabulary for such
 preferences and how to attach them (including via robots.txt, which its attachment draft would update); as of 2026-11
-the drafts are still Internet-Drafts, not RFCs [14]. Design the policy store so a new signal can be added without
+the drafts are still Internet-Drafts, not RFCs [18]. Design the policy store so a new signal can be added without
 re-crawling.
 
 **3. Hybrid lexical + vector search.** Pure BM25 misses paraphrases; pure dense retrieval misses exact names, codes and
 rare terms. The 2026 default is **hybrid**: run BM25 and an ANN search over embeddings in parallel, then fuse. The
-simplest robust fusion is **Reciprocal Rank Fusion** (Cormack, Clarke & Büttcher, SIGIR 2009) [15]:
-`score(d) = Σ_r 1 / (k + rank_r(d))` with *k* = 60 in the paper, which needs no score calibration between systems.
+simplest robust fusion is **Reciprocal Rank Fusion** (Cormack, Clarke & Büttcher, SIGIR 2009) [19]:
+`score(d) = Σ_r 1 / (k + rank_r(d))` with *k* = 60, found near-optimal in the paper's pilot experiments; it needs no
+score calibration between systems.
 Cost check: embedding 5 B pages × (say) 4 chunks × 768 dimensions × 1 byte (int8) ≈ 15 TB of vectors — affordable,
-but ANN indexes at that size need disk-based designs (DiskANN-style) or quantisation; see
+but ANN indexes at that size need disk-based designs (DiskANN served a billion points from one machine with 64 GB
+RAM and an SSD [20]) or quantisation; see
 [SYSDESIGN-24](../03-ai-systems/24-retrieval-vector-systems.md). Many deployments keep dense retrieval to the
 high-quality tier only.
 
@@ -445,21 +452,25 @@ using [labs/10-apis-communication](../../labs/10-apis-communication/) (per-host 
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-20. Where a DOI landing page blocks automated fetching, the text was checked in the author copy given.
 
 1. Common Crawl, "June 2026 Crawl Archive Now Available" (2.10 B pages, 354.59 TiB uncompressed). https://commoncrawl.org/blog/june-2026-crawl-archive-now-available
 2. M. Koster, G. Illyes, H. Zeller, L. Sassman, "Robots Exclusion Protocol," RFC 9309, September 2022. https://www.rfc-editor.org/rfc/rfc9309.html
-3. A. Heydon, M. Najork, "Mercator: A scalable, extensible Web crawler," *World Wide Web* 2(4), 1999. https://doi.org/10.1023/A:1019213109274
-4. M. S. Charikar, "Similarity estimation techniques from rounding algorithms," STOC 2002. https://doi.org/10.1145/509907.509965
-5. G. S. Manku, A. Jain, A. Das Sarma, "Detecting near-duplicates for web crawling," WWW 2007. https://doi.org/10.1145/1242572.1242592
-6. C. D. Manning, P. Raghavan, H. Schütze, *Introduction to Information Retrieval*, Cambridge University Press, 2008, ch. 4 "Index construction." https://nlp.stanford.edu/IR-book/
-7. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," *Foundations and Trends in IR* 3(4), 2009. https://doi.org/10.1561/1500000019
-8. S. Brin, L. Page, "The anatomy of a large-scale hypertextual Web search engine," *Computer Networks and ISDN Systems* 30, 1998. https://doi.org/10.1016/S0169-7552(98)00110-X
-9. J. Cho, H. Garcia-Molina, "Estimating frequency of change," *ACM Transactions on Internet Technology* 3(3), 2003. https://doi.org/10.1145/857166.857170
-10. OpenAI, "Overview of OpenAI Crawlers." https://developers.openai.com/api/docs/bots
-11. Google Search Central, "Google's common crawlers" (Google-Extended). https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers
-12. Anthropic, "Does Anthropic crawl data from the web, and how can site owners block the crawler?" https://support.claude.com/en/articles/8896518-does-anthropic-crawl-the-web
-13. Common Crawl, "CCBot." https://commoncrawl.org/ccbot
-14. IETF, AI Preferences (aipref) working group: charter and documents (draft-ietf-aipref-vocab, draft-ietf-aipref-attach). https://datatracker.ietf.org/wg/aipref/about/
-15. G. V. Cormack, C. L. A. Clarke, S. Büttcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," SIGIR 2009. https://doi.org/10.1145/1571941.1572114
-16. J. Cho, H. Garcia-Molina, "Synchronizing a database to improve freshness," SIGMOD 2000. https://doi.org/10.1145/342009.335391
+3. A. Heydon, M. Najork, "Mercator: A scalable, extensible Web crawler," *World Wide Web* 2(4), 1999. https://doi.org/10.1023/A:1019213109274 (unverified as of 2026-11: abstract only; frontier details checked in [4])
+4. M. Najork, A. Heydon, "High-Performance Web Crawling," SRC Research Report 173, Compaq Systems Research Center, 2001. https://www.cs.cornell.edu/courses/cs685/2002fa/mercator.pdf
+5. M. S. Charikar, "Similarity estimation techniques from rounding algorithms," STOC 2002. https://doi.org/10.1145/509907.509965 (copy: https://www.cs.princeton.edu/courses/archive/spr04/cos598B/bib/CharikarEstim.pdf)
+6. G. S. Manku, A. Jain, A. Das Sarma, "Detecting near-duplicates for web crawling," WWW 2007. https://doi.org/10.1145/1242572.1242592 (author copy: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/33026.pdf)
+7. K. Lee et al., "Deduplicating Training Data Makes Language Models Better," ACL 2022. https://aclanthology.org/2022.acl-long.577/
+8. C. D. Manning, P. Raghavan, H. Schütze, *Introduction to Information Retrieval*, Cambridge University Press, 2008, ch. 4 "Index construction." https://nlp.stanford.edu/IR-book/ (host unreachable on 2026-11-20; Wayback copy of ch. 4 read)
+9. S. Robertson, H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," *Foundations and Trends in IR* 3(4), 2009. https://doi.org/10.1561/1500000019 (author copy: https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf)
+10. A. Z. Broder, D. Carmel, M. Herscovici, A. Soffer, J. Zien, "Efficient query evaluation using a two-level retrieval process," CIKM 2003. https://doi.org/10.1145/956863.956944 (abstract: https://research.ibm.com/publications/efficient-query-evaluation-using-a-two-level-retrieval-process)
+11. S. Brin, L. Page, "The anatomy of a large-scale hypertextual Web search engine," *Computer Networks and ISDN Systems* 30, 1998. https://doi.org/10.1016/S0169-7552(98)00110-X (copy: https://snap.stanford.edu/class/cs224w-readings/Brin98Anatomy.pdf)
+12. J. Cho, H. Garcia-Molina, "Estimating frequency of change," *ACM Transactions on Internet Technology* 3(3), 2003. https://doi.org/10.1145/857166.857170 (unverified as of 2026-11: no fetchable copy; the Poisson change model is also used in [13])
+13. J. Cho, H. Garcia-Molina, "Synchronizing a database to improve freshness," SIGMOD 2000. https://doi.org/10.1145/342009.335391 (copy: https://www.kth.se/social/files/554f1d5bf27654514fd00393/synchronizing-a-database-to-improve-freshness.pdf)
+14. OpenAI, "Overview of OpenAI Crawlers." https://developers.openai.com/api/docs/bots
+15. Google, "Google's common crawlers" (Google-Extended). https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers
+16. Anthropic, "Does Anthropic crawl data from the web, and how can site owners block the crawler?" https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler
+17. Common Crawl, "CCBot." https://commoncrawl.org/ccbot
+18. IETF, AI Preferences (aipref) working group: charter and documents (draft-ietf-aipref-vocab-08, draft-ietf-aipref-attach-05). https://datatracker.ietf.org/wg/aipref/documents/
+19. G. V. Cormack, C. L. A. Clarke, S. Büttcher, "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods," SIGIR 2009. https://doi.org/10.1145/1571941.1572114 (author copy: https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf)
+20. S. J. Subramanya et al., "DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node," NeurIPS 2019. https://papers.nips.cc/paper_files/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html

@@ -3,7 +3,7 @@ id: SYSDESIGN-C04
 title: "Video upload, transcoding & streaming"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-02, SYSDESIGN-04, SYSDESIGN-08, SYSDESIGN-13, SYSDESIGN-16]
 estimated_time: "2h reading + exercises"
 requirement: "Design a video platform that ingests 1 million uploads a day from phones and studios, makes each video playable within minutes, and streams 100 million hours a day worldwide with start-up under 2 seconds and rare rebuffering — at a delivery cost the business can carry."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Explain bitrate ladders, per-title and per-shot encoding, and quality metrics such as VMAF"
   - "Design adaptive-bitrate delivery with HLS/DASH segments, CDN tiers and ISP-embedded caches"
   - "Decide when an expensive codec (AV1) pays for itself, and explain what AV2, hardware encoders and AI captioning change in 2026"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C04 — Video upload, transcoding & streaming
@@ -51,7 +51,7 @@ title. Ask which, because it decides how much encoding effort each video deserve
 
 | Property | Target | Why |
 |---|---|---|
-| Time to playable | p95 < 5 min for a 10-minute 1080p upload (first renditions) | creators publish to an audience waiting now |
+| Time to playable | p95 < 5 min for a 10-minute 1080p upload, measured from upload-complete to first playable rendition | creators publish to an audience waiting now |
 | Playback start | p95 < 2 s | viewers abandon slow starts |
 | Rebuffering | < 0.5 % of watch time | the dominant quality complaint |
 | Upload durability | an acknowledged upload is never lost | creators may delete their local copy |
@@ -74,7 +74,7 @@ All values are **labelled assumptions** unless cited.
 | Ingest volume | 1 M × 600 MB | ≈ 600 TB/day |
 | Ingest bandwidth, average / peak (2×) | 600 TB × 8 ÷ 86,400 s | ≈ 56 Gbit/s / ≈ 110 Gbit/s |
 | H.264 ladder (240p…1080p rungs summing to ≈ 10.6 Mbps) | 480 s × 10.6 Mbps ÷ 8 | ≈ 640 MB per upload ≈ 640 TB/day |
-| H.264 transcode compute (1 core-hour per 5 min of source, all rungs) | 8 M min ÷ 5 | 1.6 M core-hours/day ≈ 67,000 cores busy |
+| H.264 transcode compute (assume 1 core-hour per 5 min of source, all rungs; measure on your content) | 8 M min ÷ 5 | 1.6 M core-hours/day ≈ 67,000 cores busy on average; ≈ 134,000 at the 2× ingest peak; excludes fast lane, VMAF QC and AV1 |
 | Watch time | 100 M h/day | |
 | Average delivered bitrate | 3 Mbps | 100 M h × 3,600 s × 3 Mbps ÷ 8 ≈ 135 PB/day |
 | Peak concurrent streams (assume 15 M) | 15 M × 3 Mbps | ≈ 45 Tbit/s |
@@ -133,12 +133,11 @@ metadata.*
 
 ```http
 POST /v1/uploads            { "filename": "trip.mov", "size": 734003200, "sha256": "…" }
-201 { "upload_id": "u_9f2…", "protocol": "tus-1.0.0", "location": "https://up.example.com/files/u_9f2…",
-      "part_size": 16777216 }
+201 { "upload_id": "u_9f2…", "protocol": "tus-1.0.0", "location": "https://up.example.com/files/u_9f2…" }
 
 # resumable transfer (tus 1.0.0): HEAD → Upload-Offset; PATCH from that offset
-HEAD  /files/u_9f2…         → 200, Upload-Offset: 268435456
-PATCH /files/u_9f2…         Upload-Offset: 268435456, Content-Type: application/offset+octet-stream
+HEAD  /files/u_9f2…         Tus-Resumable: 1.0.0 → 200, Upload-Offset: 268435456, Tus-Resumable: 1.0.0
+PATCH /files/u_9f2…         Tus-Resumable: 1.0.0, Upload-Offset: 268435456, Content-Type: application/offset+octet-stream
 
 POST /v1/videos             { "upload_id": "u_9f2…", "title": "...", "visibility": "public" }
 GET  /v1/videos/{id}/status → { "state": "processing", "playable": ["h264_360p", "h264_720p"], "eta_s": 140 }
@@ -169,19 +168,20 @@ store the file twice, never pass bytes through stateless API servers.
 
 **Direct-to-object-storage with parts.** The upload service creates a multipart upload in object storage and hands
 the client pre-signed URLs per part. Amazon S3's multipart upload is typical: parts are uploaded independently, in
-parallel and in any order; part numbers range from 1 to 10,000; a failed part is retried alone; AWS recommends
+parallel and in any order; part numbers range from 1 to 10,000 and every part but the last must be 5 MiB to 5 GiB [17]; a failed part is
+retried alone; AWS recommends
 multipart for objects of 100 MB or more [7]. The client records each part's ETag and calls *complete* at the end. If
 the client vanishes, parts linger and are billed until the upload is completed or aborted — so configure a lifecycle
 rule to abort incomplete multipart uploads after a few days [7]. An S3 conditional write (`If-None-Match` on
-`CompleteMultipartUpload`) prevents a retried completion from overwriting an existing object [7].
+`CompleteMultipartUpload`) prevents a retried completion from overwriting an existing object [7][16].
 
 **Resumable protocol for the client.** Either expose multipart directly (the client tracks parts) or put a tus-style
 endpoint in front (the server tracks offsets, the client just asks "where was I?") [8]. The second is simpler for
 mobile clients and is the shape the IETF draft standardizes [9].
 
 **Integrity and dedupe.** The client sends a SHA-256 of the file at session creation; the server verifies it after
-assembly (S3 also computes per-part and full-object checksums; CRC-64/NVME is the default for SDKs that do not specify
-one [7]). An identical hash from the same owner returns the existing video rather than processing it again.
+assembly (current AWS SDKs and the console pick a checksum algorithm by default; for uploads that arrive without one, for
+example from older SDKs, S3 applies a full-object CRC-64/NVME, which it also recommends for integrity checks [7]). An identical hash from the same owner returns the existing video rather than processing it again.
 
 **Completion is an event.** "Upload complete" writes the `videos` row as `processing` and emits an event that starts
 the workflow — exactly once per upload, enforced by keying the workflow on `video_id`.
@@ -208,13 +208,15 @@ VMAF per chunk, packaged and published as complete, and captions are generated b
 popular enough later get a per-shot-optimized AV1 ladder, which is published as additional renditions.*
 
 **Chunk to parallelize.** Encoding a two-hour master on one machine takes hours; splitting at keyframes (or, better,
-at shot boundaries — deep dive 3) into chunks of tens of seconds lets hundreds of workers encode in parallel, then
-concatenates the outputs. Time-to-playable becomes "time to encode one chunk + overhead", not "time to encode the
+at shot boundaries — deep dive 3) into chunks lets hundreds of workers encode in parallel, then concatenates the
+outputs. Netflix describes this "chunked" encoding on the cloud — for example a one-hour video as 20 chunks of 3 min,
+each encoded independently, so a failed instance re-processes only its chunk and chunks run in parallel [2]. Time-to-playable becomes "time to encode one chunk + overhead", not "time to encode the
 video".
 
 **Two lanes.** The fast lane produces a couple of renditions with fast presets so the creator's video is playable in
 minutes; the full lane produces the complete ladder with slower, more efficient presets. This is the same "degraded
-first, complete later" pattern as the feed fallback in [C02](C02-news-feed.md).
+first, complete later" pattern as the feed fallback in [C02](C02-news-feed.md); the two-lane split is a typical design
+choice (ours), not a cited production pipeline.
 
 **Idempotent, durable steps.** Each task is keyed by `(video_id, codec, height, chunk)`, writes its output to a
 deterministic object key, and is safe to retry; the orchestrator records step state so a crashed worker's task is
@@ -234,9 +236,10 @@ cartoon and a rain-soaked action film the same — too many bits for one, too fe
 
 Netflix's 2015 per-title post made the argument with numbers: with its fixed ladder, the top 1080p rung was
 5,800 kbps, which for some noisy content "would still exhibit blockiness" and for simple content like cartoons was
-"far more than needed". Per-title encoding chooses each title's ladder from its own rate–quality curve; for one
-example title the highest-quality 1080p encode dropped to 4,640 kbps, "20% in bitrate savings compared to 5800 kbps",
-and 1080p started at 1,540 kbps where the fixed ladder served 480p at 1,750 kbps [1]. In 2018 Netflix extended this to
+"far more than needed". Per-title encoding chooses each title's ladder from its own rate–quality curve; for *Orange Is the
+New Black* the highest-quality 1080p encode dropped to 4,640 kbps, "20% in bitrate savings compared to 5800 kbps", and
+for an episode of the animation *BoJack Horseman* 1080p streaming started at 1,540 kbps where the fixed ladder served
+480p at 1,750 kbps [1]. In 2018 Netflix extended this to
 **per-shot** optimization ("Dynamic Optimizer"): split at shot boundaries, encode each shot at several quality points,
 and choose per shot to maximize perceived quality for the bitrate; it reported the dynamic optimizer improving three
 codecs by approximately 28–38 % over fixed-QP/CRF encoding, measured with a perceptual metric [2].
@@ -330,7 +333,8 @@ pick one; if you need a number, cite the study and its boundary ([SYSDESIGN-17](
 
 ## Modern twist
 
-**AV1 is now mainstream at the largest streamers.** Netflix reported in December 2025 that AV1 "powers approximately
+**AV1 is now mainstream at the largest streamers.** Netflix reported in December 2025 (figures are a snapshot of
+13 November 2025) that AV1 "powers approximately
 30% of all Netflix viewing" and is its second most-used codec; that AV1 sessions "use one-third less bandwidth than both
 AVC and HEVC, resulting in 45% fewer buffering interruptions"; that 85 % of its HDR catalog (by view-hours) had
 AV1-HDR10+ coverage; that its AV1 film-grain-synthesis stream "reduces the bitrate by 66%" in the example shown; and that
@@ -346,8 +350,8 @@ developed under its royalty-free patent policy [14]. Specification is the start 
 decoders in TVs and phones ship years later, so in 2026 AV2 is a research and pilot topic for the encoding team, not a
 production rendition. Note any efficiency claims you see as claims until independent encoder comparisons exist.
 
-**Hardware encoding is the default at scale.** VCU and MSVP [10][11] show the largest platforms moved transcoding
-to custom silicon; cloud GPU and accelerator encoders make the same trade available to everyone else. Plan for codec
+**Hardware encoding is spreading at scale.** Google and Meta moved much of their transcoding to custom silicon
+[10][11]; cloud GPU and accelerator encoders offer a similar trade to everyone else. Plan for codec
 support per hardware generation (MSVP's first generation did not encode AV1 [11]) and keep a software path for new
 codecs.
 
@@ -355,7 +359,7 @@ codecs.
 upload affordable; Whisper, for example, was trained on 680,000 hours of multilingual, multitask data [6]. Accuracy
 varies by language, audio quality and domain, so treat machine captions as drafts: generate on upload, let creators
 correct, and measure error rates per language. In the EU the European Accessibility Act's requirements apply from
-28 June 2025, and the services in scope include access to audiovisual media services [15][16] — check with counsel
+28 June 2025, and the services in scope include access to audiovisual media services [15] — check with counsel
 what applies to your platform, but design captions as a first-class rendition with its own storage, versioning and
 SLO, not an afterthought.
 
@@ -402,10 +406,11 @@ sources), [labs/04-caching](../../labs/04-caching/) (hit ratio vs latency) and
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20. netflixtechblog.com and eur-lex.europa.eu block automated clients,
+so refs 1, 2, 12, 13 and 15 were read via the Wayback Machine copies listed.
 
-1. Netflix Technology Blog, "Per-Title Encode Optimization," 2015-12-14. https://netflixtechblog.com/per-title-encode-optimization-7e99442b62a2
-2. I. Katsavounidis, "Dynamic optimizer — a perceptual video encoding optimization framework," Netflix Technology Blog, 2018-03-05. https://netflixtechblog.com/dynamic-optimizer-a-perceptual-video-encoding-optimization-framework-e19f1e3a277f
+1. Netflix Technology Blog, "Per-Title Encode Optimization," 2015-12-14. https://netflixtechblog.com/per-title-encode-optimization-7e99442b62a2 (read via https://web.archive.org/web/20170107062725/http://techblog.netflix.com/2015/12/per-title-encode-optimization.html)
+2. I. Katsavounidis, "Dynamic optimizer — a perceptual video encoding optimization framework," Netflix Technology Blog, 2018-03-05. https://netflixtechblog.com/dynamic-optimizer-a-perceptual-video-encoding-optimization-framework-e19f1e3a277f (read via https://web.archive.org/web/20241231233211/https://netflixtechblog.com/dynamic-optimizer-a-perceptual-video-encoding-optimization-framework-e19f1e3a277f)
 3. Netflix, "Open Connect" (embedded appliances in ISP networks, IXP interconnection; 1,000+ ISP partners). https://openconnect.netflix.com/en/
 4. Netflix, VMAF — Video Multi-Method Assessment Fusion (open-source repository). https://github.com/Netflix/vmaf
 5. R. Pantos, W. May, "HTTP Live Streaming," RFC 8216, August 2017 (Informational). https://www.rfc-editor.org/rfc/rfc8216
@@ -415,8 +420,9 @@ All accessed 2026-11-19.
 9. IETF httpbis WG, "Resumable Uploads for HTTP," draft-ietf-httpbis-resumable-upload-15, 2026-11-02 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-httpbis-resumable-upload/
 10. P. Ranganathan et al., "Warehouse-Scale Video Acceleration: Co-design and Deployment in the Wild," ASPLOS 2021. https://research.google/pubs/warehouse-scale-video-acceleration-co-design-and-deployment-in-the-wild/
 11. Meta, "MSVP: Meta's first ASIC for video transcoding," 2023-05-18. https://ai.meta.com/blog/meta-scalable-video-processor-MSVP/
-12. Netflix Technology Blog, "AV1 — Now Powering 30% of Netflix Streaming," 2025-12-01 (snapshot 2025-11-13). https://netflixtechblog.com/av1-now-powering-30-of-netflix-streaming-02f592242d80
-13. Netflix Technology Blog, "Bringing AV1 Streaming to Netflix Members' TVs," 2021-11-09. https://netflixtechblog.com/bringing-av1-streaming-to-netflix-members-tvs-b7fc88e42320
+12. Netflix Technology Blog, "AV1 — Now Powering 30% of Netflix Streaming," 2025-12-01 (snapshot 2025-11-13). https://netflixtechblog.com/av1-now-powering-30-of-netflix-streaming-02f592242d80 (read via https://web.archive.org/web/20261024092619/https://netflixtechblog.com/av1-now-powering-30-of-netflix-streaming-02f592242d80)
+13. Netflix Technology Blog, "Bringing AV1 Streaming to Netflix Members' TVs," 2021-11-09. https://netflixtechblog.com/bringing-av1-streaming-to-netflix-members-tvs-b7fc88e42320 (read via https://web.archive.org/web/20241231233046/https://netflixtechblog.com/bringing-av1-streaming-to-netflix-members-tvs-b7fc88e42320)
 14. Alliance for Open Media, "Alliance for Open Media Releases AV2 Codec," press release, June 2026. https://aomedia.org/press%20releases/Alliance-for-Open-Media-Releases-AV2-Codec/
-15. Directive (EU) 2019/882 (European Accessibility Act) — measures apply from 28 June 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32019L0882
-16. European Commission, "European Accessibility Act" (products and services covered, incl. access to audiovisual media services). https://commission.europa.eu/strategy-and-policy/policies/justice-and-fundamental-rights/disability/union-equality-strategy-rights-persons-disabilities-2021-2030/european-accessibility-act_en
+15. Directive (EU) 2019/882 (European Accessibility Act) — measures apply from 28 June 2025. Art. 2 and recital on services providing access to audiovisual media services. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32019L0882 (read via https://web.archive.org/web/20260109005550/https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A32019L0882)
+16. Amazon Web Services, "Add preconditions to S3 operations with conditional requests" (`If-None-Match` on PutObject, CompleteMultipartUpload, CopyObject). https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html
+17. Amazon Web Services, "Amazon S3 multipart upload limits" (part numbers 1–10,000; part size 5 MiB to 5 GiB, no minimum for the last part). https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html

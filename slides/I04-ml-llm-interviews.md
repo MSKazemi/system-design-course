@@ -46,6 +46,7 @@
 
 ## Slide 7 — Serving constraints
 - TTFT and inter-token latency as separate SLOs
+- TTFT = queueing + prefill; ITL = gap between streamed tokens; TPOT = a request's average per output token
 - Prefill compute-bound, decode bandwidth-bound; KV caps concurrency
 - Scale on waiting requests and KV-cache usage (vLLM exposes both)
 **Visual:** two-phase timeline (prefill block, decode ticks). Icons: `arch-memory`, `ops-latency`.
@@ -60,7 +61,7 @@
 ## Slide 9 — Worked answer A: RAG help assistant
 - 1.5 M questions/day, ≈ 70 QPS peak; index ≈ 16 GB, fits in RAM
 - ≈ 3,400 input + 250 output tokens per answer
-- Hosted ≈ $95k/month vs self-hosted ≈ 18 H100s ≈ $39k/month (placeholder prices)
+- Hosted ≈ $95k/month vs self-hosted ≈ 18 H100s (2 regions × ≈ 9, each able to take the full load) ≈ $39k/month (placeholder prices)
 - Eval with abstention; event-driven freshness; version-keyed cache invalidation
 **Visual:** RAG sketch; cost comparison bars labelled as assumptions. Icons: `search-elasticsearch`, `arch-search-index`, `ops-cost`.
 **Speaker notes:** Public corpus means no ACLs, which removes most of C10's complexity. Saying so is a signal.
@@ -76,8 +77,11 @@
 - 20 M items/day; cascade: hash → classifier → LLM judge → humans
 - GPUs: a handful. Human review: ≈ 60k items/day ≈ 150 reviewers
 - Per-policy thresholds; errors measured by stratified expert sampling
+- 300 ms p95 covers stage 0 + classifier; uncertain items are held for a label-only judge call (≈ 0.5 s p95); rationale written asynchronously
 **Visual:** cascade with escalation percentages per stage. Icons: `security-authorization`, `arch-users`.
-**Speaker notes:** Thresholds are cost levers as much as quality levers, because human review is the dominant cost.
+**Speaker notes:** Thresholds are cost levers as much as quality levers, because human review is the dominant cost:
+≈ $9–13 k/month of GPUs against ≈ $450–900 k/month of reviewers under the lesson's assumptions. A judge that wrote its
+rationale on the publish path would take 1–3 s, which is why it emits a label only.
 
 ## Slide 12 — Red flags and follow-ups
 - No eval plan; sizing by requests; no baseline; one metric, no guardrails; uncalibrated judges

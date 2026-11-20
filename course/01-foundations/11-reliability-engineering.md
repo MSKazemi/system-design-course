@@ -3,7 +3,7 @@ id: SYSDESIGN-11
 title: "Reliability engineering"
 part: "I — Classical foundations"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01, SYSDESIGN-03, SYSDESIGN-08, SYSDESIGN-10]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Lumen's answer API must hold 99.95% monthly availability, survive the loss of one availability zone with no human action, and recover on its own within five minutes after any dependency brownout ends"
@@ -56,9 +56,9 @@ Three things changed between roughly 2016 and 2026.
   at once. Redundancy does not help when every replica receives the same bad input.
 - **Workloads got longer and more expensive per request.** LLM calls and agent steps take seconds to minutes and
   burn GPU time. A naive timeout-and-retry policy that was merely wasteful for a 20 ms database read becomes ruinous
-  for a 30-second generation. LLM APIs routinely answer `429 Too Many Requests` with a `Retry-After` hint [25][26];
-  clients that ignore it amplify the overload they are being warned about. (LLM-specific gateways are covered in
-  SYSDESIGN-26.)
+  for a 30-second generation. HTTP defines `429 Too Many Requests` and the `Retry-After` header [25][26], and LLM
+  APIs use them to push back (for example [28]); clients that ignore them amplify the overload they are being warned
+  about. (LLM-specific gateways are covered in SYSDESIGN-26.)
 
 ## Core ideas [Core]
 
@@ -548,9 +548,9 @@ recovered within the first 5 s; `shed` recovered more slowly because clients wer
 
 ## References
 
-1. F. Cristian, "Understanding fault-tolerant distributed systems," *Communications of the ACM* 34(2):56–78, 1991. https://doi.org/10.1145/102792.102801 (accessed 2026-11)
+1. F. Cristian, "Understanding fault-tolerant distributed systems," *Communications of the ACM* 34(2):56–78, 1991. https://doi.org/10.1145/102792.102801 (DOI returns HTTP 403 to scripts; bibliographic data checked via Crossref; full text: https://pop-art.inrialpes.fr/people/ayav/bib/cristian91.pdf, accessed 2026-11)
 2. L. Lamport, R. Shostak, M. Pease, "The Byzantine Generals Problem," *ACM TOPLAS* 4(3):382–401, 1982. https://www.microsoft.com/en-us/research/publication/byzantine-generals-problem/ (accessed 2026-11)
-3. P. Huang, C. Guo, L. Zhou, J. R. Lorch, Y. Dang, M. Chintalapati, R. Yao, "Gray Failure: The Achilles' Heel of Cloud-Scale Systems," HotOS '17, 2017. https://www.microsoft.com/en-us/research/publication/gray-failure-achilles-heel-cloud-scale-systems/ (accessed 2026-11)
+3. P. Huang, C. Guo, L. Zhou, J. R. Lorch, Y. Dang, M. Chintalapati, R. Yao, "Gray Failure: The Achilles' Heel of Cloud-Scale Systems," HotOS '17, 2017. https://www.microsoft.com/en-us/research/publication/gray-failure-achilles-heel-cloud-scale-systems/ ; full text: https://pages.cs.wisc.edu/~ra/Classes/739-sp20/papers/grayfailure-hotos17.pdf (accessed 2026-11)
 4. N. Bronson, A. Aghayev, A. Charapko, T. Zhu, "Metastable Failures in Distributed Systems," HotOS '21, 2021. https://sigops.org/s/conferences/hotos/2021/papers/hotos21-s11-bronson.pdf (accessed 2026-11)
 5. L. Huang, M. Magnusson, A. B. Muralikrishna, S. Estyak, R. Isaacs, A. Aghayev, T. Zhu, A. Charapko, "Metastable Failures in the Wild," OSDI '22, 2022. https://www.usenix.org/conference/osdi22/presentation/huang-lexiang (accessed 2026-11)
 6. M. Brooker, "Exponential Backoff And Jitter," AWS Architecture Blog, 2015 (updated 2023). https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/ (accessed 2026-11)
@@ -563,10 +563,10 @@ recovered within the first 5 s; `shed` recovered more slowly because clients wer
 13. Envoy Proxy, "Adaptive Concurrency" HTTP filter documentation (latest). https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/adaptive_concurrency_filter (accessed 2026-11)
 14. M. Fowler, "CircuitBreaker," bliki, 6 March 2014. https://martinfowler.com/bliki/CircuitBreaker.html (accessed 2026-11)
 15. M. T. Nygard, *Release It! Design and Deploy Production-Ready Software*, 2nd ed., Pragmatic Bookshelf, 2018. https://pragprog.com/titles/mnee2/release-it-second-edition/ (accessed 2026-11)
-16. B. Weiss, M. Furr, "Static stability using Availability Zones," Amazon Builders' Library. https://aws.amazon.com/builders-library/static-stability-using-availability-zones/ (accessed 2026-11)
-17. AWS, *Disaster Recovery of Workloads on AWS: Recovery in the Cloud* (whitepaper), sections "Business Continuity Plan" and "Disaster recovery options in the cloud." https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html (accessed 2026-11)
+16. M. Furr, "Static stability using Availability Zones," Amazon Builders' Library, 2019 (the current page bylines only Mike Furr; some third-party summaries also credit Becky Weiss). https://aws.amazon.com/builders-library/static-stability-using-availability-zones/ (now served at builder.aws.com; accessed 2026-11)
+17. AWS, *Disaster Recovery of Workloads on AWS: Recovery in the Cloud* (whitepaper), sections "Business Continuity Plan" and "Disaster recovery options in the cloud." https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html ; Business Continuity Plan section: https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/business-continuity-plan-bcp.html (accessed 2026-11)
 18. Principles of Chaos Engineering. https://principlesofchaos.org/ (accessed 2026-11)
-19. A. Basiri, N. Behnam, R. de Rooij, L. Hochstein, L. Kosewski, J. Reynolds, C. Rosenthal, "Chaos Engineering," *IEEE Software* 33(3):35–41, 2016. https://doi.org/10.1109/MS.2016.60 (accessed 2026-11)
+19. A. Basiri, N. Behnam, R. de Rooij, L. Hochstein, L. Kosewski, J. Reynolds, C. Rosenthal, "Chaos Engineering," *IEEE Software* 33(3):35–41, 2016. https://doi.org/10.1109/MS.2016.60 (DOI not fetchable by script; bibliographic data checked via Crossref; preprint: https://arxiv.org/abs/1702.05843, accessed 2026-11)
 20. AWS, "Summary of the AWS Service Event in the Northern Virginia (US-EAST-1) Region" (7 December 2021). https://aws.amazon.com/message/12721/ (accessed 2026-11)
 21. AWS, "Summary of the Amazon DynamoDB Service Disruption in the Northern Virginia (US-EAST-1) Region" (19–20 October 2025). https://aws.amazon.com/message/101925/ (accessed 2026-11)
 22. Cloudflare, "Cloudflare outage on November 18, 2025." https://blog.cloudflare.com/18-november-2025-outage/ (accessed 2026-11)
@@ -575,3 +575,4 @@ recovered within the first 5 s; `shed` recovered more slowly because clients wer
 25. R. Fielding, M. Nottingham, J. Reschke (eds.), RFC 9110 *HTTP Semantics*, §10.2.3 Retry-After, 2022. https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after (accessed 2026-11)
 26. M. Nottingham, R. Fielding, RFC 6585 *Additional HTTP Status Codes*, §4 429 Too Many Requests, 2012. https://www.rfc-editor.org/rfc/rfc6585.html (accessed 2026-11)
 27. Shopify, Toxiproxy (v2.13.0). https://github.com/Shopify/toxiproxy (accessed 2026-11)
+28. Anthropic, "Rate limits" (Claude API documentation: HTTP 429 `rate_limit_error`, with a `retry-after` header when the response carries one), https://platform.claude.com/docs/en/api/rate-limits (accessed 2026-11).

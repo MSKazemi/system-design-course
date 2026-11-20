@@ -123,7 +123,8 @@ That is the interview-quality answer.
 **Visual:** a timeline of one streamed response annotated with TTFT, gaps and E2E. Icons: `ops-metrics`, `ops-slo`.
 
 **Speaker notes:** A request can have a fine TPOT and a terrible p99 ITL if a long prefill was scheduled into its
-stream. Throughput without SLOs is a vanity metric.
+stream. Throughput without SLOs is a vanity metric. Caveat: vLLM's server TPOT histogram records one-token requests as
+zero while `vllm bench serve` excludes them, so the two TPOT numbers differ.
 
 ## Slide 11 — Why p99 matters for LLM products
 

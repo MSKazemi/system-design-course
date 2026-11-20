@@ -3,7 +3,7 @@ id: SYSDESIGN-22
 title: "Serving LLMs at scale"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-21, SYSDESIGN-03, SYSDESIGN-04, SYSDESIGN-14]
 estimated_time: "4h reading + 2h lab"
 requirement: "Serve a 32B-class open model to 10,000 concurrently active Lumen users with TTFT p95 < 2 s and TPOT p95 < 50 ms, at a cost per million tokens finance can sign off."
@@ -67,7 +67,7 @@ cache memory is used to store the actual token states" [14]; the rest was reserv
 **PagedAttention** (SOSP 2023) [14] borrows the operating-system answer:
 
 - The KV cache is divided into fixed-size **blocks** of *b* tokens (the physical pages). vLLM's default block size is
-  now **64 tokens** (it was 16 before v0.34.0) [4].
+  now **64 tokens** (it was 16 before v0.34.0; ROCm paged attention still uses 16) [4].
 - Each sequence has a **block table** mapping its logical token positions to physical blocks (the page table).
 - Blocks are allocated **on demand** as the sequence grows. Waste is limited to the last, partly filled block.
 - Blocks can be **shared** between sequences with identical prefixes (parallel sampling, beam search, common system
@@ -149,6 +149,13 @@ How vLLM does it (design doc [17]):
   prompts from cache hits [17].
 - In V1, APC is **on by default**; the V1 announcement reported under 1 % throughput loss even at a 0 % hit rate [2].
 
+Because hashes chain from the first block, anything that varies at the *start* of a prompt — a timestamp at the top
+of the system prompt, a user name before the instructions — changes every later hash, and that prefix stops hitting
+at all. For Lumen's 1,200-token system prompt plus 300 unique tokens, a warm replica can serve 18 full blocks
+(1,152 tokens, ≈ 77 % of the prompt) from cache; put a timestamp first and the hit rate falls to ≈ 0 % (exercise 3).
+The lab saw the same shape: 77.3 % hits with the shared text first, 0 % with unique text placed before it. Stable
+content goes first, variable content last.
+
 SGLang's **RadixAttention** (Zheng et al., NeurIPS 2024) [18] generalised the idea to a radix tree over token
 sequences with LRU eviction, and showed large gains on workloads with shared structure (the paper reports up to 6.4×
 higher throughput across agent, reasoning, few-shot, JSON and multi-turn workloads [18]).
@@ -203,7 +210,7 @@ idles between steps. The architecture doc has a section on CPU sizing for GPU de
 `vllm serve <model>` exposes OpenAI-style `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, model listing
 and more, plus `/metrics`, `/health` and vLLM extensions such as `/tokenize` [21]. Compatibility is the reason vLLM is
 easy to slot behind gateways (chapter 26): clients, SDKs and gateways speak one protocol, and extra sampling parameters
-(`ignore_eos`, `min_tokens`, structured-output options) ride along as additional JSON fields.
+(`ignore_eos`, `min_tokens`, structured-output options) ride along as additional JSON fields [48].
 
 **Structured outputs** constrain decoding so output matches a JSON schema, regex, choice list or grammar. vLLM uses
 **xgrammar** or **guidance** as backends (`lm-format-enforcer` is deprecated) [22]. Mechanically, a grammar engine
@@ -245,8 +252,10 @@ score with a load penalty. The **Gateway API Inference Extension** standardises 
 via ext-proc chooses the pod per request using "Metrics and Capabilities" such as "Prefix Cache status or LoRA Adapters
 availability" [11]. (As of 2026-11, the full EPP implementation has moved to `llm-d/llm-d-router`; the
 `kubernetes-sigs` repository keeps the `InferencePool` API, a lightweight reference EPP and the conformance tests [11].)
-llm-d reports "3x higher output throughput and 2x faster TTFT with prefix-cache-aware routing vs round-robin" in one
-partner deployment on Llama 3.1 70B — a vendor-reported result, not an independent benchmark [10].
+llm-d reports "3x higher output throughput and 2x faster TTFT with prefix-cache-aware routing vs round-robin" [10]
+from one Red Hat/Tesla deployment: Llama 3.1 70B on 4 × AMD MI300X (tensor parallel 4, 64k max model length), measured
+as a before/after on that running deployment when the routing change was released, not a controlled benchmark; the
+blog says only that routing "moved far beyond round-robin" [46]. Treat it as vendor-reported, not independent.
 
 ### 9. Autoscaling on the right signals
 
@@ -388,7 +397,7 @@ memory-bound workloads" [31]).
 |---|---|---|---|---|
 | **vLLM** | v0.34.0 (2026-11-16) [4] | broad model and hardware support; OpenAI-compatible server; large ecosystem (LMCache, llm-d, KServe, production-stack) | fast-moving defaults — re-validate on upgrade | PagedAttention, APC, chunked prefill, spec decode, multi-LoRA, P/D via KV connectors |
 | **SGLang** | v0.5.23 (2026-11-02) | prefix-heavy and structured workloads (RadixAttention, compressed FSM); large-scale P/D and expert parallelism | fast release cadence; verify model and feature coverage for your model | supports NVIDIA, AMD, TPU (via SGLang-TorchTPU/SGL-JAX), Intel and others per its README [32] |
-| **TensorRT-LLM** | v1.4.0 release candidates (2026-11) | maximum performance on NVIDIA GPUs with NVIDIA-tuned kernels | NVIDIA-only | now "architected on PyTorch", fully open source, with `trtllm-serve`; P/D and wide expert parallelism [33] |
+| **TensorRT-LLM** | v1.2.1 (2026-04-20, latest stable); v1.4.0rc4 pre-release (2026-11-18) | maximum performance on NVIDIA GPUs with NVIDIA-tuned kernels | NVIDIA-only | now "architected on PyTorch", fully open source, with `trtllm-serve`; P/D and wide expert parallelism [33] |
 | **Hugging Face TGI** | v3.3.7 (2025-12-19), archived | existing deployments | **maintenance mode**; README recommends vLLM/SGLang/llama.cpp/MLX [13] | do not start new projects on it |
 | **llama.cpp (`llama-server`) / Ollama** | llama.cpp builds daily; Ollama v0.40.16 (2026-11-09) [45] | laptops, edge, CPUs, Apple silicon, GGUF quantised models, single-user | lower peak throughput on data-centre GPUs | llama.cpp server supports continuous batching and parallel slots [34] |
 
@@ -425,7 +434,7 @@ Parallel MoE layers" [36]. Chapter 23 quantifies why TP must stay inside the NVL
 
 | Method | What is quantised | Wins when | Costs | Reference |
 |---|---|---|---|---|
-| **FP8 (W8A8)** | weights and activations | Hopper/Blackwell-class GPUs; halves weight bytes and uses FP8 tensor cores | calibration; evaluate accuracy | vLLM via LLM Compressor [37] |
+| **FP8 (W8A8)** | weights and activations | FP8-capable GPUs (Ada, Hopper, Blackwell; AMD per vLLM's support matrix, where AWQ/GPTQ are not supported) [37]; halves weight bytes and uses FP8 tensor cores | calibration; evaluate accuracy | vLLM via LLM Compressor [37] |
 | **AWQ** (MLSys 2024 best paper) | weights to 4-bit, protecting salient channels found from activations | memory-limited deployment, edge | accuracy risk; dequantisation overhead | Lin et al. [38] |
 | **GPTQ** (ICLR 2023) | weights to 3–4-bit via approximate second-order information | same | same | Frantar et al. [39] |
 | **FP8 KV cache** | KV cache | long context / high concurrency | attention accuracy risk | vLLM `kv_cache_dtype="fp8"` [40] |
@@ -488,8 +497,11 @@ after LRU has evicted it from HBM. Tiered KV moves cold blocks to CPU DRAM, loca
 back on a hit, turning a re-prefill into a transfer. It pays when transfer time < recompute time: a 10,000-token
 prefix of Qwen3-32B at FP8 KV is 10,000 × 128 KiB ≈ 1.3 GB; recomputing it costs ≈ 2 × 32.8 × 10⁹ × 10⁴ FLOPs ≈ 0.83 s
 at the A-6 rate, while moving 1.3 GB over a 50 GB/s host link takes ≈ 26 ms (bandwidth illustrative; PCIe Gen5 x16 is
-specified at 128 GB/s bidirectional on the H100 [29]). llm-d reports a 13.9× throughput improvement with hierarchical
-KV offloading at 250 concurrent users on 4 H100s (vendor-reported) [10]; LMCache provides the layer for vLLM [28].
+specified at 128 GB/s bidirectional on the H100 [29]). llm-d's v0.5 blog reports 13.9× throughput at 250 concurrent
+users for tiered KV offload to a storage tier (IBM Storage Scale) versus a GPU-only baseline that "collapses once HBM is
+saturated" (Llama-3.1-70B, 4 × H100, 16K-token requests with previously-seen prompts; the project's internal benchmark,
+vendor-reported, not independent) [47]. The ratio measures against a collapsed baseline: it shows the regime where
+reusable context exceeds HBM, not a typical gain. LMCache provides the offload layer for vLLM [28].
 
 ### Expert parallelism and very large MoE models
 
@@ -519,7 +531,7 @@ communication every MoE layer and load-balancing across experts. This is where d
 |---|---|---|
 | **Queue build-up** → TTFT p99 explodes | `vllm:num_requests_waiting`, `vllm:request_queue_time_seconds` | autoscale on queue; shed load; priority classes |
 | **KV exhaustion / preemption storms** | preemption log lines/counters; `kv_cache_usage_perc` pinned with queue growing | more replicas; FP8 KV; lower `max_num_seqs`/`max_model_len`; KV offload |
-| **Prefix-cache hit rate collapses after a deploy/scale-out** | `vllm:prefix_cache_hits` ÷ `vllm:prefix_cache_queries` | prefix-aware routing; warm caches gradually; avoid reshuffling affinity on scale events |
+| **Prefix-cache hit rate collapses after a deploy/scale-out** | `vllm:prefix_cache_hits_total` ÷ `vllm:prefix_cache_queries_total` (counters are exposed with a `_total` suffix; the design doc lists them without it [26]) | prefix-aware routing; warm caches gradually; avoid reshuffling affinity on scale events |
 | **Hot replica** from affinity routing | per-pod queue skew | load penalty in routing score; bounded-load consistent hashing ([SYSDESIGN-07](../01-foundations/07-partitioning-sharding.md)) |
 | **ITL spikes** | ITL p99 vs p50 | smaller chunked-prefill budget; P/D disaggregation |
 | **Cold-start lag during spikes** | time from scale decision to Ready | warm pools; weight streaming; pre-pulled images; scale earlier |
@@ -637,33 +649,36 @@ while TPOT roughly doubled, and prefix caching cut warm-request TTFT from ≈ 3.
 13. Hugging Face, *text-generation-inference README* (maintenance mode; repository archived; v3.3.7, 2025-12-19). https://github.com/huggingface/text-generation-inference (accessed 2026-11)
 14. W. Kwon et al., *Efficient Memory Management for Large Language Model Serving with PagedAttention*, SOSP 2023. arXiv:2309.06180. https://arxiv.org/abs/2309.06180
 15. G.-I. Yu, J. S. Jeong, G.-W. Kim, S. Kim, B.-G. Chun, *Orca: A Distributed Serving System for Transformer-Based Generative Models*, OSDI 2022. https://www.usenix.org/conference/osdi22/presentation/yu
-16. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), v0.34.0. https://docs.vllm.ai/en/latest/configuration/optimization.html (accessed 2026-11)
-17. vLLM project, *Automatic Prefix Caching (design)*. https://docs.vllm.ai/en/latest/design/prefix_caching.html (accessed 2026-11)
+16. vLLM project, *Optimization and Tuning* (preemption, chunked prefill), v0.34.0. https://docs.vllm.ai/en/v0.34.0/configuration/optimization/ (accessed 2026-11)
+17. vLLM project, *Automatic Prefix Caching (design)*. https://docs.vllm.ai/en/v0.34.0/design/prefix_caching/ (accessed 2026-11)
 18. L. Zheng et al., *SGLang: Efficient Execution of Structured Language Model Programs*, NeurIPS 2024. arXiv:2312.07104. https://proceedings.neurips.cc/paper_files/paper/2024/hash/724be4472168f31ba1c9ac630f15dec8-Abstract-Conference.html
 19. A. Agrawal et al., *Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve*, OSDI 2024. arXiv:2403.02310. https://www.usenix.org/conference/osdi24/presentation/agrawal
-20. vLLM project, *Architecture Overview* (V1 process architecture), v0.34.0. https://docs.vllm.ai/en/latest/design/arch_overview.html (accessed 2026-11)
-21. vLLM project, *OpenAI-Compatible Server*. https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html (accessed 2026-11)
-22. vLLM project, *Structured Outputs*, v0.34.0. https://docs.vllm.ai/en/latest/features/structured_outputs.html (accessed 2026-11)
+20. vLLM project, *Architecture Overview* (V1 process architecture), v0.34.0. https://docs.vllm.ai/en/v0.34.0/design/arch_overview/ (accessed 2026-11)
+21. vLLM project, *OpenAI-Compatible Server*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/online_serving/ (accessed 2026-11)
+22. vLLM project, *Structured Outputs*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/structured_outputs/ (accessed 2026-11)
 23. L. Chen et al., *Punica: Multi-Tenant LoRA Serving*, MLSys 2024. arXiv:2310.18547. https://proceedings.mlsys.org/paper_files/paper/2024/hash/054de805fcceb78a201f5e9d53c85908-Abstract-Conference.html
-24. Y. Sheng et al., *S-LoRA: Serving Thousands of Concurrent LoRA Adapters*, 2023. arXiv:2311.03285. https://arxiv.org/abs/2311.03285
-25. vLLM project, *LoRA Adapters*, v0.34.0. https://docs.vllm.ai/en/latest/features/lora.html (accessed 2026-11)
-26. vLLM project, *Metrics (design doc)*. https://docs.vllm.ai/en/latest/design/metrics.html (accessed 2026-11)
+24. Y. Sheng et al., *S-LoRA: Serving Thousands of Concurrent LoRA Adapters* (proceedings title: *SLoRA: Scalable Serving of Thousands of LoRA Adapters*), Proceedings of Machine Learning and Systems 6 (MLSys 2024). arXiv:2311.03285. https://proceedings.mlsys.org/paper_files/paper/2024/hash/906419cd502575b617cc489a1a696a67-Abstract-Conference.html
+25. vLLM project, *LoRA Adapters*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/lora/ (accessed 2026-11)
+26. vLLM project, *Metrics (design doc)*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/design/metrics/ (accessed 2026-11)
 27. NVIDIA, *NIXL — NVIDIA Inference Xfer Library, README* (v1.5.2, 2026-10-29). https://github.com/ai-dynamo/nixl (accessed 2026-11)
 28. LMCache project, *README*. https://github.com/LMCache/LMCache (accessed 2026-11)
 29. NVIDIA, *H100 Tensor Core GPU — product specifications*. https://www.nvidia.com/en-us/data-center/h100/ (accessed 2026-11)
 30. Y. Leviathan, M. Kalman, Y. Matias, *Fast Inference from Transformers via Speculative Decoding*, ICML 2023. arXiv:2211.17192. https://arxiv.org/abs/2211.17192
-31. vLLM project, *Speculative Decoding*. https://docs.vllm.ai/en/latest/features/speculative_decoding/ (accessed 2026-11)
+31. vLLM project, *Speculative Decoding*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/speculative_decoding/ (accessed 2026-11)
 32. SGLang project, *README* (v0.5.23, 2026-11-02). https://github.com/sgl-project/sglang (accessed 2026-11)
-33. NVIDIA, *TensorRT-LLM README* (v1.4.0rc4, 2026-11-18). https://github.com/NVIDIA/TensorRT-LLM (accessed 2026-11)
+33. NVIDIA, *TensorRT-LLM README and releases* (latest stable v1.2.1, 2026-04-20; v1.4.0rc4 pre-release, 2026-11-18). https://github.com/NVIDIA/TensorRT-LLM (accessed 2026-11)
 34. ggml-org, *llama.cpp server README*. https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md (accessed 2026-11)
 35. vLLM project, *production-stack README* (vllm-stack-0.1.14, 2026-11-07). https://github.com/vllm-project/production-stack (accessed 2026-11)
-36. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/latest/serving/parallelism_scaling.html (accessed 2026-11)
-37. vLLM project, *Quantization* (supported methods; LLM Compressor; NVFP4), v0.34.0. https://docs.vllm.ai/en/latest/features/quantization/ (accessed 2026-11)
+36. vLLM project, *Parallelism and Scaling*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/serving/parallelism_scaling/ (accessed 2026-11)
+37. vLLM project, *Quantization* (supported methods; LLM Compressor; NVFP4), v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/quantization/ (accessed 2026-11)
 38. J. Lin et al., *AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration*, MLSys 2024 (Best Paper). arXiv:2306.00978. https://arxiv.org/abs/2306.00978
 39. E. Frantar, S. Ashkboos, T. Hoefler, D. Alistarh, *GPTQ*, ICLR 2023. arXiv:2210.17323. https://arxiv.org/abs/2210.17323
-40. vLLM project, *Quantized KV Cache*, v0.34.0. https://docs.vllm.ai/en/latest/features/quantization/quantized_kvcache.html (accessed 2026-11)
-41. Y. Li, F. Wei, C. Zhang, H. Zhang, *EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty*, 2024. arXiv:2401.15077. https://arxiv.org/abs/2401.15077
-42. Y. Li et al., *EAGLE-3: Scaling up Inference Acceleration of Large Language Models via Training-Time Test*, 2025. arXiv:2503.01840 (preprint). https://arxiv.org/abs/2503.01840
-43. vLLM project, *Loading models with Run:ai Model Streamer*, v0.34.0. https://docs.vllm.ai/en/latest/models/extensions/runai_model_streamer.html (accessed 2026-11)
-44. vLLM project, *Sleep Mode*, v0.34.0. https://docs.vllm.ai/en/latest/features/sleep_mode.html (accessed 2026-11)
+40. vLLM project, *Quantized KV Cache*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/quantization/quantized_kvcache/ (accessed 2026-11)
+41. Y. Li, F. Wei, C. Zhang, H. Zhang, *EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty*, ICML 2024 (PMLR 235:28935–28948). arXiv:2401.15077. https://proceedings.mlr.press/v235/li24bt.html
+42. Y. Li et al., *EAGLE-3: Scaling up Inference Acceleration of Large Language Models via Training-Time Test*, NeurIPS 2025. arXiv:2503.01840. https://proceedings.neurips.cc/paper_files/paper/2025/hash/c7b5a35ea98b62512a869c19ea7b03cb-Abstract-Conference.html
+43. vLLM project, *Loading models with Run:ai Model Streamer*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/models/extensions/runai_model_streamer/ (accessed 2026-11)
+44. vLLM project, *Sleep Mode*, v0.34.0. https://docs.vllm.ai/en/v0.34.0/features/sleep_mode/ (accessed 2026-11)
 45. Ollama project, *GitHub releases* (v0.40.16, 2026-11-09). https://github.com/ollama/ollama/releases (accessed 2026-11)
+46. Y. Tang, R. Shaw, S. Cabrinha, S. Krishna (Red Hat, Tesla), *Production-Grade LLM Inference at Scale with KServe, llm-d, and vLLM*, llm-d blog (Llama 3.1 70B, 4 × AMD MI300X, TP 4, `--max-model-len=65536`). https://llm-d.ai/blog/production-grade-llm-inference-at-scale-kserve-llm-d-vllm (accessed 2026-11)
+47. llm-d project, *llm-d 0.5: Sustaining Performance at Scale*, llm-d blog (Figure 3: Llama-3.1-70B, 4 × H100 with IBM Storage Scale, 16K-token requests, 13.9× at 250 users vs GPU-only). https://llm-d.ai/blog/llm-d-v0.5-sustaining-performance-at-scale (accessed 2026-11)
+48. vLLM project, *vllm/entrypoints/openai/completion/protocol.py* and *chat_completion/protocol.py* (`ignore_eos`, `min_tokens` request fields), v0.34.0. https://github.com/vllm-project/vllm/tree/v0.34.0/vllm/entrypoints/openai (accessed 2026-11)

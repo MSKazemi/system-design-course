@@ -44,8 +44,8 @@ with SLOs.
 ## Slide 5 — A2A, as of 2026-11
 - Agent ↔ opaque agent delegation
 - Agent Card, Task, Message/Part, Artifact
-- JSON-RPC over HTTP(S); polling, SSE, push
-- v1.0.0 (Mar 2026), v1.0.1 (May 2026)
+- Three bindings: JSON-RPC 2.0 over HTTP(S), gRPC, HTTP+JSON/REST; polling, SSE, push
+- v1.0.0 (Mar 2026), v1.0.1 (May 2026); `A2A-Version` header required
 
 **Visual:** two agent boxes exchanging a Task and Artifacts; MCP tools under each.
 **Speaker notes:** Use MCP for capabilities you control and A2A for agents you don't.
@@ -98,7 +98,7 @@ cost and a failure point.
 was killed at 10 s.
 
 ## Slide 11 — Permissions and approvals
-- OWASP LLM06 Excessive Agency
+- OWASP Excessive Agency (LLM03:2026, LLM06 in 2025)
 - Per-task, short-lived, narrowed credentials
 - Risk tiers: allow / audit / approve
 - Lethal trifecta: private data + untrusted content + external comms

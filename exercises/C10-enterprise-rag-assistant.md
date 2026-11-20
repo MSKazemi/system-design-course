@@ -42,12 +42,12 @@ closed. Mention the propagation-lag SLO.
 
 ## 4. [Deep] Groups as tokens
 
-Alice is removed from group `finance`, which grants access to 40,000 documents (360,000 chunks). Describe the update
+Alice is removed from group `finance`, which grants access to 40,000 documents (320,000 chunks at the lesson's 8 per document). Describe the update
 under (a) per-user ACL lists on chunks and (b) group tokens.
 
 <details><summary>Answer</summary>
 
-(a) Every chunk listing Alice must be rewritten: 360,000 updates (and every future membership change repeats this),
+(a) Every chunk listing Alice must be rewritten: 320,000 updates (and every future membership change repeats this),
 likely missing the 5-minute SLO. (b) Chunks carry `g:finance`; only Alice's principal → token set changes (one row),
 effective on her next query. Document-level ACL changes still rewrite that document's chunks, which is bounded. Note
 the cache: if token sets are cached in the API tier, the cache TTL is part of the propagation budget.

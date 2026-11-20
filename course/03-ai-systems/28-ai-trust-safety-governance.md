@@ -3,18 +3,18 @@ id: SYSDESIGN-28
 title: "Trust, safety & governance for AI systems"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-18, SYSDESIGN-19, SYSDESIGN-24, SYSDESIGN-25, SYSDESIGN-26]
 estimated_time: "3h reading"
 requirement: "Let an LLM assistant read untrusted documents and call tools on customers' behalf without leaking their data, and be able to show a regulator what it did and why"
 learning_objectives:
-  - "Build a threat model for an LLM application using the OWASP Top 10 for LLM Applications (2025) and the Agentic Top 10 (2026)"
+  - "Build a threat model for an LLM application using the OWASP Top 10 for LLM Applications (2026) and the Agentic Top 10 (2026)"
   - "Explain direct and indirect prompt injection and why filtering alone cannot solve it"
   - "Design a layered guardrail architecture with input/output controls, a policy engine and capability-scoped tools"
   - "Design PII redaction, content provenance and model supply-chain controls, and state their limits"
   - "Translate EU AI Act obligations (Articles 12, 14, 50, 53) and NIST AI RMF functions into system requirements"
   - "Design tamper-evident audit logging with retention that fits both the AI Act and GDPR"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 28 — Trust, safety & governance for AI systems
@@ -47,9 +47,10 @@ non-functional requirements and they become a design you can review.
 ## Why this matters now
 
 - **The threat catalogue matured.** OWASP's GenAI Security Project published the *Top 10 for LLM
-  Applications 2025*, with Prompt Injection still at LLM01 [1]. In December 2025 it published a separate
-  *Top 10 for Agentic Applications for 2026*, led by Agent Goal Hijack (ASI01) [2]. As of 2026-11 the OWASP
-  LLM Top 10 page still lists the 2025 edition as current [1].
+  Applications 2026* in August 2026, with Prompt Injection still at LLM01 and Excessive Agency moved up to
+  LLM03 [1]. In December 2025 it had published a separate *Top 10 for Agentic Applications for 2026*, led by
+  Agent Goal Hijack (ASI01) [2]. The 2025 edition used different numbering (and OWASP's LLM Top 10 landing
+  page still showed it as of 2026-11), so check the edition when you read older material.
 - **Agents raised the stakes.** A chatbot that is tricked says something wrong. An agent that is tricked
   *does* something wrong: it sends, deletes, buys or deploys. Simon Willison's "lethal trifecta" names the
   dangerous combination: access to private data, exposure to untrusted content, and the ability to
@@ -104,18 +105,22 @@ business logic, compute budget, and the organization's reputation and legal stan
 
 ### The OWASP lists as a checklist of controls
 
-| OWASP LLM 2025 [1] | What it means for the design | Primary control (where in the diagram) |
+| OWASP LLM 2026 [1] | What it means for the design | Primary control (where in the diagram) |
 |---|---|---|
 | LLM01 Prompt Injection | Any text in context can act as an instruction | Capability limits at the broker; design patterns; injection classifiers as a weak extra layer |
 | LLM02 Sensitive Information Disclosure | Model reveals PII, secrets or other tenants' data | ACL-aware retrieval; PII redaction; output filters |
-| LLM03 Supply Chain | Compromised models, adapters, datasets, packages | Signed artifacts; safe formats; provenance records |
-| LLM04 Data and Model Poisoning | Training or RAG data manipulated | Data provenance; ingestion review; evaluation gates |
-| LLM05 Improper Output Handling | Output fed unsanitized into HTML, SQL or shell | Treat output as untrusted input; encode; sandbox |
-| LLM06 Excessive Agency | Tools with too much permission or autonomy | Least privilege; human approval; rate limits |
-| LLM07 System Prompt Leakage | Secrets or logic stored in the prompt | Never put secrets in prompts; enforce rules outside the model |
-| LLM08 Vector and Embedding Weaknesses | Cross-tenant leakage, poisoned embeddings | Per-tenant indexes or filters; ingestion controls |
-| LLM09 Misinformation | Confident falsehoods | Grounding with citations; abstention; human review |
-| LLM10 Unbounded Consumption | Cost and denial of service via tokens | Token quotas and budgets at the gateway ([SYSDESIGN-26](26-llm-gateways-llmops.md)) |
+| LLM03 Excessive Agency | Tools with too much permission or autonomy | Least privilege; human approval; rate limits |
+| LLM04 Supply Chain | Compromised models, adapters, datasets, packages | Signed artifacts; safe formats; provenance records |
+| LLM05 Data and Model Poisoning | Training, fine-tuning or RAG data manipulated | Data provenance; ingestion review; evaluation gates |
+| LLM06 Unbounded Consumption | Cost and denial of service via tokens | Token quotas and budgets at the gateway ([SYSDESIGN-26](26-llm-gateways-llmops.md)) |
+| LLM07 Misinformation | Confident falsehoods | Grounding with citations; abstention; human review |
+| LLM08 Hidden Context Exposure | Secrets, rules or tool schemas in the hidden context get extracted | Never put secrets in prompts; enforce rules outside the model |
+| LLM09 Vector and Embedding Weaknesses | Cross-tenant leakage, poisoned embeddings | Per-tenant indexes or filters; ingestion controls |
+| LLM10 Improper Output Handling | Output fed unsanitized into HTML, SQL or shell | Treat output as untrusted input; encode; sandbox |
+
+The 2026 edition renamed the 2025 entry *System Prompt Leakage* to *Hidden Context Exposure*, broadening it from
+the system prompt to everything hidden in the context (developer instructions, retrieved policy text, tool
+schemas) [1]. If you meet "LLM05" or "LLM07" in a 2025-era document, map it by name, not by number.
 
 For agents, the OWASP Agentic Top 10 for 2026 adds: ASI01 Agent Goal Hijack, ASI02 Tool Misuse and
 Exploitation, ASI03 Identity and Privilege Abuse, ASI04 Agentic Supply Chain Vulnerabilities, ASI05
@@ -176,7 +181,7 @@ workflow that does not need all three legs.
 
 ### Jailbreaks
 
-A jailbreak makes the model produce content its safety training should refuse. Wei et al. explain two
+A jailbreak makes the model produce content its safety training should refuse. Wei et al. hypothesize two
 failure modes. **Competing objectives** arise "when a model's capabilities and safety goals conflict".
 **Mismatched generalization** occurs "when safety training fails to generalize to a domain for which
 capabilities exist", for example an obscure encoding or language [9]. Zou et al. showed that automatically
@@ -243,8 +248,9 @@ models, and they propose six patterns [7]:
 
 **CaMeL** takes code-then-execute further. It extracts the control and data flow from the trusted user
 query, runs it in a custom interpreter, and attaches *capabilities* (provenance and permission tags) to every
-value, so a policy can block private data from flowing to an unauthorized tool [6]. On the AgentDojo benchmark,
-CaMeL solved 77% of tasks with provable security, compared with 84% for an undefended system [6]. That
+value, so a policy can block private data from flowing to an unauthorized tool [6]. On the AgentDojo benchmark, the
+authors report that CaMeL solved 77% of tasks with provable security, compared with 84% for an undefended
+system (arXiv v2) [6]. That
 seven-point utility cost is the honest price of a security guarantee, and the right comparison for system
 designers.
 
@@ -262,8 +268,8 @@ designers.
 
 Where PII flows: user prompts, retrieved documents, tool outputs, logs, and fine-tuning datasets. Controls:
 
-- **Detect** with a mix of methods. Microsoft's open-source Presidio, now part of the Data Privacy Stack
-  project, combines named-entity recognition, regular expressions, rule-based logic, checksum validation and
+- **Detect** with a mix of methods. Presidio, open-sourced by Microsoft and now a community-owned project
+  published under the Data Privacy Stack name, combines named-entity recognition, regular expressions, rule-based logic, checksum validation and
   surrounding context, with analyzer, anonymizer and image-redactor components [13].
 - **Transform:** mask (`<PHONE>`), hash, or **reversibly pseudonymize** (replace "Maria Rossi" with
   `PERSON_17` and keep the mapping in a vault, so the response can be re-personalized for the authorized user
@@ -282,13 +288,15 @@ Two complementary techniques label AI-generated media:
   or audio). They survive some transformations, not all.
 - **Provenance manifests.** C2PA (the Coalition for Content Provenance and Authenticity) defines a *manifest*:
   assertions about an asset, a claim listing them, and a claim signature, "all bound together into a
-  verifiable unit" [14]. Hard bindings (cryptographic hashes over the asset's bytes) let a validator check that
-  the asset was not modified [14]. As of 2026-11 the C2PA specification site lists version 2.5 [15].
+  verifiable unit" (§1.3) [14]. Hard bindings (cryptographic hashes over the asset or a portion of it, §2.3.13
+  and §12.2.2) let a validator check that the asset was not modified [14]. As of 2026-11 the specification
+  index opens at version 2.5 (October 2026), which is the version quoted here [14][15].
 
-Limits stated in the specification itself: an asset "can become separated from its C2PA Manifest due to
-removal or corruption of asset metadata", which is why soft bindings (fingerprints, watermarks) exist to find
-a manifest again [14]. C2PA also says it does not provide value judgments about whether provenance data is
-"good" or "bad", only whether the assertions validate [14]. Provenance tells you *who signed what*, not
+Limits visible in the specification itself: its example for fingerprints notes that an asset "can become
+separated from its C2PA Manifest due to removal or corruption of asset metadata", which is why soft bindings
+(fingerprints, watermarks) exist to find a manifest again (§2.4.2) [14]. Its guiding principles state that C2PA
+specifications do not provide value judgements about whether provenance data is "good" or "bad", only whether
+the assertions validate (§1.2) [14]. Provenance tells you *who signed what*, not
 whether it is true.
 
 Why it is a system requirement: Article 50(2) of the AI Act requires providers of systems that generate
@@ -299,8 +307,10 @@ part of the media pipeline.
 ### Model and dataset supply chain
 
 - **Unsafe formats.** Pickle-based checkpoints can execute code when loaded. Hugging Face's documentation
-  describes "dangerous arbitrary code execution attacks" from loading pickle files, explains why its import
-  scanner "is not 100% foolproof", and points to `safetensors` as a weights-only format [16]. **Rule:** load
+  describes "dangerous arbitrary code execution attacks" from loading pickle files, warns that its import
+  scanner "is not 100% foolproof", and points to `safetensors`, "a new, simple serialization format for
+  weights", as an alternative [16]. Safetensors stores tensors only, so it cannot carry executable objects
+  (the course's reasoning, not Hugging Face's wording), but verify a file's origin anyway. **Rule:** load
   only safetensors (or equivalent) in production. Treat any pickle as executable code.
 - **Signing.** OpenSSF launched model-signing v1.0 on 4 April 2025, a library and CLI for signing and
   verifying models of any format [17]. It hashes every file in the model directory into a manifest, signs the
@@ -315,7 +325,7 @@ part of the media pipeline.
   same content.
 - **Poisoning.** RAG corpora are a training set you update every minute. Ingestion needs the same controls as
   any other untrusted input: source allow-lists, provenance tags in metadata, and quarantine for new sources
-  (OWASP LLM04, LLM08 [1]).
+  (OWASP LLM05 and LLM09, 2026 numbering [1]).
 
 ### Audit logs and traceability
 
@@ -486,7 +496,9 @@ Safety evaluation belongs in the same gate as quality evaluation ([SYSDESIGN-27]
 | High-risk (Art. 6, Annexes I and III) | Annex III areas such as employment (CV screening), access to essential services; AI in regulated products (Annex I) | Full Chapter III, Sections 1–3: risk management, data governance, technical documentation, logging, transparency to deployers, human oversight, accuracy/robustness/cybersecurity |
 | Transparency (Art. 50) | Chatbots, generators of synthetic content, deepfakes | Disclosure to users; machine-readable marking of outputs |
 | GPAI models (Arts. 51–55) | Foundation models; systemic risk presumed above 10²⁵ training FLOPs (Art. 51(2)) [4] | Documentation, downstream info, copyright policy, training-content summary; extra duties for systemic risk |
-| Minimal | Most other systems | Voluntary codes; AI literacy (Art. 4) |
+| Minimal | Most other systems | Voluntary codes of conduct |
+
+AI literacy (Art. 4) applies to every provider and deployer of AI systems, whatever the tier [4][5].
 
 Lumen's job-applicant screening use falls in an Annex III area (employment), so that deployment is likely
 high-risk. Your role (provider or deployer) decides which duties are yours, which is exactly the question to
@@ -498,13 +510,18 @@ bring to counsel.
 |---|---|---|
 | Entry into force | 1 Aug 2024 (20 days after OJ publication on 12 Jul 2024) | — |
 | Prohibitions (Art. 5), AI literacy (Art. 4) | 2 Feb 2025 | Unchanged; the two new prohibitions apply from 2 Dec 2026; Art. 4 reworded |
-| GPAI obligations (Chapter V), governance, penalties | 2 Aug 2025 | Unchanged |
+| GPAI obligations (Chapter V), governance, penalties (Art. 113(b)) | 2 Aug 2025, except Art. 101 (Commission fines on GPAI providers), which applies from 2 Aug 2026 | Unchanged |
 | General application, incl. Art. 50 transparency | 2 Aug 2026 | Applies; systems placed on the market before 2 Aug 2026 have until 2 Dec 2026 for Art. 50(2) marking |
 | High-risk, Annex III (Art. 6(2)) | 2 Aug 2026 | **2 Dec 2027** |
 | High-risk, Annex I products (Art. 6(1)) | 2 Aug 2027 | **2 Aug 2028** |
 
-The Omnibus was adopted on 8 July 2026, published in the Official Journal on 24 July 2026, and entered into
-force on the third day after publication [5]. It also reworded Article 4: providers and deployers "shall take
+Two transitional rules sit outside Article 113: GPAI models placed on the market before 2 August 2025 have
+until 2 August 2027 to comply (Art. 111(3)) [4], and the Article 50(2) grace period above is the new Art. 111(4)
+inserted by the Omnibus [5].
+
+The Omnibus was approved by Parliament on 16 June 2026 and by the Council on 29 June 2026, signed on 8 July
+2026 (the date in its title), published in the Official Journal on 24 July 2026, and entered into force on the
+third day after publication, 27 July 2026 [5]. It also reworded Article 4: providers and deployers "shall take
 measures to support the development of AI literacy" of their staff, and the obligation "does not require
 providers or deployers to guarantee any specific level of AI literacy" [5].
 
@@ -524,7 +541,7 @@ providers or deployers to guarantee any specific level of AI literacy" [5].
 | **50(2)** | Synthetic content marked machine-readably and detectably [4] | Provenance signing and watermarking in media pipelines | C2PA manifests |
 | **53** | GPAI providers: technical documentation, information for downstream providers, copyright policy, public training-content summary [4] | Docs pipeline; opt-out-respecting crawler; dataset inventory | Datasheets; lineage |
 | 55 | Systemic-risk GPAI: evaluations incl. adversarial testing, risk mitigation, serious-incident reporting, cybersecurity [4] | Red-team program; incident pipeline to regulator | Red-teaming section |
-| 99 | Fines up to EUR 35 M or 7% of worldwide turnover for prohibited practices [4] | (Motivation, not a feature) | — |
+| 99, 101 | Fines up to EUR 35 M or 7% of worldwide annual turnover, whichever is higher, for prohibited practices; up to EUR 15 M or 3% for most other breaches; Art. 101 lets the Commission fine GPAI providers up to EUR 15 M or 3% [4] | (Motivation, not a feature) | — |
 
 ### NIST AI RMF and the Generative AI Profile
 
@@ -559,10 +576,12 @@ artifacts overlap heavily.
 - **Provable-by-construction agents.** CaMeL [6] and the six design patterns [7] mark a shift from "detect
   bad text" to "make bad actions impossible". The open problem is utility. The 77% vs 84% AgentDojo gap [6] is
   the current price.
-- **Provenance at scale.** C2PA's specification kept evolving (2.5 listed as current [15]), and AI Act Article
+- **Provenance at scale.** C2PA's specification kept evolving (v2.5, October 2026 [14][15]), and AI Act Article
   50(2) marking applies from 2 August 2026, with a grace period to 2 December 2026 for systems already on the
-  market [5]. The Commission is to assess codes of practice for marking and labelling, and may adopt an
-  implementing act if they are inadequate (amended Art. 50(7)) [5].
+  market [5]. Under the amended Art. 50(7) the Commission assesses codes of practice for marking and labelling,
+  and may adopt an implementing act if they are inadequate [5]. A voluntary code of practice on transparency of
+  AI-generated content was published on 10 June 2026, and the Commission published guidelines on the
+  transparency obligations on 20 July 2026 [23].
 - **Model signing in registries.** OpenSSF model-signing v1.0 (April 2025) [17] makes "verify before load" a
   pipeline step, not a research project.
 - **Regulatory drift.** The AI Act was amended within two years of entry into force [5], and NIST is revising
@@ -673,25 +692,28 @@ document as an extension.
   patterns with clear trade-offs; the most practical design read here.
 - Debenedetti et al., *Defeating Prompt Injections by Design* (CaMeL, 2025) [6]: capabilities and data-flow
   control for agents.
-- OWASP Top 10 for LLM Applications 2025 [1] and Agentic Top 10 2026 [2]: shared vocabulary with security teams.
+- OWASP Top 10 for LLM Applications 2026 [1] and Agentic Top 10 2026 [2]: shared vocabulary with security teams.
 - Regulation (EU) 2024/1689 [4] and Regulation (EU) 2026/1744 [5]: read Articles 12, 14, 50, 53 and 113
   yourself; they are shorter than their commentary.
 - NIST AI 600-1 [22]: a GenAI risk list with suggested actions, useful for building a risk register.
 
 ## References
 
-1. OWASP GenAI Security Project, "Top 10 for LLM Applications 2025." https://genai.owasp.org/llm-top-10/
-   (accessed 2026-11)
+1. OWASP GenAI Security Project, "OWASP Top 10 for LLM Applications 2026," 2026-08-04 (resource page dated
+   2026-08-03). https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/ (accessed 2026-11). The 2025
+   edition remains at https://genai.owasp.org/llm-top-10/ (archive).
 2. OWASP GenAI Security Project, "OWASP Top 10 for Agentic Applications for 2026," 2025-12-09.
    https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/ (accessed 2026-11)
 3. S. Willison, "The lethal trifecta for AI agents: private data, untrusted content, and external
    communication," 2025-06-16. https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/ (accessed 2026-11)
    *(blog; perspective)*
 4. Regulation (EU) 2024/1689 (Artificial Intelligence Act), OJ L, 12.7.2024.
-   https://eur-lex.europa.eu/eli/reg/2024/1689/oj (accessed 2026-11)
+   https://eur-lex.europa.eu/eli/reg/2024/1689/oj (accessed 2026-11; Arts. 4, 12, 14, 19, 26(6), 99, 101,
+   111(3), 113 checked in the EUR-Lex HTML text)
 5. Regulation (EU) 2026/1744 of 8 July 2026 (Digital Omnibus on AI), OJ L, 24.7.2026.
-   https://eur-lex.europa.eu/eli/reg/2026/1744/oj (accessed 2026-11)
-6. E. Debenedetti et al., "Defeating Prompt Injections by Design," arXiv:2503.18813, 2025 (preprint).
+   https://eur-lex.europa.eu/eli/reg/2026/1744/oj (accessed 2026-11; amended Arts. 4, 50(7), 111(4), 113
+   checked in the EUR-Lex HTML text)
+6. E. Debenedetti et al., "Defeating Prompt Injections by Design," arXiv:2503.18813v2 (24 Jun 2025), preprint.
    https://arxiv.org/abs/2503.18813 (accessed 2026-11)
 7. L. Beurer-Kellner et al., "Design Patterns for Securing LLM Agents against Prompt Injections,"
    arXiv:2506.08837, 2025 (preprint). https://arxiv.org/abs/2506.08837 (accessed 2026-11)
@@ -706,9 +728,10 @@ document as an extension.
 12. T. Rebedea et al., "NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with Programmable
     Rails," arXiv:2310.10501, 2023. https://arxiv.org/abs/2310.10501 (accessed 2026-11)
 13. Presidio documentation (Data Privacy Stack). https://presidio.dataprivacystack.org/ (accessed 2026-11)
-14. C2PA, "C2PA Technical Specification" v2.2, §§1.2, 1.3, 2.4.2, 9.1.
-    https://spec.c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html (accessed 2026-11)
-15. C2PA Specifications site (current version listing 2.5). https://spec.c2pa.org/specifications/ (accessed 2026-11)
+14. C2PA, "C2PA Technical Specification" v2.5 (October 2026), §§1.2, 1.3, 2.3.13, 2.4.2, 12.2.2.
+    https://spec.c2pa.org/specifications/specifications/2.5/specs/C2PA_Specification.html (accessed 2026-11)
+15. C2PA Specifications index, v2.5. https://spec.c2pa.org/specifications/specifications/2.5/index.html
+    (accessed 2026-11; https://c2pa.org/specifications/ redirects here)
 16. Hugging Face Hub documentation, "Pickle Scanning." https://huggingface.co/docs/hub/security-pickle
     (accessed 2026-11)
 17. OpenSSF, "Launch of Model Signing v1.0: OpenSSF AI/ML Working Group Secures the Machine Learning Supply
@@ -725,3 +748,7 @@ document as an extension.
     https://www.nist.gov/itl/ai-risk-management-framework (accessed 2026-11)
 22. NIST, "Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile,"
     NIST AI 600-1, 2024-07-26. https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf (accessed 2026-11)
+23. European Commission, "AI Act" policy page (guidelines on transparency obligations, 20 July 2026) and "Code
+    of Practice on Transparency of AI-generated Content" page (final code published 10 June 2026).
+    https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai and
+    https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content (accessed 2026-11)

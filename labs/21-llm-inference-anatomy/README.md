@@ -162,7 +162,7 @@ Observed results (client-side, `bench.py`):
 | Exp. | Setting | Result |
 |---|---|---|
 | 1 | `/tokenize` on "Lumen answers questions about your documents." | 7 words → **8 tokens** |
-| 2 | engine log, 2 GiB KV, FP32 | `CPU KV cache size: 87,296 tokens`. Formula: 24 × 2 × 2 × 64 × 4 B = 24,576 B/token → 87,381 tokens → 1,364 whole 64-token blocks = **87,296** (exact match). An earlier BF16 start reported 174,720 tokens = 2 × as many (12,288 B/token), also exact. |
+| 2 | engine log, 2 GiB KV, FP32 | `CPU KV cache size: 87,296 tokens`. Formula: 24 × 2 × 2 × 64 × 4 B = 24,576 B/token → 87,381 tokens = 1,365.3 blocks of 64. The log's **87,296** = 1,364 whole blocks, one block below the plain floor (1,365 blocks = 87,360): **within one 64-token block** (0.07 %) of the formula; the cause of the extra block was not investigated. An earlier BF16 start reported 174,720 tokens = 2,730 blocks (12,288 B/token), exactly the floor of 2,730.7. |
 | 3 | prompt 66 / 429 / 1,564 tokens, 32 output tokens | TTFT p50 **353 / 2,025 / 7,985 ms**; TPOT p50 **102 / 108 / 109 ms** |
 | 4 | output 16 / 64 / 256 tokens, ≈ 118-token prompt | E2E p50 **2,054 / 7,137 / 28,487 ms** (≈ linear); TPOT p50 99 / 104 / 109 ms |
 | 5 | concurrency 1 / 2 / 4 / 8 (32 output tokens) | output tokens/s **8.2 / 13.1 / 21.2 / 29.5** (3.6× at 8); TPOT p50 **103 / 114 / 130 / 148 ms**; TTFT p50 615 / 807 / 2,181 / 4,240 ms; goodput at the default SLOs (TTFT ≤ 2 s, TPOT ≤ 200 ms) 0.26 / 0.41 / 0.17 / **0.0** req/s |

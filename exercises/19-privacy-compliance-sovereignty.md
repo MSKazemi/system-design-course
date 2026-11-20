@@ -1,7 +1,8 @@
 # 19 — Exercises
 
 Companion to [course/02-modern-requirements/19-privacy-compliance-sovereignty.md](../course/02-modern-requirements/19-privacy-compliance-sovereignty.md).
-Not legal advice; the answers explain engineering reasoning about EU law as verified in 2026-11.
+Not legal advice; the answers explain engineering reasoning about EU law as of 2026-11, checked against the published
+legal texts where they could be read (see the lesson's references for what rests on secondary sources).
 
 ## 1. Crypto-shredding and key backups [Core]
 
@@ -65,8 +66,10 @@ located.
 
 Levers:
 - **Key custody:** customer- or Lumen-EU-held keys in an external key manager, so the provider holds only
-  ciphertext — effective for storage, weak for processing that needs plaintext (the EDPB's Rec. 01/2020 found no
-  effective technical measure where the provider needs data in the clear).
+  ciphertext — effective for storage, weak for processing that needs plaintext (the EDPB's Rec. 01/2020, Use
+  Cases 6 and 7, could not envisage an effective technical measure where the provider needs data in the clear and
+  the destination's public-authority access goes beyond what is necessary and proportionate; that scenario does not
+  arise for importers covered by a valid adequacy decision).
 - **Operations:** EU-resident operations and support staff, audited break-glass.
 - **Operator jurisdiction:** an EU-controlled provider or sovereign offering; the Commission's Cloud Sovereignty
   Framework (SEAL-0 to SEAL-4) is a useful vocabulary for this conversation.
@@ -109,7 +112,8 @@ malicious. Estimate the proof size for 2³⁰ entries.
   history and recompute every hash.
 - Auditors verify **inclusion proofs** (an entry is in the tree) and **consistency proofs** (a newer tree extends an
   older one).
-- Proof size: at most log₂(2³⁰) = 30 hashes × 32 B (SHA-256) = 960 B.
+- Proof size: at most log₂(2³⁰) = 30 hashes × 32 B (SHA-256) = 960 B (our arithmetic for a balanced tree; RFC 9162
+  defines the proof structure).
 
 Key point: no personal data in the log, otherwise it becomes a store you must erase but cannot modify.
 </details>
@@ -126,8 +130,9 @@ retrieval-augmented generation from the point of view of erasure and sovereignty
   be enforced at retrieval time. The base model never sees the data during training.
 - **Fine-tuning:** personal data is encoded in weights; LLMs can memorise and emit training data (Carlini et al.
   2021). Erasure means excluding the data from the dataset and retraining (or SISA-style shard retraining, which
-  must be designed in up front). EDPB Opinion 28/2024 notes authorities can order erasure of datasets or
-  retraining.
+  must be designed in up front). EDPB Opinion 28/2024 notes that, where an infringement is found, authorities may
+  order erasure of the unlawfully processed data or, if that is not possible, of the whole dataset and/or the model
+  itself, taking retraining into account when judging proportionality.
 - Sovereignty: both need in-region compute; RAG also needs in-region embedding and inference.
 
 Prefer RAG for tenant and personal data; if fine-tuning is needed (style, format), train on minimised or synthetic
@@ -144,8 +149,8 @@ on 2 August 2026?
 Regulation (EU) 2026/1744 (Digital Omnibus on AI, OJ 24 July 2026) moved high-risk obligations to **2 December
 2027** for Annex III (stand-alone) systems and **2 August 2028** for Annex I (product-embedded) systems. The
 Regulation's general application date of **2 August 2026** was not changed, so other provisions still apply then;
-prohibitions and AI literacy have applied since 2 February 2025 and general-purpose AI model obligations since 2
-August 2025. New prohibited practices inserted by the Omnibus apply from 2 December 2026. The engineering lesson:
+prohibitions and AI literacy have applied since 2 February 2025 (the Omnibus reworded Art. 4 from 27 July 2026 into
+a duty to "take measures to support" AI literacy) and general-purpose AI model obligations since 2 August 2025. New prohibited practices inserted by the Omnibus apply from 2 December 2026. The engineering lesson:
 keep a dated compliance calendar sourced from the Official Journal and treat dates as configuration.
 </details>
 
@@ -156,7 +161,8 @@ region. Why is this a problem, and how would you redesign login?
 
 <details><summary>Answer</summary>
 
-The email address is personal data; storing every EU user's email in the US is a transfer and breaks the residency
+The email address is personal data (it identifies a person, GDPR Art. 4(1)); storing every EU user's email in the US
+is a transfer under Chapter V and breaks the residency
 promise, regardless of how clean the cell is. Redesign options:
 - Ask for the organisation (domain or tenant slug) first and route to the home cell, which holds the user table.
 - Use an email-domain → tenant directory (domain names of organisations, not personal emails) in the global plane.

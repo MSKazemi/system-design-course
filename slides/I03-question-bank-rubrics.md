@@ -5,7 +5,8 @@
 ## Slide 1 — The bank at a glance
 - 77 original prompts in 7 categories
 - Each: prompt, what it tests, key trade-offs, course units, four-outcome rubric
-- Levels J (junior) → P (principal)
+- Levels J (junior) → P (principal); by entry level: 13 J · 17 M · 41 S · 6 St
+- Junior track: 13 questions with a narrowed junior scope and a junior-hire anchor
 **Visual:** seven category tiles with counts (CL 16, DI 10, RT 10, IP 11, AI 13, AG 8, SC 9).
 **Speaker notes:** Classic domains such as chat or short links are universal. The framings, twists and rubrics here are
 written for this course.
@@ -19,6 +20,7 @@ written for this course.
 and the I01 signals.
 
 ## Slide 3 — Level calibration
+- Junior: ≥ 2 on all, 3 on architecture with help, coachable under hints (use the junior scope)
 - Mid: ≥ 3 on framing, numbers and architecture
 - Senior: ≥ 3 on all, at least one 4 (usually depth)
 - Staff: 4 on framing or numbers and on resilience or depth
@@ -77,14 +79,17 @@ unknown payment state or a late event.
 
 ## Slide 11 — 4-week plan
 - W1 method and numbers · W2 classical depth · W3 AI-era systems · W4 your target mix
-- 3–4 timed mocks per week, scored with the rubric
+- 2–4 timed mocks per week, scored with the rubric
+- ≈ 8–11 h per week, computed from unit reading times (skim = 1 h, mock = 1 h)
 **Visual:** four-week timeline with unit codes. Icons: `ops-calendar`.
-**Speaker notes:** For people already working on distributed systems. Repeat questions with changed constraints.
+**Speaker notes:** For people already working on distributed systems. Each week's hours are the sum of unit reading
+times, 1 h per skimmed unit and 1 h per mock with scoring. If time is short, drop skims, never mocks.
 
 ## Slide 12 — 8-week plan
 - Foundations (W1–W5), modern requirements (W6), AI (W7), agents and governance (W8)
 - Staff+ add-on: a five-minute "evolution" segment in every mock
 - ≈ 15–25 questions, 5–8 repeated with twists
+- ≈ 8.5–11 h per week; many chapters are skimmed, not read in full
 **Visual:** eight-week timeline. Icons: `ops-calendar`.
-**Speaker notes:** All 77 questions would take about 58 hours of mocks. Choose by category and level, and go deeper on
-fewer.
+**Speaker notes:** All 77 questions would take about 58 hours of mocks, and the plan has 20 mock slots. Choose by
+category and level, and go deeper on fewer.

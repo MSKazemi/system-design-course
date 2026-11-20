@@ -50,7 +50,7 @@ four weeks.
 (a) **Path A**: 00 → 01 → 02 → 03 → 04. Foundations first, with every lab. The labs make up for the missing
 production experience.
 
-(b) **Path B**: 01 → 21 → 22 → 23 → 26, after skimming 00. Do 01 properly, because Little's law and utilisation
+(b) **A shortened Path B**: 01 → 21 → 22 → 23 → 26, after skimming 00. The persona already knows 11 and 12, and the Part II material can wait. Do 01 properly, because Little's law and utilisation
 drive inference capacity. Then go straight to inference anatomy, serving, GPUs and gateways. 11 and 12 are
 probably already familiar and can be used as reference.
 
@@ -82,8 +82,7 @@ to say "runtime-tested"?
 *Syntax-reviewed* means the configuration was validated, for example with `docker compose config` or a linter,
 but the lab was **not run end to end**. Images might fail to pull, services might not start, and the expected
 results are reasoned, not observed. To be *runtime-tested*, someone must run the lab on a stated date, host OS
-and tool versions, and record a summary of the observed output. *Reproduced* additionally requires an
-independent second run. The labels exist so that the course never claims more than was done.
+and tool versions, and record a summary of the observed output. The labels exist so that the course never claims more than was done.
 </details>
 
 ### 6. [Core] Evidence from the 2016 → 2026 shifts

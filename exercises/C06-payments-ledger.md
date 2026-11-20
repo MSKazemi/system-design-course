@@ -55,7 +55,8 @@ settlement journal entries with signed minor units and verify each sums to zero.
 Capture: `psp_receivable +8,000`; `seller_payable −7,040`; `platform_fee_revenue −960` → 8,000 − 7,040 − 960 = 0.
 Settlement (the PSP pays the gross minus its fee): `bank_cash +7,880`;
 `psp_fees_expense +120`; `psp_receivable −8,000` → 7,880 + 120 − 8,000 = 0. (A hold/authorization entry before capture
-is optional depending on how you model holds.) The check "each entry sums to zero per currency" belongs in the write
+is optional depending on how you model holds. In the lesson's model the +8,000 sits on `buyer_hold` until capture and
+`psp_receivable` was debited, as pending, at authorization; this answer collapses E1 + E2 into one capture entry.) The check "each entry sums to zero per currency" belongs in the write
 path.
 </details>
 
@@ -75,14 +76,16 @@ new attempt. Also make the server's PSP timeout shorter than the client's so the
 
 ## 6. [Core] Out-of-order webhooks
 
-The PSP sends `charge.captured` and then `charge.authorized`, and later re-sends `charge.captured`. How does your
+A hypothetical PSP (event names are illustrative; Stripe, for example, has no `charge.authorized` event) sends
+`charge.captured` and then `charge.authorized`, and later re-sends `charge.captured`. How does your
 receiver handle each event?
 
 <details><summary>Answer</summary>
 
 Dedupe by provider event ID first: the re-sent `captured` is dropped. For ordering, apply events as state-machine
-transitions with optimistic concurrency: `captured` arriving while we are in `Authorizing` is a valid jump if the
-state machine allows `Authorizing → Captured` (implying authorization), or it can be held until we query the PSP; the
+transitions with optimistic concurrency: `captured` arriving while we are in `Authorizing` is a valid jump only if
+the state machine has an `Authorizing → Captured` transition (the lesson's diagram does not — you would add it, implying
+authorization), otherwise hold the event until we query the PSP; the
 late `authorized` is then a no-op because the payment is already past that state. Never apply events in arrival order
 as raw updates.
 </details>

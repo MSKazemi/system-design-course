@@ -97,7 +97,7 @@ Power per device also more than doubled from P100 to H100.
 
 - Data centres: ≈ 415 TWh in 2024, ≈ 1.5% of global electricity (IEA)
 - Projection: ≈ 945 TWh by 2030
-- Average PUE stuck at about 1.55–1.59: further gains must come from the workload
+- Average PUE stuck at about 1.55–1.59 since 2020: further gains must come from the workload
 
 **Visual:** Two numbers in large type (415 TWh → 945 TWh) and a flat PUE line; icons `ops-cost`, `arch-datacenter`.
 
@@ -108,7 +108,7 @@ are now the levers.
 
 - GDPR applies since 25 May 2018
 - AI Act: in force 1 Aug 2024; applicable 2 Aug 2026 with exceptions
-- Digital Omnibus (Reg. 2026/1744): Annex III high-risk obligations from 2 Dec 2027
+- AI Omnibus (Reg. 2026/1744): Annex III high-risk obligations from 2 Dec 2027
 - Data Act from 12 Sep 2025; CRA reporting from 11 Sep 2026
 
 **Visual:** Timeline 2016–2028 with regulation milestones; icons `security-lock`, `ops-calendar`, `domain-document`.
@@ -142,7 +142,7 @@ identity and policy live.
 
 - Numbered references, primary sources first
 - Every number is sourced or labelled an assumption
-- Labs say what was actually run: illustrative / syntax-reviewed / runtime-tested / reproduced
+- Labs say what was actually run: illustrative / syntax-reviewed / runtime-tested
 
 **Visual:** Four status badges, each with its word printed; icon `ops-check`.
 

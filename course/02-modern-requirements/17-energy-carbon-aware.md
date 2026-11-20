@@ -3,7 +3,7 @@ id: SYSDESIGN-17
 title: "Energy- & carbon-aware design"
 part: "II — Modern requirements"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01, SYSDESIGN-03, SYSDESIGN-12, SYSDESIGN-16]
 estimated_time: "3h reading"
 requirement: "Report Lumen's carbon per 1,000 chat answers with an auditable method, and cut it by 40% within 12 months without breaking the 2 s time-to-first-token SLO"
@@ -44,16 +44,19 @@ Three things changed between 2023 and 2026.
 
 1. **AI made data-centre electricity a grid-planning topic.** The International Energy Agency (IEA) estimates
    that data centres used about **415 TWh in 2024, about 1.5% of global electricity**, and projects about
-   **945 TWh by 2030** in its Base Case. It names accelerated (GPU) servers as the largest growth driver, with
-   their consumption growing about 30% per year [6]. For the EU, the Commission cites IEA figures of
+   **945 TWh by 2030** in its Base Case. It attributes almost half of the net increase in data-centre demand
+   to accelerated (GPU) servers, whose consumption grows about 30% per year [6]. For the EU, the Commission cites IEA figures of
    about **68 TWh in 2024**, expected to reach about **114 TWh by 2030**, more than 3% of EU electricity
    demand [9].
 2. **Reporting became law in the EU.** Since 2024, operators of data centres with **at least 500 kW** of
-   installed IT power must report energy and sustainability KPIs every year [7][8]. In September 2026 the
-   Commission proposed an **A–G rating label** built on those reports, with first labels expected in 2027 [9].
-   Your cloud or colocation provider is now filling in these numbers, and your customers will read them.
+   installed IT power must report energy and sustainability KPIs every year, by 15 May (the first cycle
+   was due by 15 September 2024) [7][8]. On 21 September 2026 the Commission adopted a delegated
+   regulation creating a common **rating scheme**, now under scrutiny by Parliament and Council; its
+   annexes grade PUE and WUE on an **A to G** scale [9][38]. First labels are expected in 2027 [9]. Your
+   cloud or colocation provider is now filling in these numbers, and your customers will read them.
+   (This chapter describes legal obligations as engineering requirements; it is not legal advice.)
 3. **The method was standardised.** The Green Software Foundation's Software Carbon Intensity (SCI)
-   specification became **ISO/IEC 21031:2024** [1][2], and an AI-specific extension, "SCI for AI", was
+   specification was published as **ISO/IEC 21031:2024** [1][2], and an AI-specific extension, "SCI for AI", was
    ratified by the foundation in December 2025 [35]. "Carbon per request" is no longer a number each
    team invents.
 
@@ -110,7 +113,7 @@ Representative values, with their scope:
 
 | Source | Value | Scope |
 |---|---|---|
-| Uptime Institute 2025 survey, as cited by Google [5] | 1.54 | weighted average of survey respondents; Uptime reports little change for six consecutive years [4] |
+| Uptime Institute 2025 survey, as cited by Google [5] | 1.54 | average PUE of survey respondents' data centres, as quoted by Google; Uptime's full report is paywalled, and its summary reports little change for six consecutive years [4] |
 | Google fleet [5] | 1.09 | trailing-twelve-month average across Google's large data centres, 2025 |
 | The Green Grid WP#49 (2012) [3] | 1.6 or better "should be achievable" with proper design | design guidance at the time |
 
@@ -122,7 +125,7 @@ software teams.
 
 Related ratios you will meet in EU reports: **WUE** (water usage effectiveness), **ERF** (energy reuse
 factor, the share of energy reused, for example as district heat) and **REF** (renewable energy factor)
-[8][9].
+[8].
 
 ### Carbon intensity: average vs marginal
 
@@ -139,7 +142,7 @@ There are two different signals, and you have to pick one deliberately:
 
 | Signal | Question it answers | Typical provider | Used for |
 |---|---|---|---|
-| **Average (attributional)** | "What is the emissions rate of the electricity mix I consume?" | Electricity Maps [10] | footprint reporting, SCI, the EU and corporate inventories |
+| **Average (attributional)** | "What is the emissions rate of the electricity mix I consume?" | Electricity Maps [10] | footprint reporting and most corporate inventories; SCI allows either signal (average, or short- or long-run marginal), so state which one you used [1] |
 | **Marginal** | "Which generator responds if I add (or remove) 1 kWh now, and how dirty is it?" | WattTime, whose MOER is "the emissions rate of the electricity generator(s) that are responding to changes in load", at 5-minute granularity with a 72-hour forecast [11] | real-time load-shifting decisions |
 
 The two can point in opposite directions. Electricity Maps argues that the average signal is usually the
@@ -151,8 +154,8 @@ methodological debate. Record which signal you use, and never mix them in one nu
 
 Manufacturing chips, boards, memory and buildings emits carbon before the first request. Gupta et al.
 argued that for many computing systems the majority of the footprint is embodied, not operational. One of
-their examples: across iPhone generations, the operational footprint fell 2.09× while embodied emissions
-rose 2.85× [16]. For a data-centre service, embodied carbon is amortised over the hardware's expected life
+their examples: across iPhone generations, the share of life-cycle emissions from hardware manufacturing
+rose from 49% (iPhone 3GS) to 86% (iPhone 11) [16]. For a data-centre service, embodied carbon is amortised over the hardware's expected life
 and shared among the work it does. Two design consequences follow:
 
 1. **Idle hardware wastes embodied carbon as well as energy.** A GPU at 20% utilisation carries five times
@@ -163,7 +166,8 @@ and shared among the work it does. Two design consequences follow:
 
 ### The SCI score
 
-The SCI specification (v1.1.0, published as ISO/IEC 21031:2024) defines [1][2]:
+The SCI specification (GSF v1.1.0 at the time of writing; also published as ISO/IEC 21031:2024) defines
+[1][2]:
 
 ```
 SCI = ((E × I) + M) per R
@@ -342,8 +346,8 @@ and showed that measurement practice can cut energy-measurement error substantia
 telemetry against a node-level or external meter before you publish numbers.
 
 **Kepler (Kubernetes).** Kepler, a CNCF Sandbox project, is a Prometheus exporter for energy at the
-container, pod and node level [26]. From version 0.10 it was re-architected. It moved away from eBPF to
-read-only access to `/proc` and `/sys`, discovers the RAPL zone structure at runtime, and attributes
+container, pod and node level [26]. From version 0.10 it was re-architected [26][27]. It moved away from
+eBPF to read-only access to `/proc` and `/sys`, discovers the host's power-meter structure at runtime, and attributes
 active power to processes and then pods. By its maintainers' own account, idle power is not yet
 attributed per workload, GPU support is experimental, and VMs rely on a model that needs retraining
 (as of 2026-11) [27]. On public-cloud VMs there are no hardware counters, so Kepler's numbers there are
@@ -373,15 +377,15 @@ HPC centres have run facility-wide energy telemetry for over a decade, and their
 "carbon-aware" looks like when it is done at the plant level rather than per container.
 
 - **ExaMon** (Exascale Monitoring), developed at the University of Bologna with CINECA, is an MIT-licensed
-  framework for holistic HPC monitoring [33]. Its collectors ("plugins") publish metrics over **MQTT**.
-  Brokers pass them to a time-series store built on Cassandra/KairosDB, where online analytics run on them
-  [29][31]. Beneventi et al. framed the motivation: at exascale, storing all monitoring data before
+  framework for holistic HPC monitoring, deployed at CINECA [31][33]. Its collectors ("plugins") publish
+  metrics over **MQTT**. Brokers pass them to a time-series store built on Cassandra/KairosDB, where online
+  analytics run on them [29][39]. Beneventi et al. framed the motivation: at exascale, storing all monitoring data before
   processing it is unaffordable, so models must learn online from streams [29]. Bartolini et al. extended
   this towards energy-aware, automated data-centre operation [30].
 - **M100 ExaData** (Borghesi et al., *Scientific Data*, 2023) published about two and a half years of
   ExaMon telemetry from CINECA's Marconi100 supercomputer, covering workload, facility and infrastructure
-  data, 49.9 TB before compression. It is one of the few public datasets that joins job scheduling with
-  power and cooling data [31].
+  data, 49.9 TB before compression. It is a large public dataset that joins job scheduling with power and
+  cooling data [31].
 - **High-resolution, out-of-band power.** Libri, Bartolini and Benini's DiG platform measured node power "at
   the plug", sampling up to 20 µs with under 1% error, entirely out-of-band [32]. The design lesson: the
   sampling rate must match the phenomenon. Per-request energy for millisecond-scale requests is
@@ -412,9 +416,9 @@ the same role a Kubernetes batch queue would play for carbon-aware shifting. Cas
 - **Boundary choice moves the number.** Google's 2025 study of Gemini serving reported a median **0.24 Wh**
   per text prompt. It included accelerator, host, idle capacity and data-centre overhead, and reported a
   33× energy and 44× carbon reduction for the median prompt over one year, attributed to software
-  efficiency and clean-energy procurement [21]. Press coverage noted that without the total prompt volume,
-  no total footprint can be computed. Always state your boundary (what is
-  inside E) next to your number.
+  efficiency and clean-energy procurement [21]. A per-prompt median says nothing about the total footprint
+  unless the prompt volume is also known. Always state your boundary (what is inside E) next to your
+  number.
 
 ### Why per-token energy falls with batching and rises with context
 
@@ -429,10 +433,11 @@ energy optimisation, which is why energy and performance engineering share most 
 
 *(as of 2026-11)*
 
-- **EU data-centre rating label.** On 21 September 2026 the Commission proposed a delegated regulation
-  establishing a common Union rating scheme for data centres above 500 kW. It covers energy and water use
-  and grid contribution (waste-heat reuse, added clean generation, flexibility). It is subject to a
-  two-month scrutiny period by the Parliament and Council, first labels are expected in 2027, and a review is
+- **EU data-centre rating label.** On 21 September 2026 the Commission adopted a delegated regulation
+  (C(2026) 3472) establishing a common Union rating scheme for data centres above 500 kW [9][38]. It covers
+  energy and water use and grid contribution (waste-heat reuse, added clean generation, flexibility); the
+  label shows PUE and WUE classes on an A to G scale [38]. It is subject to a two-month scrutiny period by
+  the Parliament and Council before entering into force, first labels are expected in 2027, and a review is
   foreseen by end-2028. A parallel consultation on **minimum performance standards** for data centres
   closes on 14 December 2026 [9]. Treat the final text and dates as pending until published in the Official
   Journal.
@@ -444,13 +449,13 @@ energy optimisation, which is why energy and performance engineering share most 
   Toulouse) at 73.28 GFLOPS/W, followed by ROMEO-2025 at 70.91 and the Levante GPU extension (DKRZ) at
   69.43 [34]. HPL is a dense linear-algebra benchmark; FLOPS/W for LLM decode, which is memory-bound,
   behaves differently.
-- **Grid flexibility as a design feature.** The EU proposal explicitly values data centres that "adjust
-  their electricity use to the grid's conditions" [9]. Delay-tolerant AI work (training, batch inference,
+- **Grid flexibility as a design feature.** The Commission's announcement explicitly values data centres
+  that can adjust their electricity use to grid conditions [9]. Delay-tolerant AI work (training, batch inference,
   embedding refreshes) is the obvious flexible load. Expect demand-response interfaces between schedulers
   and grid operators to become a design topic.
-- **Energy-measured model leaderboards.** Projects such as ML.ENERGY (built on the Zeus measurement
-  library [23]) publish measured inference energy for open models, making "joules per answer" a
-  model-selection criterion.
+- **Energy-measured model leaderboards.** Projects such as the ML.ENERGY leaderboard and benchmark [41]
+  publish measured inference energy for open models, making "joules per answer" a model-selection
+  criterion. The same initiative maintains the Zeus measurement library [23][40].
 
 ## Failure modes and operations
 
@@ -581,7 +586,7 @@ carbon-intensity inputs. Lab L22 provides the per-node throughput that drives th
 [14] T. Sukprasert, A. Souza, N. Bashir, D. Irwin, P. Shenoy, "On the Limitations of Carbon-Aware Temporal and Spatial Workload Shifting in the Cloud", EuroSys 2024. https://arxiv.org/abs/2306.06502 (accessed 2026-11)
 [15] A. Radovanović et al., "Carbon-Aware Computing for Datacenters", arXiv:2106.11750, 2021 (preprint). https://arxiv.org/abs/2106.11750 (accessed 2026-11)
 [16] U. Gupta et al., "Chasing Carbon: The Elusive Environmental Footprint of Computing", IEEE HPCA 2021. https://arxiv.org/abs/2011.02839 (accessed 2026-11)
-[17] L. A. Barroso, U. Hölzle, "The Case for Energy-Proportional Computing", IEEE Computer 40(12), 2007. https://research.google/pubs/the-case-for-energy-proportional-computing/ (accessed 2026-11)
+[17] L. A. Barroso, U. Hölzle, "The Case for Energy-Proportional Computing", IEEE Computer 40(12), 2007. https://www.barroso.org/publications/ieee_computer07.pdf (full text; abstract at https://research.google/pubs/the-case-for-energy-proportional-computing/) (accessed 2026-11)
 [18] A. S. Luccioni, Y. Jernite, E. Strubell, "Power Hungry Processing: Watts Driving the Cost of AI Deployment?", ACM FAccT 2024. https://arxiv.org/abs/2311.16863 (accessed 2026-11)
 [19] A. S. Luccioni, S. Viguier, A.-L. Ligozat, "Estimating the Carbon Footprint of BLOOM, a 176B Parameter Language Model", JMLR 24(253), 2023. https://www.jmlr.org/papers/v24/23-0069.html (accessed 2026-11)
 [20] D. Patterson et al., "Carbon Emissions and Large Neural Network Training", arXiv:2104.10350, 2021 (preprint). https://arxiv.org/abs/2104.10350 (accessed 2026-11)
@@ -589,7 +594,7 @@ carbon-intensity inputs. Lab L22 provides the per-node throughput that drives th
 [22] S. Samsi et al., "From Words to Watts: Benchmarking the Energy Costs of Large Language Model Inference", IEEE HPEC 2023. https://arxiv.org/abs/2310.03003 (accessed 2026-11)
 [23] J. You, J.-W. Chung, M. Chowdhury, "Zeus: Understanding and Optimizing GPU Energy Consumption of DNN Training", USENIX NSDI 2023. https://www.usenix.org/conference/nsdi23/presentation/you (accessed 2026-11)
 [24] Linux kernel documentation, "Power Capping Framework". https://docs.kernel.org/power/powercap/powercap.html (accessed 2026-11)
-[25] Intel, "Running Average Power Limit Energy Reporting / CVE-2020-8694, CVE-2020-8695 / INTEL-SA-00389". https://www.intel.com/content/www/us/en/develop/articles/software-security-guidance/advisory-guidance/running-average-power-limit-energy-reporting.html (accessed 2026-11)
+[25] Intel, "Running Average Power Limit Energy Reporting / CVE-2020-8694, CVE-2020-8695 / INTEL-SA-00389". https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/running-average-power-limit-energy-reporting.html (accessed 2026-11)
 [26] Kepler maintainers, *Kepler (Kubernetes-based Efficient Power Level Exporter)*, GitHub repository. https://github.com/sustainable-computing-io/kepler (accessed 2026-11)
 [27] CNCF blog, "Kepler re-architected: improved power accuracy and a community call to action", 30 June 2026. https://www.cncf.io/blog/2026/06/30/kepler-re-architected-improved-power-accuracy-and-a-community-call-to-action/ (accessed 2026-11)
 [28] NVIDIA, *DCGM Exporter Metrics* (DCGM documentation). https://docs.nvidia.com/datacenter/dcgm/latest/reference/dcgm-exporter-metrics.html (accessed 2026-11)
@@ -602,3 +607,7 @@ carbon-intensity inputs. Lab L22 provides the per-node throughput that drives th
 [35] Green Software Foundation, "SCI for AI specification ratified", 17 December 2025. https://greensoftware.foundation/articles/sci-ai-specification-ratified-standard-for-measuring-ai-emissions-across-the/ (accessed 2026-11)
 [36] Green Software Foundation, *Carbon Aware SDK* documentation. https://carbon-aware-sdk.greensoftware.foundation/docs/overview (accessed 2026-11)
 [37] Z. Yang, K. Adámek, W. Armour, "Part-time Power Measurements: nvidia-smi's Lack of Attention", arXiv:2312.02741, v3 2024 (preprint). https://arxiv.org/abs/2312.02741 (accessed 2026-11)
+[38] European Commission, Delegated Regulation C(2026) 3472 final of 21.9.2026 establishing a common Union rating scheme for data centres, Annexes I–III, as transmitted to the Council (Council doc. 13444/26 ADD 1). https://data.consilium.europa.eu/doc/document/ST-13444-2026-ADD-1/en/pdf (accessed 2026-11)
+[39] ExaMon project, *ExaMon* GitHub repository README (MQTT broker, KairosDB, Cassandra services). https://github.com/ExamonHPC/examon (accessed 2026-11)
+[40] ML.ENERGY Initiative, *Zeus* GitHub repository README ("Zeus is a project of The ML.ENERGY Initiative"). https://github.com/ml-energy/zeus (accessed 2026-11)
+[41] J.-W. Chung et al., "The ML.ENERGY Benchmark: Toward Automated Inference Energy Measurement and Optimization", arXiv:2505.06371, 2025 (NeurIPS 2025 Datasets and Benchmarks). https://arxiv.org/abs/2505.06371 (accessed 2026-11)

@@ -116,7 +116,7 @@ Exact numbers depend on your machine and its load. Look for these patterns.
 - **Experiment 2:** round robin still sends about a third of requests to app3, and its p99 and max latency grow
   far beyond the others (app3's queue grows for the whole test). `leastconn` and `p2c` send app3 a much smaller
   share, and keep p99 within a small multiple of the baseline.
-- **Experiment 3:** errors appear while HAProxy still believes app2 is up, roughly `inter × fall` ≈ 2–3 s of
+- **Experiment 3:** errors appear while HAProxy still believes app2 is up, roughly `inter × fall` ≈ 2 s (longer when probes hang until `timeout check`, 2 s here) of
   app2's share of traffic. With retries, connection-level failures are re-dispatched to another server, at the
   cost of tail latency (each failed attempt first waits for `timeout connect`). Requests already in flight on
   app2 at the moment of the kill can still fail.

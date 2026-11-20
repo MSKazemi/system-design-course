@@ -59,17 +59,20 @@ owner, or a unique index on `(conv_id, client_msg_id)` in the store, both work.
 ## 5. [Deep] Bucket sizing
 
 The busiest group conversation receives 30 messages/s at peak and 3 /s on average; each stored message is 400 B. You
-want partitions under 100 MB (the threshold Discord reported). What bucket length do you choose, and what does a
-"latest 50 messages" query read?
+want partitions under 100 MB (the threshold Discord reported). The lesson's buckets count messages,
+`bucket = floor(seq / N)`. What N do you choose, and what does a "latest 50 messages" query read? How would the answer
+change if you bucketed by time instead?
 
 <details><summary>Answer</summary>
 
-Average daily volume = 3 × 86,400 × 400 B ≈ 104 MB/day — already at the limit, so a 1-day bucket is too big if peaks
-persist. A bucket of ≈ 12 hours keeps the busiest conversation near 50 MB on average; size by the *largest*
-conversations, as Discord did with ~10 days for their (different) workload. "Latest 50" reads the current bucket and,
-if it has fewer than 50 messages, the previous one — computable from the current time or the latest message ID. Quiet
-conversations get many nearly empty buckets; that is fine because reads stop at the first bucket that satisfies the
-page (or keep a per-conversation pointer to the last non-empty bucket).
+Hard ceiling = 100 MB / 400 B = 250,000 messages per bucket. Leave headroom for indexes, tombstones and compaction
+(say 5×): **N ≈ 50,000 messages ≈ 20 MB**. Because N counts messages, the partition size no longer depends on the
+message rate: at the busiest conversation's 3 /s average a bucket fills in ≈ 4.6 h, at a sustained 30 /s peak in
+≈ 28 min, and a quiet conversation keeps years in one bucket. "Latest 50" reads bucket `floor(last_seq / N)` (from
+`conversations.last_seq`) and, if `last_seq mod N` < 49, the previous bucket too; `before_seq` pages compute their
+bucket the same way. With time buckets you must size to the busy tail, not the mean: average volume is
+3 × 86,400 × 400 B ≈ 104 MB/day, and a 12 h bucket would reach ≈ 518 MB (30 × 43,200 × 400 B) if the peak lasted, so
+size to the 95th-percentile day, as Discord did with ~10 days for its (different) workload.
 </details>
 
 ## 6. [Core] Presence traffic
@@ -94,8 +97,8 @@ the rollout plan with numbers.
 
 Roll in waves of, say, 5 % (15 gateways ≈ 3 M connections). In each wave, stop admitting new connections on draining
 gateways, then send a "reconnect after random 0–300 s" control frame so 3 M reconnects spread over 5 minutes
-(≈ 10,000 /s fleet-wide). Cap per-gateway admission rate; make resume cheap (client sends `last_seen` seq per
-conversation). Watch handshake latency, reconnect success and delivery p99 before the next wave. Total: 20 waves; at
+(≈ 10,000 /s fleet-wide). Cap per-gateway admission rate; make resume cheap (client sends one `sync_token`; the server returns
+only changed conversations). Watch handshake latency, reconnect success and delivery p99 before the next wave. Total: 20 waves; at
 ~10 minutes each, a few hours. A crash (no drain) is the same problem without the jitter control frame — so clients
 must also apply jittered backoff on their own.
 </details>
@@ -110,7 +113,7 @@ which existing component becomes protocol-critical.
 Can no longer: read message bodies, so server-side search, link previews and content-based spam filtering stop
 (move to client-side indexes, user reporting, metadata signals). New state: per-device KeyPackages for adding offline
 members, and handshake messages (Proposals, Commits, Welcome) to route. Protocol-critical: the per-conversation
-sequencer — RFC 9750 says the group must agree on a single Commit per epoch and that most Delivery Services take the
+sequencer — RFC 9750 says the group must agree on a single Commit per epoch and expects most Delivery Services to take the
 strongly consistent approach of ordering handshake messages and breaking ties. Multi-device becomes group membership
 churn, so device additions must be rate-limited and sequenced.
 </details>

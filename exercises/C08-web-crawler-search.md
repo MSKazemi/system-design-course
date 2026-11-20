@@ -73,11 +73,15 @@ Propose an allocation and justify it.
 
 <details><summary>Answer</summary>
 
-Fetching A 30 times a month still leaves it stale most of the time (it changes 720 times), so heavy investment buys
-little freshness. B fetched weekly is fresh most of the time; C needs only rare checks (conditional GET). One reasonable
-allocation: A ≈ 20 (only if A is important — importance weighting changes the answer), B ≈ 8, C ≈ 2. The point: optimal
-policies depend on the objective (average freshness vs age, weighted by importance), and proportional-to-change-rate is
-not automatically best.
+State the objective first. Take **average freshness** (share of time each copy matches the live page), Poisson
+changes and evenly spaced visits, where a page changing λ times/month and visited f times/month is fresh a fraction
+(f/λ)(1 − e^(−λ/f)) of the time. Page A changes 720 times/month, so even all 30 fetches keep it fresh only ≈ 4 % of the
+time, and each fetch adds just 1/720 ≈ 0.14 %. B saturates fast: 4 fetches → 88 %, 19 fetches → 97 %. C never changes,
+so it needs only 1–2 conditional GETs to detect deletion. Giving fetches to B until its marginal gain drops to A's
+gives roughly **A ≈ 9, B ≈ 19, C ≈ 2** (average freshness ≈ 66 %). Uniform (10/10/10) is close at ≈ 65.5 %, while
+proportional-to-change-rate (A ≈ 30) collapses to ≈ 36 % — the Cho & Garcia-Molina point that pages changing too
+often should get *less* effort. Acceptable alternative: if A is far more important (e.g. a news front page), weight
+freshness by importance and A's share rises; say so explicitly rather than treating A ≈ 20 as free.
 </details>
 
 ## 7. [Interview] Spider traps

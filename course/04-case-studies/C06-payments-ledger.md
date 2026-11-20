@@ -3,7 +3,7 @@ id: SYSDESIGN-C06
 title: "Payments & ledger"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-05, SYSDESIGN-06, SYSDESIGN-08, SYSDESIGN-09, SYSDESIGN-10]
 estimated_time: "2.5h reading + exercises"
 requirement: "Design the payments core for a marketplace processing 10 million payments a day by card and instant bank transfer: no customer is ever charged twice, every cent is accounted for in a double-entry ledger, sellers are paid out correctly, the books reconcile with payment providers daily, and instant transfers settle in seconds, 24/7."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Design an immutable double-entry ledger with journal entries, postings, holds and derived balances"
   - "Achieve exactly-once effects with an outbox, a payment state machine and explicit handling of unknown outcomes"
   - "Explain reconciliation and what 24/7 instant payments (SEPA Instant, FedNow) and the EU payments package change"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C06 — Payments & ledger
@@ -80,7 +80,7 @@ All values are **labelled assumptions**.
 | Retention (assume 10 years; statutory periods vary) | 7.3 TB × 10 | ≈ 73 TB (plus replicas) |
 | Idempotency records (1 KB stored response, 7-day retention) | 10 M × 1 KB × 7 | ≈ 70 GB |
 | Webhooks received | ≈ 3 per payment | ≈ 30 M/day, duplicates expected |
-| Hot account: platform-fee account | 1 posting per payment | ≈ 1,200 writes/s at peak on one balance |
+| Hot account: platform-fee account (assumes every payment carries a fee) | 1 posting per payment | ≈ 1,200 writes/s at peak on one balance |
 
 **What the numbers say.** Volume is modest: ≈ 12,000 postings/s at peak and tens of terabytes over a decade fit a
 well-run sharded relational database or a purpose-built ledger. The difficulty is **correctness under failure**, not
@@ -122,7 +122,9 @@ projections are derived. Reconciliation compares the ledger with PSP and bank re
   afterwards (deep dive 3). This box exists because you cannot put an HTTP call to a PSP inside a database transaction.
 - **PSP / bank adapter** — isolates provider APIs, idempotency semantics and error codes behind one interface; also
   where card data is replaced by PSP tokens so raw card numbers never enter our systems.
-- **Webhook receiver** — providers report asynchronous outcomes (captures, chargebacks); delivery is at least once.
+- **Webhook receiver** — providers report asynchronous outcomes (captures, chargebacks); delivery is at least once
+  (Stripe, for example, retries deliveries with exponential backoff for up to three days and tells receivers to track
+  event IDs to spot duplicates [13]).
 - **Ledger service** — the system of record for money: append-only, double-entry (deep dive 2).
 - **Reconciliation** — the independent check that our books match the outside world (deep dive 4).
 
@@ -135,7 +137,7 @@ POST /v1/payments
 Idempotency-Key: 2c0f7f2e-6a1b-4f3e-9d58-0f3a6c1a9b77
 { "order_id": "o_123", "amount": 4999, "currency": "EUR", "method": {"type": "card", "token": "tok_…"},
   "capture": "manual", "seller_id": "s_88", "platform_fee": 500 }
-201 { "payment_id": "pay_…", "state": "authorized" }      # or "requires_action" (3-D Secure), "failed"
+201 { "payment_id": "pay_…", "state": "authorized" }      # or "requires_action" (3-D Secure, as in Stripe [16]), "failed"
 200 (same key, same body)     → the original response, replayed
 422 (same key, different body) → error: key reused with different parameters
 
@@ -197,10 +199,10 @@ that attempt. Generating a fresh key because "the last call timed out" is the cl
 
 **Model.** Every money movement is a **journal entry** made of **postings** to accounts; the postings of one entry sum
 to zero per currency. Square's "Books" service describes the same rule: all transactions ("journal entries") "must
-balance to 0", the data is append-only and serves as an audit trail, and "you can't update the data in place" — you fix
+balance to 0", the journal is append-only and serves as an audit trail (only the cached balance row is mutable), and "you can't update the data in place" — you fix
 mistakes with correcting entries [4]. TigerBeetle's documentation reduces the model to "two entities (accounts,
 transfers) and one invariant", supports two-phase (pending) transfers natively, enforces balance limits inside the
-database, and makes transfers immutable, with corrections as reversing transfers [5].
+database, and makes transfers immutable; corrections are "more transfers to reverse or adjust" the earlier ones [5][14].
 
 A card payment with a hold, capture and fee, for €49.99 with a €5.00 platform fee (signed minor units; positive =
 debit):
@@ -216,7 +218,8 @@ debit):
 | | `psp_fees_expense` | +psp_fee | provider fee |
 | | `psp_receivable` | −4,999 | receivable cleared |
 
-Each entry sums to zero. E1 stays *pending* until capture (then it is posted together with E2) or is voided if the
+Each entry sums to zero. We model an authorization as a *pending* receivable to track expected funds; it becomes a
+real receivable only at capture. E1 stays *pending* until capture (then it is posted together with E2) or is voided if the
 hold is released; `psp_receivable` returns to zero once settled — which is exactly what reconciliation checks.
 
 **Balances are projections.** The truth is the postings; a balance is a cached sum. Keep a `balances` row per account
@@ -269,14 +272,17 @@ is never a state where we called the PSP but have no record of intending to, or 
 ([SYSDESIGN-08](../01-foundations/08-async-event-driven.md)).
 
 **Unknown is a real state.** A timeout does not mean failure. The payment moves to `Unknown`; a resolver queries the
-PSP for the attempt's status (or waits for the webhook) and only then decides. Show the buyer "processing", not
-"failed — try again", because a buyer who retries with a new payment is how double charges happen even with perfect
+PSP for the attempt's status (or waits for the webhook) and only then decides. The same `Unknown` pattern applies to capture, refund and
+payout attempts — each is an external call with its own `payment_attempts` row and resolver; the diagram shows it
+for authorization only, and shows full refunds only (a partial refund keeps the payment `Captured` with a refunded
+amount, or adds a `Partially_refunded` state). Show the buyer "processing", not "failed — try again", because a buyer who retries with a new payment is how double charges happen even with perfect
 idempotency keys. Use timeouts that are shorter than the client's, so the server can still answer "processing" with
 a payment ID the client can poll.
 
 **Webhooks are inputs to the state machine.** De-duplicate by provider event ID, then apply the transition only if
 it is valid from the current state (optimistic concurrency on `version`). Out-of-order webhooks (a "captured" arriving
-before "authorized") are handled by the state machine, not by arrival order.
+before "authorized") are handled by the state machine, not by arrival order; Stripe's documentation likewise warns
+not to use an event's `created` timestamp to determine order [13].
 
 **Ledger postings are idempotent too.** Each transition that moves money writes a journal entry with a unique
 external reference (`payment_id:capture:1`); a replayed transition hits the unique constraint and becomes a no-op.
@@ -330,8 +336,8 @@ rather than a nightly batch.
 
 ### Cost
 
-Infrastructure is a small share of payments cost; **provider fees** (interchange, scheme and PSP fees) dominate and
-are a business negotiation. The engineering cost levers are routing (send each payment to the cheapest PSP that meets
+In our judgement (not a measured figure), infrastructure is a small share of payments cost and **provider fees**
+(interchange, scheme and PSP fees) dominate; they are a business negotiation. The engineering cost levers are routing (send each payment to the cheapest PSP that meets
 the success-rate target, with care for Unknown attempts), authorization success rate (a declined good payment is lost
 revenue, not saved cost), and keeping PCI DSS scope small by never handling raw card data (PCI DSS v4.0.1 is the
 current standard listed by the PCI Security Standards Council [12]) — scope drives audit cost.
@@ -395,15 +401,16 @@ idempotency key on retry. "We'll use exactly-once Kafka" as the whole correctnes
 
 **Follow-ups.** Multi-currency (postings per currency; FX as an explicit entry with a rate); wallets and stored value
 (balances must never go negative — synchronous checks); split payments to many sellers (one entry, many postings);
-chargebacks months later (new entries against old payments); GDPR erasure versus ledger immutability (pseudonymize
-personal data outside the ledger; keep financial records for the statutory period).
+chargebacks months later (new entries against old payments); GDPR erasure versus ledger immutability (the right to erasure does not apply where processing is needed to comply
+with a legal obligation, GDPR Art. 17(3)(b) [15]; pseudonymize personal data outside the ledger and keep financial
+records for the statutory period).
 
 ## Alternatives considered
 
 | Alternative | Wins when | Why not the default here |
 |---|---|---|
 | Single-entry "transactions" table with a balance column | prototypes | no zero-sum invariant; errors are invisible until reconciliation |
-| Two-phase commit across our DB and the PSP | never available — PSPs do not participate in XA | the outbox + idempotency + state machine is the practical equivalent |
+| Two-phase commit across our DB and the PSP | not available in practice — PSP APIs are HTTP calls, not XA resource managers (design judgement) | the outbox + idempotency + state machine is the practical equivalent |
 | Event sourcing everything | strong audit needs, team experienced with it | the ledger already is an append-only log; full event sourcing adds complexity elsewhere |
 | Purpose-built ledger database (e.g. TigerBeetle) | very high posting rates, strict invariants | strong option; a relational design is sufficient at our ≈ 12,000 postings/s |
 | Nightly batch reconciliation only | card-only, low volume | instant payments and 24/7 operation need continuous matching |
@@ -418,17 +425,21 @@ breakers) and [labs/06-replication-consistency](../../labs/06-replication-consis
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20.
 
 1. Stripe, "Idempotent requests," API reference. https://docs.stripe.com/api/idempotent_requests
 2. B. Leach, "Designing robust and predictable APIs with idempotency," Stripe blog, 2017-02-22. https://stripe.com/blog/idempotency
-3. J. Chew, "Avoiding Double Payments in a Distributed Payments System," The Airbnb Tech Blog, 2019-04-16. https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb
+3. J. Chew, "Avoiding Double Payments in a Distributed Payments System," The Airbnb Tech Blog, 2019-04-16. https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb (read via https://web.archive.org/web/20251114215405/https://medium.com/airbnb-engineering/avoiding-double-payments-in-a-distributed-payments-system-2981f6b070bb)
 4. Ł. Strzałkowski, "Books, an immutable double-entry accounting database service," Square Developer blog, 2019-10-16. https://developer.squareup.com/blog/books-an-immutable-double-entry-accounting-database-service/
 5. TigerBeetle, "Debit / Credit" concepts documentation. https://docs.tigerbeetle.com/concepts/debit-credit/
-6. K. Devarajaiah, "How LedgerStore Supports Trillions of Indexes at Uber," Uber Engineering blog, 2024-04-04. https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/
-7. Regulation (EU) 2024/886 of 13 March 2024 on instant credit transfers in euro (Arts. 5a–5d). https://eur-lex.europa.eu/eli/reg/2024/886/oj/eng
+6. K. Devarajaiah, "How LedgerStore Supports Trillions of Indexes at Uber," Uber Engineering blog, 2024-04-04. https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/ (read via https://web.archive.org/web/20260412221006/https://www.uber.com/us/en/blog/how-ledgerstore-supports-trillions-of-indexes/)
+7. Regulation (EU) 2024/886 of 13 March 2024 on instant credit transfers in euro (Arts. 5a–5d). https://eur-lex.europa.eu/eli/reg/2024/886/oj/eng (read via https://web.archive.org/web/20251116103636/https://eur-lex.europa.eu/eli/reg/2024/886/oj/eng)
 8. Board of Governors of the Federal Reserve System, "FedNow Service" (went live July 20, 2023; 24x7x365). https://www.federalreserve.gov/paymentsystems/fednow_about.htm
-9. Council of the EU, "Payment services: Council and Parliament agree to step up the fight against fraud and increase transparency," press release, 2025-11-27 (verified via search index; page blocked automated fetch). https://www.consilium.europa.eu/en/press/press-releases/2025/11/27/payment-services-council-and-parliament-agree-to-step-up-the-fight-against-fraud-and-increase-transparency/
+9. Council of the EU, "Payment services: Council and Parliament agree to step up the fight against fraud and increase transparency," press release, 2025-11-27 (read via https://web.archive.org/web/20251215082601/https://www.consilium.europa.eu/en/press/press-releases/2025/11/27/payment-services-council-and-parliament-agree-to-step-up-the-fight-against-fraud-and-increase-transparency/). https://www.consilium.europa.eu/en/press/press-releases/2025/11/27/payment-services-council-and-parliament-agree-to-step-up-the-fight-against-fraud-and-increase-transparency/
 10. IETF httpapi WG, "The Idempotency-Key HTTP Header Field," draft-ietf-httpapi-idempotency-key-header-08, 2026-10-22 (Internet-Draft). https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
 11. European Parliament, Legislative Train Schedule, "Revision of EU rules on payment services" (status "close to adoption", updated 2026-10-25). https://www.europarl.europa.eu/legislative-train/theme-an-economy-that-works-for-people/file-revision-of-eu-rules-on-payment-services
-12. PCI Security Standards Council, Document Library (PCI DSS v4.0.1). https://www.pcisecuritystandards.org/document_library/
+12. PCI Security Standards Council, Document Library (landing page listing PCI DSS v4.0.1 among featured documents; the standard's PDF did not download for automated clients). https://www.pcisecuritystandards.org/document_library/
+13. Stripe, "Receive Stripe events in your webhook endpoint" (automatic retries with exponential backoff for up to three days; track event IDs to identify duplicates; do not use `created` to order events). https://docs.stripe.com/webhooks
+14. TigerBeetle, "Correcting Transfers" recipe ("more transfers to reverse or adjust"). https://docs.tigerbeetle.com/coding/recipes/correcting-transfers/
+15. Regulation (EU) 2016/679 (GDPR), Art. 17(3)(b) (erasure does not apply where processing is required by a legal obligation). https://eur-lex.europa.eu/eli/reg/2016/679/oj (read via https://web.archive.org/web/20241230232003/https://eur-lex.europa.eu/eli/reg/2016/679/oj)
+16. Stripe, "How PaymentIntents and SetupIntents work" (status `requires_action` when, for example, 3D Secure authentication is needed). https://docs.stripe.com/payments/paymentintents/lifecycle

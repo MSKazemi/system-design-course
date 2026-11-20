@@ -3,7 +3,7 @@ id: SYSDESIGN-26
 title: "LLM gateways & LLMOps"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-10, SYSDESIGN-11, SYSDESIGN-12, SYSDESIGN-21, SYSDESIGN-22]
 estimated_time: "3h reading + 1.5h lab"
 requirement: "Give 40 internal teams one API to four model providers and a self-hosted vLLM fleet at 2,000 requests/s peak, with per-team token quotas, under 10 ms of added gateway latency at p95, cost attributed per team, automatic fallback on provider failure, and every model or prompt change gated by evaluations"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Diagnose streaming problems through proxies (buffering, timeouts, cancellation, usage accounting)"
   - "Evaluate the correctness risks of semantic caching and decide when it is safe"
   - "Build an LLMOps loop: prompt/version management, offline evals, online experiments, LLM-as-judge caveats, monitoring with OpenTelemetry GenAI conventions, cost attribution, drift and model-regression incident response"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 26 — LLM gateways & LLMOps
@@ -44,8 +44,8 @@ point. LLMOps tells you what to do with it.
 - **Multi-model is normal.** Teams mix frontier APIs with open models served on vLLM, SGLang or llama.cpp. All of
   them expose OpenAI-compatible endpoints (for example vLLM's server [1]), which makes a single gateway API
   practical.
-- **A tooling category formed.** Open-source and commercial gateways now include LiteLLM's proxy (v1.108.12 LTS as of
-  2026-11) [2], Agent Router (formerly Envoy AI Gateway; v1.3.0, now an Agentic AI Foundation project) [3],
+- **A tooling category formed.** Open-source and commercial gateways now include LiteLLM's proxy (v1.108.12 is the current LTS
+  line; the newest non-LTS release is 1.110.1, both as of 2026-11) [2], Agent Router (formerly Envoy AI Gateway; v1.3.0, now an Agentic AI Foundation project) [3],
   Kong AI Gateway [4], and Kubernetes' Gateway API Inference Extension. Its `InferencePool` API is v1 and GA since
   extension v1.0.0, latest v1.6.2 [5]. *As of 2026-11, re-check before relying on any of these.*
 - **The gateway became a high-value target.** In March 2026 LiteLLM's maintainers reported that two PyPI releases
@@ -149,8 +149,8 @@ The design problem: *output length is unknown at admission time.*
 3. **Shared counters.** With N gateway replicas, counters live in Redis or similar. Use atomic scripts and accept
    small overshoot or use local leases (each replica pre-claims a slice).
 4. **Fail open or closed?** If the counter store is down, do you allow traffic (cost risk) or reject it
-   (availability risk)? Decide per tier. LiteLLM exposes this as a setting and returns 503 instead of 429 when
-   fail-closed enforcement cannot verify counters, so clients can tell the two apart [14].
+   (availability risk)? Decide per tier. LiteLLM exposes this as a setting (`general_settings.fail_closed_rate_limit_enforcement`)
+   and returns 503 instead of 429 when fail-closed enforcement cannot verify counters against Redis, so clients can tell the two apart [14].
 
 Return `429` with `Retry-After` and quota headers so clients can back off. Separate **quota** (a monthly team
 budget, a finance concept) from **rate limit** (a per-minute fairness and protection concept).
@@ -316,7 +316,7 @@ utilisation (SYSDESIGN-16, SYSDESIGN-23). Then all teams see one currency.
 | Option | Wins when | Costs | Examples |
 |---|---|---|---|
 | Thin in-house proxy | Few providers, a strong platform team, special requirements | You maintain provider adapters, streaming edge cases, tokenizers | — |
-| Python LLM proxy | Fast start; broad provider coverage; virtual keys, budgets, spend tracking | Python performance per replica; supply-chain exposure of a large dependency tree [6] | LiteLLM proxy v1.108.12-lts [2][10] |
+| Python LLM proxy | Fast start; broad provider coverage; virtual keys, budgets, spend tracking | Python performance per replica; release-pipeline and PyPI supply-chain exposure (the March 2026 incident came via a CI/CD dependency) [6] | LiteLLM proxy v1.108.12-lts [2][10] |
 | Envoy-based AI gateway | Kubernetes and Envoy shops; high-performance data plane; two-tier with self-hosted pools | Envoy and CRD complexity | Agent Router / Envoy AI Gateway v1.3.0 [3] |
 | API-management vendor AI gateway | Existing Kong (or similar) estate; plugins for semantic cache, prompt guards, MCP | Some features may be licence-tiered (check vendor docs) | Kong AI Gateway [4] |
 | Kubernetes inference routing only | Self-hosted pools; KV-cache and queue-aware endpoint picking | Not a full multi-provider gateway; pair with tier one | Gateway API Inference Extension v1.6.x [5] |
@@ -401,7 +401,7 @@ SYSDESIGN-19); redaction before logs; and an audit trail of *config* changes (wh
   `semantic-conventions-genai` repo has no tagged release yet [7]. Expect attribute and metric renames.
 - **Learned routing and cascades** (RouteLLM [11], FrugalGPT [12]) are moving from papers into gateway features.
   Evaluate them on your own traffic before trusting reported savings.
-- **Supply-chain hardening for AI middleware** after 2026's incidents [6]: pin image digests, verify provenance, and
+- **Supply-chain hardening for AI middleware** after 2026's LiteLLM incident [6]: pin image digests, verify provenance, and
   isolate the gateway's credentials (SYSDESIGN-18).
 
 ## Failure modes and operations
@@ -488,9 +488,11 @@ gateway recorded. No paid API keys are needed.
 
 **What one recorded run showed** (2026-11-20, details in the lab's Test status). With one replica stopped, every
 request still succeeded, but the first one took 63.8 s in one run (14.7 s for one request in a second run) before
-the failed deployment was cooled down. Failure-detection latency is a design parameter to measure. A key with
+the gateway settled on the healthy replica. The mechanism was not investigated. Failure-detection latency is a design parameter to measure. A key with
 `tpm_limit = 200` let four requests of 76 tokens through (304 tokens) before returning `429`. That is the
-overshoot of post-hoc token accounting that §Deep dive's reserve-and-refund design avoids. Streaming through the
+overshoot of post-hoc token accounting that §Deep dive's reserve-and-refund design avoids. It holds for the
+`tpm_limit` path in this pinned version and configuration; LiteLLM documents a reservation mode for spend
+budgets [14]. Streaming through the
 gateway gave 187 ms time to first token against 1.6 s total.
 
 ## Further reading
@@ -505,7 +507,7 @@ gateway gave 187 ms time to first token against 1.6 s total.
 
 ## References
 
-1. vLLM project. "OpenAI-Compatible Server." https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html (accessed 2026-11)
+1. vLLM project. "OpenAI-Compatible Server." https://docs.vllm.ai/en/latest/serving/online_serving/openai_compatible_server/ (accessed 2026-11)
 2. BerriAI. LiteLLM releases (v1.108.12 LTS image `docker.litellm.ai/berriai/litellm:v1.108.12-lts`). https://github.com/BerriAI/litellm/releases ; Docker quick start https://docs.litellm.ai/docs/proxy/docker_quick_start (accessed 2026-11)
 3. Agent Router (formerly Envoy AI Gateway). README and docs, v1.3.0 (2026-11-18). https://github.com/theagentrouter/agent-router ; https://theagentrouter.ai/docs/ (accessed 2026-11)
 4. Kong. "AI Gateway" documentation (AI Semantic Cache, AI Rate Limiting Advanced, AI Prompt Guard, AI Semantic Prompt Guard, MCP). https://developer.konghq.com/ai-gateway/ (accessed 2026-11)

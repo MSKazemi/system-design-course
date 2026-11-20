@@ -45,8 +45,8 @@ How much memory do the weights of an 8.2 B-parameter model take at BF16, FP8 and
 <details><summary>Answer</summary>
 
 BF16 = 16.4 GB; FP8 = 8.2 GB; INT4 = 4.1 GB + 8.2 × 10⁹ / 128 × 2 B ≈ 0.13 GB of scales ≈ **4.2 GB**.
-24 GB GPU: only INT4 leaves ≥ 20 GB (≈ 19.8 GB is borderline — strictly, none meets "≥ 20 GB" once runtime overhead is
-counted; say so). 80 GB and 141 GB: all three fit with ample KV room. The point: precision choice is often forced by
+24 GB GPU: none leaves a full 20 GB (INT4 leaves ≈ 19.8 GB before runtime overhead; BF16 and FP8 leave 7.6 and
+15.8 GB) — INT4 comes closest, and saying so is the right answer. 80 GB and 141 GB: all three fit with ample KV room. The point: precision choice is often forced by
 the *smallest* GPU you must support.
 </details>
 

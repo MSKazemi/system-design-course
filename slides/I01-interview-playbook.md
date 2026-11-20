@@ -19,12 +19,12 @@ its costs are known.
 non-abstract large system design.
 
 ## Slide 3 — Time budgets
-- 45 min: CLARIFY 5 · QUANTIFY 4 · SKETCH 8 · DEEPEN 13 · STRESS 6 · WRAP 2 · questions 4
-- 60 min: CLARIFY 6 · QUANTIFY 5 · SKETCH 10 · DEEPEN 20 · STRESS 8 · WRAP 3 · questions 5
+- 45 min: intro 2 · CLARIFY 5 · QUANTIFY 4 · SKETCH 8 · DEEPEN 14 · STRESS 6 · WRAP 2 · questions 4 (= 45)
+- 60 min: intro 2 · CLARIFY 6 · QUANTIFY 5 · SKETCH 10 · DEEPEN 20 · STRESS 8 · WRAP 3 · questions 6 (= 60)
 - Announce transitions; check the clock when SKETCH ends (minute 19 of 45)
 **Visual:** two stacked horizontal bars, one per format, segments labelled.
-**Speaker notes:** Meta's guide notes the interviewer usually keeps the last five minutes for your questions. Running out
-of time before STRESS is the most common way to lose the reliability signal.
+**Speaker notes:** Meta's guide (updated 2022) says the interviewer typically saves the last five minutes for your
+questions. In this course's experience, running out of time before STRESS is a common way to lose the reliability signal.
 
 ## Slide 4 — CLARIFY
 - Restate; functional verbs (4–7); rank the non-functional adjectives
@@ -89,7 +89,7 @@ bound.
 - The trigger turns an opinion into a revisitable decision
 - Replace "scalable/fast/reliable" with numbers
 **Visual:** sentence template with four colored-and-labelled slots (labels carry the meaning).
-**Speaker notes:** Most candidates leave out the trigger. Senior engineers name it in real design reviews.
+**Speaker notes:** In our experience, candidates most often leave out the trigger. Senior engineers name it in real design reviews.
 
 ## Slide 12 — Levels and remote interviews
 - Junior → principal: scope, depth, autonomy, judgment

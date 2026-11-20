@@ -3,7 +3,7 @@ id: SYSDESIGN-C02
 title: "News feed / timeline"
 part: "IV — Case studies"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-04, SYSDESIGN-07, SYSDESIGN-08, SYSDESIGN-10]
 estimated_time: "2h reading + exercises"
 requirement: "Design the home feed for a social app with 200 million daily users: the feed loads in under 300 ms at p99, a new post reaches followers' feeds within 5 seconds at p95, some accounts have tens of millions of followers, and the feed is ranked by a model rather than sorted by time."
@@ -13,7 +13,7 @@ learning_objectives:
   - "Design the timeline store, the read path latency budget and cursor pagination that survives inserts and deletes"
   - "Explain a multi-stage ranking pipeline (candidate sources, feature hydration, light and heavy rankers, filters) and its cost"
   - "Diagnose fan-out backlogs, hot authors and ranker overload, and state SLOs, cost and energy per feed load"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # C02 — News feed / timeline
@@ -34,9 +34,11 @@ Prerequisites: [SYSDESIGN-04 caching](../01-foundations/04-caching.md),
 
 ## The prompt
 
-"Design Twitter's timeline" or "design the Facebook news feed". The classic answer — *precompute every user's
-timeline on write, except for celebrities* — is correct and incomplete. In 2026 a strong answer also explains where
-ranking runs, what it costs, and why the industry has partly moved *away* from fully materialized per-user timelines.
+"Design Twitter's timeline" or "design the Facebook news feed". The textbook answer — *precompute every user's
+timeline on write, except for celebrities* — is a sound start but incomplete. In 2026 a strong answer also explains
+where ranking runs, what it costs, and when per-user materialized timelines stop paying: Twitter reported in 2023 that
+it had stopped using the service that supplied in-network posts from a per-user cache [8], and X's open-sourced feed
+sources in-network posts from an in-memory recent-posts store instead [6].
 Ask early: chronological or ranked? Only followed accounts, or recommendations too? How fresh is fresh?
 
 ## CLARIFY: requirements
@@ -79,11 +81,12 @@ All values are **labelled assumptions**; replace them with the interviewer's num
 | Registered users / follow edges | 500 M users × 200 follows | 100 B edges |
 | Graph storage (16 B per edge, both directions) | 100 B × 16 B × 2 | ≈ 3.2 TB |
 | Fan-out inserts if pushing every post to every follower (mean 200) | 25 M × 200 | 5 B/day ≈ 58,000 /s avg, ≈ 175,000 /s peak |
-| …only to recently active followers (40 % of followers) | 5 B × 0.4 | 2 B/day |
+| …only to followers active in the last day (assume 40 %) | 5 B × 0.4 | 2 B/day |
 | Timeline entry (post ID 8 B + author ID 8 B) | | 16 B |
 | Timeline cache (500 entries per DAU) | 200 M × 500 × 16 B | 1.6 TB raw; ≈ 4.8 TB with 1.5× overhead and 2 replicas |
 | One mega-account post (50 M followers) | 50 M inserts at 1 M inserts/s | ≈ 50 s — misses the 5 s target |
-| Ranking work (500 candidates per load) | 70,000 /s × 500 | 35 M candidate scores/s at peak |
+| Light-ranker work (~1,500 candidates per load, order of magnitude from [8]) | 70,000 /s × 1,500 | ≈ 105 M light scores/s at peak |
+| Heavy-ranker work (500 candidates per load) | 70,000 /s × 500 | 35 M candidate scores/s at peak |
 
 **What the numbers say.** Storage is not the problem (3.2 TB of graph and a few TB of RAM is a modest cluster). Two
 things are: **write amplification is skewed** — the average post costs 200 inserts, one celebrity post costs 50 M — and
@@ -179,8 +182,10 @@ The cleanest formulation is in Yahoo's *Feeding Frenzy* paper (SIGMOD 2010): dec
 producer/consumer pair**, "based on the ratio between a given producer's update rate … and a given consumer's view
 rate" [1]. The intuition: pushing costs one write per producer event; pulling costs one read per consumer view. If a
 consumer views their feed far more often than the producer posts, push is cheaper for that pair; if the producer posts
-far more often than the consumer looks, pull is cheaper. Real systems simplify this to a **per-author threshold** on
-follower count (and sometimes posting rate), because per-pair state is expensive to maintain.
+far more often than the consumer looks, pull is cheaper. A common simplification is a **per-author threshold** on
+follower count (and sometimes posting rate), because per-pair state is expensive to maintain. Feeding Frenzy was
+evaluated on Yahoo!'s PNUTS, not on a production feed; the threshold, the 500-entry timeline cap and the
+push-and-trim list below are our design choices, not a cited production configuration.
 
 **Placing the threshold.** With a threshold of *T* followers, a feed read must merge the recent posts of every
 followed author above *T*. Assume (label it) that the average user follows 15 accounts above *T* = 100,000: the read
@@ -192,8 +197,8 @@ the "right" number.
 
 **Two more fan-out savings.**
 
-- **Skip inactive followers.** Pushing to users who have not opened the app in 30 days wastes most inserts (the
-  estimate above assumes 40 % of followers are active). Their timeline is *rebuilt on demand* when they return (deep
+- **Skip inactive followers.** Pushing to followers who have not opened the app in the last day wastes most inserts
+  (the estimate above assumes 40 % of followers are daily-active). Their timeline is *rebuilt on demand* when they return (deep
   dive 2).
 - **Push IDs, not content.** Timeline entries are 16 bytes; edits and deletes then need no fan-out, because hydration
   and the visibility filter read the current post at feed time.
@@ -259,7 +264,9 @@ specific actions (like, comment, share), and a final contextual pass for rules s
 predictions are combined linearly into one relevance score [4]. X's open-sourced Home Mixer lists the same stages:
 candidate generation from several sources, feature hydration ("Fetch the ~6000 features needed for ranking"), scoring
 with an ML model, then filters and heuristics (author diversity, in-network/out-of-network balance, deduplication,
-visibility filtering) and mixing in ads and modules [5].
+visibility filtering) and mixing in ads and modules [5]. Twitter's 2023 description of its For You pipeline says it
+extracts "the best 1500 Tweets" per request from its candidate sources, and that the timeline averaged 50 % in-network
+posts [8]; we use ~1,500 as the working candidate count.
 
 ```mermaid
 flowchart LR
@@ -290,12 +297,16 @@ and produce the first page of 30 items.*
 | Filters, mixing, hydration of the 30 shown items | 40 ms |
 | Network, serialization, slack | 75 ms |
 
+Budgets are per-stage p99 allocations. Stage p99s do not add (and the two read rows run in parallel), so the
+end-to-end p99 needs its own measurement.
+
 **Cost lever: rank once, page many times.** Rank ~500 candidates on the first request, store the ordered list keyed by
 the cursor's snapshot ID for a few minutes, and serve pages 2, 3, … from it. Most of the 70,000 /s peak is then
 first-page loads, and later pages cost a cache read.
 
 **Degradation.** If the heavy ranker is overloaded or down, fall back to the light ranker, then to reverse-chronological
-in-network. The user gets a worse feed, not an error — which is why feed availability (99.95 %) can be higher than
+in-network. X's Home Mixer has such a "backup reverse chron pipeline in case Scored Tweets fails" [5]; the light-ranker
+middle step is our design. The user gets a worse feed, not an error — which is why feed availability (99.95 %) can be higher than
 ranker availability. Make the fallback rate an SLI.
 
 ### Deep dive 4 — pagination, freshness and visibility
@@ -363,8 +374,8 @@ latency ([SYSDESIGN-17](../02-modern-requirements/17-energy-carbon-aware.md)).
 
 ## Modern twist
 
-The 2026 feed is an **ML retrieval-and-ranking system with a social graph attached**, and the materialized timeline
-is no longer the center.
+The 2026 feed is an **ML retrieval-and-ranking system with a social graph attached**, and in at least one public
+design the per-user materialized timeline is no longer the in-network source.
 
 **Embedding retrieval for out-of-network candidates.** Recommended posts come from approximate nearest-neighbor search
 over user and post embeddings (two-tower models), the same machinery as RAG retrieval
@@ -372,9 +383,11 @@ over user and post embeddings (two-tower models), the same machinery as RAG retr
 (`xai-org/x-algorithm`) shows this concretely: out-of-network posts come from "Phoenix" retrieval (a two-tower model)
 and other sources, while in-network posts come from **Thunder**, which "keeps recent posts from the accounts a viewer
 follows in memory" [6]. That is a *pull-based in-network source* — an in-memory index of recent posts by author,
-queried per request — rather than per-user materialized timelines. As user graphs grow and recommendations take a
-larger share of the feed, holding one recent-posts index and pulling at read time can be cheaper than maintaining
-hundreds of millions of timelines; the classic push design remains a good answer when the feed is mostly in-network.
+queried per request — rather than per-user materialized timelines. It is not new in 2026: Twitter's 2023 post already
+reported retiring its per-user-cache Fanout Service [8], and the older Home Mixer README lists a search-index source
+for in-network posts [5]. Neither source says why; the cost argument that follows is ours, not X's. As recommendations
+take a larger share of the feed, one recent-posts index pulled at read time can be cheaper than hundreds of millions
+of timelines; the classic push design remains a good answer when the feed is mostly in-network.
 
 **Transformer rankers with cacheable scores.** The same repository describes ranking with a transformer that predicts
 probabilities for many actions, combined into one score by explicit weights; during inference "candidates cannot
@@ -435,7 +448,7 @@ memory sizing, the ranking budget, pagination edge cases, and lab exercises usin
 
 ## References
 
-All accessed 2026-11-19.
+All accessed 2026-11-19; re-checked 2026-11-20.
 
 1. A. Silberstein, J. Terrace, B. F. Cooper, R. Ramakrishnan, "Feeding Frenzy: Selectively Materializing Users' Event Feeds," SIGMOD 2010. https://sns.cs.princeton.edu/assets/papers/2010-sigmod-silberstein.pdf (DOI 10.1145/1807167.1807257)
 2. P. Covington, J. Adams, E. Sargin, "Deep Neural Networks for YouTube Recommendations," RecSys 2016 (two-stage candidate generation + ranking). https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/
@@ -443,4 +456,5 @@ All accessed 2026-11-19.
 4. A. Lada, M. Wang, T. Yan, "How machine learning powers Facebook's News Feed ranking algorithm," Engineering at Meta, 2021-01-26. https://engineering.fb.com/2021/01/26/core-infra/news-feed-ranking/
 5. X Corp., `twitter/the-algorithm`, Home Mixer README (stages; "~6000 features"). https://github.com/twitter/the-algorithm/blob/main/home-mixer/README.md
 6. xAI / X Corp., `xai-org/x-algorithm` README, "X For You Feed Algorithm" (Thunder, Phoenix retrieval and ranking, candidate isolation, hash-based embeddings; notable updates through 2026-10-26). https://github.com/xai-org/x-algorithm
-7. Regulation (EU) 2022/2065 (Digital Services Act), Art. 38 "Recommender systems"; obligation also restated in the Commission's answer to parliamentary question E-003424/2023. https://eur-lex.europa.eu/eli/reg/2022/2065/oj and https://www.europarl.europa.eu/doceo/document/E-9-2023-003424-ASW_EN.html
+7. Regulation (EU) 2022/2065 (Digital Services Act), Art. 38 "Recommender systems"; obligation also restated in the Commission's answer to parliamentary question E-003424/2023 (the europarl.europa.eu page blocks automated clients; read via the Wayback Machine copy of 2024-07-15). https://eur-lex.europa.eu/eli/reg/2022/2065/oj and https://www.europarl.europa.eu/doceo/document/E-9-2023-003424-ASW_EN.html
+8. Twitter Engineering, "Twitter's Recommendation Algorithm," 2023-03-31 (~1500 candidates per request; 50 % in-network on average; Fanout Service, which served in-network Tweets "from a cache of Tweets for each user", no longer used). Original https://blog.twitter.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm blocks automated clients; read via https://web.archive.org/web/20240102032358/https://blog.twitter.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm

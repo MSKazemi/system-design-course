@@ -3,7 +3,7 @@ id: SYSDESIGN-24
 title: "Retrieval & vector systems"
 part: "III — AI-native systems"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-05, SYSDESIGN-07, SYSDESIGN-13, SYSDESIGN-21]
 estimated_time: "3.5h reading + 2h lab"
 requirement: "Answer questions over 50 million chunks from 2,000 tenant workspaces with p95 retrieval under 150 ms, zero cross-tenant or cross-ACL leakage, and edits visible within 15 minutes"
@@ -14,7 +14,7 @@ learning_objectives:
   - "Design a RAG pipeline end to end: ingestion, chunking, metadata, indexing, hybrid retrieval, reranking, generation with citations"
   - "Evaluate a retriever (recall@k, MRR, nDCG) and a RAG system (faithfulness, context precision/recall), and diagnose which stage failed"
   - "Argue when long-context prompting, GraphRAG or plain RAG is the better design"
-last_reviewed: 2026-11-19
+last_reviewed: 2026-11-20
 ---
 
 # 24 — Retrieval & vector systems
@@ -143,7 +143,7 @@ query speed is usually worse than HNSW (pgvector's own README says this about it
   error *parallel* to the data point more than orthogonal error. Those are the errors that change the ranking.
 - **Binary quantization:** keep 1 bit per dimension (sign) and compare with Hamming distance. That is 32× smaller.
   It is usually useful only with oversampling and rescoring on full vectors.
-- **Half precision (`halfvec`, bf16):** 2 bytes per dimension, close to lossless for retrieval in practice. In
+- **Half precision (`halfvec`, IEEE float16; some engines also offer bfloat16):** 2 bytes per dimension, close to lossless for retrieval in practice. In
   pgvector it is also how you index up to 4,000 dimensions [16].
 
 The standard production recipe is: **search compressed, rescore exact.** Fetch `k × oversample` candidates using
@@ -193,7 +193,7 @@ the opposite. Running both and fusing the result lists is the cheapest robustnes
 `Σ 1 / (c + rank_i)` over the lists in which it appears, with `c = 60` in the paper. It needs no score calibration,
 because BM25 scores and cosine similarities live on incomparable scales. Alternatives include weighted score fusion
 after normalisation (Weaviate's default since v1.24 is `relativeScoreFusion`, with `alpha` weighting vector vs keyword
-and a server default of 0.75 [19]) and learned fusion. Learned sparse models such as SPLADE sit in between.
+and a server default of 0.75 [19]) and learned fusion. Learned sparse models such as SPLADE [37] sit in between.
 
 ### 9. Reranking with cross-encoders
 
@@ -233,7 +233,7 @@ A RAG system is an **offline ingestion pipeline** and an **online query path**. 
 3. **Chunking:** split into retrievable units. Options include fixed token windows with overlap, structure-aware
    chunks (by heading or section), and semantic chunking. Prepending document context to each chunk (title, section
    path, a short summary) improves retrieval. Anthropic's "contextual retrieval" write-up is one public description
-   of this idea (vendor blog, treat as a lead) [26].
+   of this idea (vendor research post, treat as a lead) [26].
 4. **Metadata:** `tenant_id`, `doc_id`, `chunk_no`, `acl_principals`, `source_uri`, `version/etag`, `updated_at`,
    `embedding_model@version`, language, and the byte or page offsets needed for citations.
 5. **Embedding:** batch, rate-limited, idempotent (key = `doc_id + chunk_no + content_hash + model_version`).
@@ -286,13 +286,13 @@ unless stated; HNSW `M = 16`; 1 GiB = 2³⁰ bytes.
 | Representation | Bytes / vector | Total | Typical use |
 |---|---|---|---|
 | float32, 1,024-d | 4,096 | 204.8 GB | rescoring tier (SSD/RAM) |
-| halfvec / bf16, 1,024-d | 2,048 | 102.4 GB | near-lossless default |
+| halfvec (fp16), 1,024-d | 2,048 | 102.4 GB | near-lossless default |
 | int8 SQ, 1,024-d | 1,024 | 51.2 GB | in-RAM search tier |
 | Matryoshka → 256-d float32 | 1,024 | 51.2 GB | if the model is MRL-trained [5] |
 | PQ, m = 64 × 8 bit | 64 | 3.2 GB | IVF-PQ / DiskANN in-RAM guide [3][4] |
 | binary, 1,024 bits | 128 | 6.4 GB | first pass + rescoring |
 
-So "200 GB of RAM" becomes "≈10 GB of RAM plus 200 GB of SSD" with binary or PQ first-pass and SSD rescoring. That
+So "200 GB of RAM" becomes "≈3–7 GB of RAM for PQ or binary codes (≈13–14 GB if an HNSW graph also stays in RAM) plus ≈205 GB of SSD" with a compressed first pass and SSD rescoring. That
 is the core argument for DiskANN-style and quantized designs [4].
 
 **4. Ingestion cost.** 50M × 300 tokens = **15×10⁹ tokens** to embed once. *Assume* a self-hosted embedding
@@ -326,8 +326,8 @@ shard.
 |---|---|---|---|
 | Extension in your OLTP database | < tens of millions of vectors, strong need for transactional consistency with metadata and ACLs, one less system | Shares CPU/RAM with OLTP; HNSW builds compete with writes; scale-out is your problem | pgvector 0.8.7 (HNSW, IVFFlat, halfvec, bit, sparsevec, iterative scans) [16] |
 | Search engine with kNN | You already run it for BM25; hybrid in one query | JVM memory tuning; vector features vary by version and licence | OpenSearch (Lucene and Faiss engines, HNSW and IVF; NMSLIB deprecated) [20]; Elasticsearch (HNSW with int8/BBQ quantization defaults) [21] |
-| Dedicated vector database | Hundreds of millions+, heavy filtering, quantization and tiering, multi-tenant features | Another stateful system to run, back up and secure | Qdrant 1.20 (filter-aware HNSW, tenant indexes) [17]; Milvus 3.0 (HNSW, IVF family, ScaNN, on-disk index) [18]; Weaviate 1.40 (HNSW default plus flat, dynamic and HFresh indexes; hybrid fusion; per-tenant shards) [19][36] |
-| Embedded / lakehouse | Batch and offline workloads, object-storage-native, multimodal | Concurrency and latency of online serving need care | LanceDB (embedded library on the Lance columnar format; vector, full-text, hybrid search) [27] |
+| Dedicated vector database | Hundreds of millions+, heavy filtering, quantization and tiering, multi-tenant features | Another stateful system to run, back up and secure | Qdrant 1.20 (filter-aware HNSW, tenant indexes) [17]; Milvus 3.0 (HNSW, IVF family, ScaNN, on-disk DiskANN index) [18]; Weaviate 1.40 (HNSW default plus flat, dynamic and HFresh indexes; hybrid fusion; per-tenant shards) [19][36] |
+| Embedded / lakehouse | Batch and offline workloads, object-storage-native, multimodal | Concurrency and latency of online serving need care | LanceDB (embedded library on the Lance columnar format; vector search, full-text search and SQL) [27] |
 | Library in your service | You control everything; static or slowly changing corpora | You build persistence, replication, filtering | Faiss [28], hnswlib [15], ScaNN [6] |
 
 Versions above are the latest releases observed on 2026-11-19. Features change monthly, so re-check the docs before
@@ -456,10 +456,10 @@ trusting trends.
 *As of 2026-11; verify before relying on any version-specific detail.*
 
 - **Quantization by default in mainstream engines.** Elasticsearch defaults float vectors to `bbq_hnsw` (≥384 dims)
-  from 9.1 and to `bbq_disk` from 9.4 where licensed [21]. Expect "RAM per vector" estimates to start from
+  from 9.1 and to `bbq_disk` from 9.4 where the licence allows it (`bbq_disk` needs an Enterprise subscription) [21]. Expect "RAM per vector" estimates to start from
   ~1 bit to 1 byte per dimension, with rescoring.
 - **Filter-aware ANN as a core feature.** ACORN [10], Filtered-DiskANN [9], and engine features such as Qdrant's
-  filter-aware HNSW [17] and pgvector's iterative scans [16] reflect a shift: filtering is part of the index, not an
+  filter-aware HNSW (plus an ACORN search mode since v1.16 for multi-filter cases) [17] and pgvector's iterative scans [16] reflect a shift: filtering is part of the index, not an
   afterthought.
 - **Elastic embeddings.** MRL-trained models let you store 1,024-d vectors but search a 256-d prefix first, then
   rescore [5][22].
@@ -558,7 +558,7 @@ retriever would leak across ACL groups, and optionally generates a cited answer 
 
 **What one recorded run showed** (laptop, 2026-11-19, details and caveats in the lab's Test status). On 50,000
 synthetic 384-d vectors, HNSW recall@10 was 0.973 at `ef_search = 40` (p50 ≈ 1.4 ms) against a 44 ms exact scan.
-On a harder, overlapping-cluster dataset the *same setting* gave only 0.638. With a 1% filter, plain HNSW returned
+On a harder, overlapping-cluster dataset recall@10 was only 0.365 at `ef_search = 10` and 0.836 even at 320. With a 1% filter, plain HNSW returned
 0.3 of 10 rows on average. Iterative scans returned 10 of 10 at ≈19 ms p50. On the toy corpus, dense retrieval
 ranked the wrong document first for the error-code query `LUM-5002`, and RRF hybrid put the right one first. These
 are illustrations of the mechanisms, not benchmarks.
@@ -579,13 +579,13 @@ are illustrations of the mechanisms, not benchmarks.
 
 1. Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." NeurIPS 2020. arXiv:2005.11401. https://arxiv.org/abs/2005.11401 (accessed 2026-11)
 2. Malkov, Yu. A., Yashunin, D. A. "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs." arXiv:1603.09320 (2016); IEEE TPAMI 42(4), 2020 (online 2018), doi:10.1109/TPAMI.2018.2889473. https://arxiv.org/abs/1603.09320 (accessed 2026-11)
-3. Jégou, H., Douze, M., Schmid, C. "Product Quantization for Nearest Neighbor Search." IEEE TPAMI 33(1), 2011. doi:10.1109/TPAMI.2010.57 (accessed 2026-11)
+3. Jégou, H., Douze, M., Schmid, C. "Product Quantization for Nearest Neighbor Search." IEEE TPAMI 33(1), 2011. doi:10.1109/TPAMI.2010.57 (accessed 2026-11; bibliographic data checked via Crossref, publisher full text not fetchable by automation, unverified as of 2026-11)
 4. Subramanya, S. J., Devvrit, F., Simhadri, H. V., Krishnaswamy, R., Kadekodi, R. "DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node." NeurIPS 2019. https://papers.nips.cc/paper/2019/hash/09853c7fb1d3f8ee67a61b6bf4a7f8e6-Abstract.html (accessed 2026-11)
 5. Kusupati, A. et al. "Matryoshka Representation Learning." NeurIPS 2022. arXiv:2205.13147. https://arxiv.org/abs/2205.13147 (accessed 2026-11)
 6. Guo, R. et al. "Accelerating Large-Scale Inference with Anisotropic Vector Quantization." ICML 2020. arXiv:1908.10396; code: https://github.com/google-research/google-research/tree/master/scann (accessed 2026-11)
-7. Robertson, S., Zaragoza, H. "The Probabilistic Relevance Framework: BM25 and Beyond." Foundations and Trends in IR 3(4), 2009. doi:10.1561/1500000019 (accessed 2026-11)
-8. Cormack, G. V., Clarke, C. L. A., Büttcher, S. "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods." SIGIR 2009. doi:10.1145/1571941.1572114 (accessed 2026-11)
-9. Gollapudi, S. et al. "Filtered-DiskANN: Graph Algorithms for Approximate Nearest Neighbor Search with Filters." ACM Web Conference 2023. doi:10.1145/3543507.3583552 (accessed 2026-11)
+7. Robertson, S., Zaragoza, H. "The Probabilistic Relevance Framework: BM25 and Beyond." Foundations and Trends in IR 3(4), 333–389, 2009 (the commonly cited form; Crossref metadata gives 4(1–2), and the publisher page blocks automated fetches, so the volume is unverified as of 2026-11). doi:10.1561/1500000019 (accessed 2026-11)
+8. Cormack, G. V., Clarke, C. L. A., Büttcher, S. "Reciprocal rank fusion outperforms Condorcet and individual rank learning methods." SIGIR 2009. doi:10.1145/1571941.1572114 ; author copy https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf (accessed 2026-11)
+9. Gollapudi, S. et al. "Filtered-DiskANN: Graph Algorithms for Approximate Nearest Neighbor Search with Filters." ACM Web Conference 2023. doi:10.1145/3543507.3583552 (accessed 2026-11; bibliographic data checked via Crossref, full text not fetchable by automation, unverified as of 2026-11)
 10. Patel, L., Kraft, P., Guestrin, C., Zaharia, M. "ACORN: Performant and Predicate-Agnostic Search Over Vector Embeddings and Structured Data." SIGMOD 2024. arXiv:2403.04871. https://arxiv.org/abs/2403.04871 (accessed 2026-11)
 11. Liu, N. F. et al. "Lost in the Middle: How Language Models Use Long Contexts." TACL 2024. arXiv:2307.03172. https://arxiv.org/abs/2307.03172 (accessed 2026-11)
 12. Hsieh, C.-P. et al. "RULER: What's the Real Context Size of Your Long-Context Language Models?" arXiv:2404.06654 (2024). https://arxiv.org/abs/2404.06654 (accessed 2026-11)
@@ -593,8 +593,8 @@ are illustrations of the mechanisms, not benchmarks.
 14. Aumüller, M., Bernhardsson, E., Faithfull, A. "ANN-Benchmarks: A Benchmarking Tool for Approximate Nearest Neighbor Algorithms." arXiv:1807.05614; https://ann-benchmarks.com (accessed 2026-11)
 15. hnswlib maintainers. "HNSW algorithm parameters" (ALGO_PARAMS.md). https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md (accessed 2026-11)
 16. pgvector maintainers. pgvector README, v0.8.7. https://github.com/pgvector/pgvector (accessed 2026-11)
-17. Qdrant. "Filtering" and "Indexing" documentation (v1.20). https://qdrant.tech/documentation/concepts/filtering/ ; https://qdrant.tech/documentation/manage-data/indexing/ (accessed 2026-11)
-18. Milvus. "Index" documentation (v3.0.x). https://milvus.io/docs/index.md (accessed 2026-11)
+17. Qdrant. "Filtering" and "Indexing" documentation (v1.20; ACORN mode since v1.16.0). https://qdrant.tech/documentation/search/filtering/ ; https://qdrant.tech/documentation/manage-data/indexing/ (accessed 2026-11)
+18. Milvus. "Index" and "On-disk Index" documentation (v3.0.x). https://milvus.io/docs/index.md ; https://milvus.io/docs/disk_index.md (accessed 2026-11)
 19. Weaviate. "Hybrid search" concepts. https://docs.weaviate.io/weaviate/concepts/search/hybrid-search (accessed 2026-11)
 20. OpenSearch. "Methods and engines" (k-NN vector). https://docs.opensearch.org/latest/mappings/supported-field-types/knn-methods-engines/ (accessed 2026-11)
 21. Elastic. "dense_vector field type" reference (index_options defaults by version). https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/dense-vector (accessed 2026-11)
@@ -602,14 +602,15 @@ are illustrations of the mechanisms, not benchmarks.
 23. sentence-transformers. "all-MiniLM-L6-v2" model card (384 dimensions, 256 word-piece limit). https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2 (accessed 2026-11)
 24. Nogueira, R., Cho, K. "Passage Re-ranking with BERT." arXiv:1901.04085 (2019). https://arxiv.org/abs/1901.04085 (accessed 2026-11)
 25. Khattab, O., Zaharia, M. "ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT." SIGIR 2020. arXiv:2004.12832 (accessed 2026-11)
-26. Anthropic. "Introducing Contextual Retrieval" (vendor engineering blog, 2024). https://www.anthropic.com/news/contextual-retrieval (accessed 2026-11)
-27. LanceDB documentation. https://docs.lancedb.com/ (accessed 2026-11)
+26. Anthropic. "Introducing Contextual Retrieval" (vendor research post, 2024). https://www.anthropic.com/research/contextual-retrieval (accessed 2026-11)
+27. LanceDB maintainers. lancedb repository README ("embedded retrieval library", built on the Lance columnar format). https://github.com/lancedb/lancedb (accessed 2026-11)
 28. Douze, M. et al. "The Faiss library." arXiv:2401.08281 (2024). https://arxiv.org/abs/2401.08281 (accessed 2026-11)
 29. Edge, D. et al. "From Local to Global: A Graph RAG Approach to Query-Focused Summarization." arXiv:2404.16130 (2024). https://arxiv.org/abs/2404.16130 (accessed 2026-11)
-30. Järvelin, K., Kekäläinen, J. "Cumulated gain-based evaluation of IR techniques." ACM TOIS 20(4), 2002. doi:10.1145/582415.582418 (accessed 2026-11)
+30. Järvelin, K., Kekäläinen, J. "Cumulated gain-based evaluation of IR techniques." ACM TOIS 20(4), 2002. doi:10.1145/582415.582418 (accessed 2026-11; bibliographic data checked via Crossref, full text not fetchable by automation, unverified as of 2026-11)
 31. Thakur, N. et al. "BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models." NeurIPS 2021 Datasets & Benchmarks. arXiv:2104.08663 (accessed 2026-11)
 32. Muennighoff, N. et al. "MTEB: Massive Text Embedding Benchmark." EACL 2023. arXiv:2210.07316 (accessed 2026-11)
 33. Es, S., James, J., Espinosa-Anke, L., Schockaert, S. "Ragas: Automated Evaluation of Retrieval Augmented Generation." EACL 2024 (demo). arXiv:2309.15217. https://arxiv.org/abs/2309.15217 (accessed 2026-11)
 34. ragas maintainers. "Available metrics" (ragas v0.4.4). https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/ (accessed 2026-11)
 35. Microsoft. GraphRAG (v3.3.0). https://github.com/microsoft/graphrag ; https://microsoft.github.io/graphrag/ (accessed 2026-11)
 36. Weaviate. "Multi-tenancy" and "Vector indexing" docs. https://docs.weaviate.io/weaviate/manage-collections/multi-tenancy ; https://docs.weaviate.io/weaviate/concepts/vector-index (accessed 2026-11)
+37. Formal, T., Piwowarski, B., Clinchant, S. "SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking." SIGIR 2021 (short paper). arXiv:2107.05720. https://arxiv.org/abs/2107.05720 (accessed 2026-11)

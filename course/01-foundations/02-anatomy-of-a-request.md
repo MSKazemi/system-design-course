@@ -3,7 +3,7 @@ id: SYSDESIGN-02
 title: "Anatomy of a request: DNS, TCP, QUIC/HTTP/3, TLS 1.3, proxies, CDN edge"
 part: "I — Classical foundations"
 level: [core, deep, frontier]
-status: DRAFT
+status: SOURCES_CHECKED
 prerequisites: [SYSDESIGN-01]
 estimated_time: "2.5h reading + 30 min hands-on with curl"
 requirement: "A first-time Lumen user anywhere in Europe sees the first byte of the app shell within 200 ms at p75, and a returning user within 100 ms"
@@ -150,7 +150,7 @@ early data they consider unsafe [14].
 **What the server sees, and what an observer sees.** Before ECH, the hostname travelled in clear text in the
 Server Name Indication (SNI) extension. Load balancers used it to route TLS connections without decrypting them,
 and so did network filters. Encrypted Client Hello (RFC 9849, March 2026) encrypts the inner ClientHello,
-including SNI, under a key the server publishes in DNS (in the `HTTPS` record) [7][4]. This matters for
+including SNI, under a key the server publishes in DNS (the `ech` parameter of its `HTTPS` record, specified in RFC 9848) [7][27]. This matters for
 designs that route on SNI at layer 4. With ECH, only the party that holds the ECH key can read the real name.
 
 ### HTTP/1.1, HTTP/2, HTTP/3
@@ -201,9 +201,10 @@ per extra request on that connection. So the first rule of request latency is:
   ephemeral ports through sockets stuck in `TIME_WAIT`.
 - **Idle timeouts must nest.** Every hop closes idle connections after some timeout. If an upstream closes an
   idle connection while the proxy in front of it believes the connection is still usable, the proxy's next
-  request hits a dead socket, and the client gets a `502`. AWS states this directly for its Application Load
-  Balancer, whose idle timeout defaults to 60 s: configure the application's idle timeout to be *larger* than
-  the load balancer's, or "the load balancer sends an HTTP 502 Bad Gateway error to the client" [17]. The
+  request hits a dead socket, and the client gets a `502`. AWS documents this for its Application Load
+  Balancer, whose idle timeout defaults to 60 s: it recommends that the application's idle timeout be *larger*
+  than the load balancer's, because otherwise, if the application closes the connection while the load balancer
+  still considers it open, "the load balancer sends an HTTP 502 Bad Gateway error to the client" [17]. The
   general rule is that each hop's idle timeout should be longer than the timeout of the hop in front of it.
 
 ### Proxies: the boxes between client and code
@@ -233,8 +234,8 @@ A content delivery network runs many **points of presence (PoPs)** close to user
 three jobs:
 
 1. **Cache** static assets (the JavaScript bundle, fonts, images) and, when allowed, whole responses. Freshness
-   is controlled by `Cache-Control` (`max-age`, `s-maxage`, `stale-while-revalidate`), as defined in RFC 9111
-   [15]. Caching gets its own chapter: [SYSDESIGN-04](04-caching.md).
+   is controlled by `Cache-Control` (`max-age` and `s-maxage` in RFC 9111 [15], `stale-while-revalidate` in
+   RFC 5861 [26]). Caching gets its own chapter: [SYSDESIGN-04](04-caching.md).
 2. **Terminate connections near the user**, even for responses it cannot cache. The expensive handshakes then
    run over a 10–20 ms path instead of a 100 ms one.
 3. **Carry requests to the origin over warm connections**, which are already open, past slow start, and often
@@ -244,8 +245,8 @@ three jobs:
 ### Anycast: one address, many places
 
 With **anycast**, the same IP prefix is announced through BGP from many locations. Internet routing delivers
-each packet to the "closest" announcement, where closest means BGP path selection, not geography (RFC 4786)
-[19]. DNS root and recursive services and most CDNs use anycast. Compared with GeoDNS:
+each packet to the "nearest" announcement as the routing system sees it. That is BGP path selection, which need
+not match geography or latency (RFC 4786 §3) [19]. DNS root and recursive services and most CDNs use anycast. Compared with GeoDNS:
 
 - **Anycast** reacts at routing speed. Withdraw the announcement from a failing PoP and traffic shifts within
   seconds to minutes, with no DNS cache in the way. Its weaknesses: you can't steer individual users, and a
@@ -351,17 +352,19 @@ slow-start rounds for large bodies.
 HTTP/2 removed *application-level* head-of-line blocking (responses no longer queue behind each other), but it
 kept *transport-level* blocking. A single lost TCP segment holds up delivery of all later bytes on the
 connection, whichever stream they belong to. On a clean wired path this rarely matters. On a lossy mobile path,
-one connection carrying everything can do worse than HTTP/1.1's six connections, because one loss stalls all
-traffic instead of one sixth of it. QUIC fixes this by doing ordering per stream, but QPACK then has to be
+one connection carrying everything can, by this reasoning, do worse than HTTP/1.1's six connections, because one
+loss stalls all traffic instead of one sixth of it (a mechanism argument, not a measurement: test on your own
+traffic). QUIC fixes this by doing ordering per stream, but QPACK then has to be
 designed so that header compression does not reintroduce cross-stream blocking. That is why RFC 9204 exists
 instead of a reuse of HPACK [10].
 
 ### QUIC is not free
 
-QUIC runs in user space, encrypts every packet header, and can't use TCP's mature kernel and NIC offloads to
+QUIC runs in user space, encrypts every payload and protects the packet number and some header bits (connection
+IDs stay visible so load balancers can route; RFC 9001 §5.4) [8], and can't use TCP's mature kernel and NIC offloads to
 the same degree. A WWW 2024 study measured that on fast links (hundreds of Mbit/s and above), the
 UDP + QUIC + HTTP/3 stack delivered up to **45.2% lower data rates** than TCP + TLS + HTTP/2 in the client
-configurations it tested. It traced most of the gap to receiver-side processing [23]. The lesson is not
+configurations it tested. It attributes the gap to high receiver-side processing overhead [23]. The lesson is not
 "QUIC is slow". QUIC buys latency on lossy, high-RTT, mobile paths and costs CPU on fast, clean ones. Measure on
 your own traffic mix.
 
@@ -410,10 +413,10 @@ The exercises use this.
 - **Encrypted Client Hello (RFC 9849, March 2026)** [7]. Designs that route TLS by SNI at layer 4 must either
   hold the ECH keys (and act as the "client-facing server") or move routing to layer 7. Network-level filtering
   by hostname stops working for ECH-enabled traffic.
-- **HTTPS/SVCB DNS records (RFC 9460)** [4] let the first connection use HTTP/3 and carry ECH configuration.
+- **HTTPS/SVCB DNS records (RFC 9460)** [4] let the first connection use HTTP/3, and RFC 9848 lets them carry ECH configuration [27].
   DNS becomes part of protocol negotiation, which raises the stakes of DNS correctness.
 - **Post-quantum key agreement.** Hybrid key exchange (a classical curve combined with ML-KEM, the lattice-based
-  KEM standardised by NIST as FIPS 203) is now enabled by default in major browsers and at large edges. By
+  KEM standardised by NIST as FIPS 203 in August 2024 [28]) is now enabled by default in major browsers and at large edges. By
   Cloudflare's measurement it protected 52% of human web traffic by December 2025 [21]. Its key shares are
   larger than classical ones and can push a ClientHello beyond one packet, which exposes middleboxes that
   mishandle fragmented handshakes. If your clients sit behind old enterprise proxies, test this.
@@ -539,9 +542,12 @@ lab L03 in [SYSDESIGN-03](03-scaling-compute.md#lab).
 [17] Amazon Web Services, *Edit attributes for your Application Load Balancer — Connection idle timeout*, Elastic Load Balancing documentation. https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html (accessed 2026-11)
 [18] A. Petersson, M. Nilsson, RFC 7239, *Forwarded HTTP Extension*, June 2014, https://www.rfc-editor.org/info/rfc7239 ; W. Tarreau, *The PROXY protocol*, HAProxy Technologies, https://www.haproxy.org/download/3.4/doc/proxy-protocol.txt (accessed 2026-11)
 [19] J. Abley, K. Lindqvist, RFC 4786, *Operation of Anycast Services* (BCP 126), December 2006. https://www.rfc-editor.org/info/rfc4786 (accessed 2026-11)
-[20] W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026. https://w3techs.com/technologies/details/ce-http3 (accessed 2026-11)
+[20] W3Techs, *Usage statistics of HTTP/3 for websites*, November 2026 (41.2% read on 2026-11-20). https://w3techs.com/technologies/details/ce-http3 (accessed 2026-11)
 [21] Cloudflare, *The 2025 Cloudflare Radar Year in Review*, December 2025. https://blog.cloudflare.com/radar-2025-year-in-review/ (accessed 2026-11)
-[22] I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 2/3 c ≈ 204,000 km/s). https://arxiv.org/abs/1811.10737 (accessed 2026-11)
+[22] I. N. Bozkurt, W. Aqeel, D. Bhattacherjee, B. Chandrasekaran, P. B. Godfrey, G. Laughlin, B. M. Maggs, A. Singla, *Dissecting Latency in the Internet's Fiber Infrastructure*, arXiv:1811.10737, 2018 (speed of light in fibre ≈ 2/3 c ≈ 204,000 km/s, stated in the paper's text). https://arxiv.org/pdf/1811.10737 (accessed 2026-11)
 [23] X. Zhang, S. Jin, Y. He, A. Hassan, Z. M. Mao, F. Qian, Z.-L. Zhang, *QUIC is not Quick Enough over Fast Internet*, Proc. ACM Web Conference (WWW) 2024, pp. 2713–2722; arXiv:2310.09423. https://arxiv.org/abs/2310.09423 (accessed 2026-11)
 [24] S. Janardhan, *More details about the October 4 outage*, Engineering at Meta, 5 October 2021. https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/ (accessed 2026-11)
 [25] Amazon Web Services, *Summary of the Amazon DynamoDB Service Disruption in the Northern Virginia (US-EAST-1) Region*, October 2025. https://aws.amazon.com/message/101925/ (accessed 2026-11)
+[26] M. Nottingham, RFC 5861, *HTTP Cache-Control Extensions for Stale Content*, May 2010 (§3 defines `stale-while-revalidate`). https://www.rfc-editor.org/info/rfc5861 (accessed 2026-11)
+[27] B. Schwartz, M. Bishop, E. Nygren, RFC 9848, *Bootstrapping TLS Encrypted ClientHello with DNS Service Bindings*, March 2026. https://www.rfc-editor.org/info/rfc9848 (accessed 2026-11)
+[28] NIST, FIPS 203, *Module-Lattice-Based Key-Encapsulation Mechanism Standard*, 13 August 2024. https://csrc.nist.gov/pubs/fips/203/final (accessed 2026-11)

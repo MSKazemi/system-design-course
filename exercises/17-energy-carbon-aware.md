@@ -171,8 +171,9 @@ under Directive (EU) 2023/1791 and Delegated Regulation (EU) 2024/1364, and what
 - **Art. 26(6)**: data centres with total rated energy input above **1 MW** must use waste heat or other
   waste-heat recovery unless not technically or economically feasible [7]. This provider (600 kW IT) may or
   may not cross 1 MW of total rated input; check.
-- **September 2026**: the Commission proposed a delegated regulation creating a common A–G **rating scheme**
-  for data centres above 500 kW. It is subject to two-month Parliament/Council scrutiny, with first labels
+- **September 2026**: on 21 September the Commission adopted a delegated regulation creating a common
+  **rating scheme** for data centres above 500 kW; its annexes grade PUE and WUE on an A to G scale [38].
+  It is subject to two-month Parliament/Council scrutiny before entering into force, with first labels
   expected in 2027, and a consultation on minimum performance standards closes 14 December 2026 [9].
 
 System implication: metering must exist at the boundaries the KPIs require, and the data pipeline must
@@ -190,8 +191,10 @@ It depends on volume. Luccioni, Jernite and Strubell estimated that for BLOOMz m
 inferences match the training energy [18]. A service handling 10 M answers/day crosses 590 M in about
 2 months. After that, inference dominates lifetime energy and keeps growing. For a popular product,
 optimise inference first (batching, caching, quantisation, right-sized models). Do training efficiency and
-temporal/spatial shifting of training as well, since training is the most shiftable load. A strong answer
-also notes that the model choice itself (task-specific vs general-purpose) can change inference energy by
+temporal/spatial shifting of training as well, since training is the most shiftable load. The BLOOMz
+range is only an order-of-magnitude illustration, because the break-even is training energy divided by
+energy per answer: with the lesson's 0.27 Wh/answer, 500 MWh equals about 1.85 billion answers, about
+185 days at 10 M/day. A strong answer also notes that the model choice itself (task-specific vs general-purpose) can change inference energy by
 orders of magnitude [18].
 </details>
 
