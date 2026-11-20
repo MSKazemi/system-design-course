@@ -1,0 +1,209 @@
+# Static-only continuous integration for the course repository.
+#
+# Nothing here runs a lab, starts a container, pulls an image, calls an LLM or an
+# API, or needs a secret. It only reads files and parses them.
+#
+# Actions are pinned to a full commit SHA (version in the trailing comment) and
+# kept current by Dependabot (.github/dependabot.yml).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege for every job. Individual jobs never widen this.
+permissions:
+  contents: read
+
+# A newer run for the same PR or branch supersedes the older one.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  structure:
+    name: Structure, links, hygiene
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install PyYAML
+        run: python -m pip install "pyyaml==6.0.3"
+
+      # Front matter, companions, links and anchors, labs, YAML/JSON, fences,
+      # secrets, attribution and private-path leaks, REFERENCES.md coverage.
+      # -I = isolated mode: ignores PYTHON* variables and the working directory.
+      - name: Run tools/check_public.py
+        run: python -I tools/check_public.py
+
+  mermaid:
+    name: Render Mermaid diagrams
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      MMDC_VERSION: "12.2.0"       # @mermaid-js/mermaid-cli, latest stable on npm
+      PUPPETEER_VERSION: "25.18.1" # peer dependency of mermaid-cli 12.x (^25)
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - name: Install PyYAML
+        run: python -m pip install "pyyaml==6.0.3"
+
+      - name: Install mermaid-cli and headless Chromium
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/mmdc" --no-save --no-audit --no-fund --ignore-scripts \
+            "@mermaid-js/mermaid-cli@${MMDC_VERSION}" "puppeteer@${PUPPETEER_VERSION}"
+          # --ignore-scripts skipped puppeteer's postinstall; fetch the headless
+          # shell build that matches the pinned puppeteer explicitly.
+          "$RUNNER_TEMP/mmdc/node_modules/.bin/puppeteer" browsers install chrome-headless-shell
+          # GitHub-hosted runners restrict unprivileged user namespaces, so the
+          # Chromium sandbox cannot start; the diagrams are our own text, not
+          # untrusted web content, so launching without it is acceptable here.
+          printf '%s\n' '{"args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]}' \
+            > "$RUNNER_TEMP/puppeteer.json"
+
+      - name: Render every mermaid block
+        run: |
+          set -euo pipefail
+          export MMD="$RUNNER_TEMP/mmd" OUT="$RUNNER_TEMP/mmd-out"
+          export MMDC="$RUNNER_TEMP/mmdc/node_modules/.bin/mmdc" PUPPETEER_CONFIG="$RUNNER_TEMP/puppeteer.json"
+          mkdir -p "$OUT"
+          python -I tools/check_public.py --extract-mermaid "$MMD"
+          # Four renderers in parallel; a failure is recorded, not fatal, so that
+          # every broken diagram is reported in one run. The single quotes are
+          # deliberate: $1, $MMDC etc. must expand in the child shell.
+          # shellcheck disable=SC2016
+          cut -f1 "$MMD/manifest.tsv" | xargs -P 4 -I{} sh -c '
+            f="$1"
+            if "$MMDC" --quiet --puppeteerConfigFile "$PUPPETEER_CONFIG" \
+                 --input "$MMD/$f" --output "$OUT/$f.svg" 2>"$OUT/$f.err"; then
+              rm -f "$OUT/$f.err"
+            else
+              touch "$OUT/$f.fail"
+            fi
+          ' _ {}
+          total=$(wc -l < "$MMD/manifest.tsv")
+          failed=0
+          while IFS=$'\t' read -r f src; do
+            if [ -e "$OUT/$f.fail" ]; then
+              failed=$((failed + 1))
+              echo "::error file=${src%:*},line=${src##*:}::mermaid block failed to render"
+              sed 's/^/    /' "$OUT/$f.err" | head -n 8
+            fi
+          done < "$MMD/manifest.tsv"
+          echo "rendered $((total - failed)) of $total mermaid blocks"
+          [ "$failed" -eq 0 ]
+
+  compose-and-scripts:
+    name: Compose, shell, Python, YAML syntax
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install PyYAML
+        run: python -m pip install "pyyaml==6.0.3"
+
+      # `config` only parses, interpolates and validates the files. It does not
+      # build, pull or start anything. Every ${VAR} in the labs carries a
+      # default (${VAR:-x}), so no environment is needed. If a lab ever adds a
+      # required variable (${VAR:?}), give it a dummy value in this step's env.
+      - name: docker compose config (syntax only)
+        run: |
+          set -euo pipefail
+          docker compose version
+          shopt -s nullglob
+          files=(labs/*/compose.yaml)
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::no labs/*/compose.yaml found"; exit 1; }
+          failed=0
+          for f in "${files[@]}"; do
+            if docker compose -f "$f" config --quiet; then
+              echo "ok   $f"
+            else
+              echo "::error file=$f::docker compose config failed"
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: shellcheck lab scripts
+        run: |
+          set -euo pipefail
+          shellcheck --version
+          mapfile -d '' scripts < <(find labs -type f -name '*.sh' -print0 | sort -z)
+          echo "checking ${#scripts[@]} script(s)"
+          [ "${#scripts[@]}" -eq 0 ] || shellcheck --severity=warning "${scripts[@]}"
+
+      # Byte-compiles only; no lab code is imported or executed.
+      - name: py_compile lab Python
+        env:
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
+        run: |
+          set -euo pipefail
+          mapfile -d '' pyfiles < <(find labs -type f -name '*.py' -print0 | sort -z)
+          echo "compiling ${#pyfiles[@]} file(s)"
+          [ "${#pyfiles[@]}" -eq 0 ] || python -m py_compile "${pyfiles[@]}"
+
+      # Plain PyYAML parse of every other YAML file (Kubernetes manifests,
+      # Prometheus/Grafana/HAProxy config, the workflows themselves).
+      - name: Parse other YAML
+        run: |
+          python -I - <<'PY'
+          import pathlib, sys, yaml
+          bad = 0
+          roots = [pathlib.Path("labs"), pathlib.Path(".github")]
+          files = sorted(p for r in roots if r.is_dir() for p in r.rglob("*")
+                         if p.suffix in (".yaml", ".yml") and p.name != "compose.yaml")
+          for p in files:
+              try:
+                  list(yaml.safe_load_all(p.read_text(encoding="utf-8")))
+              except yaml.YAMLError as exc:
+                  bad += 1
+                  mark = getattr(exc, "problem_mark", None)
+                  line = (mark.line + 1) if mark else 1
+                  print(f"::error file={p},line={line}::invalid YAML: {getattr(exc, 'problem', exc)}")
+          print(f"parsed {len(files)} YAML file(s), {bad} invalid")
+          sys.exit(1 if bad else 0)
+          PY

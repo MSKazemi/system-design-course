@@ -1,0 +1,19 @@
+# Keeps the SHA-pinned GitHub Actions current. Dependabot rewrites both the
+# commit SHA and the trailing "# vX.Y.Z" comment in the workflow files.
+#
+# Not covered by Dependabot (pinned inline in ci.yml, bump by hand when a
+# newer stable release appears): pyyaml, @mermaid-js/mermaid-cli, puppeteer.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

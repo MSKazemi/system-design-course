@@ -1,0 +1,99 @@
+# Weekly external-link check. Informational by design: it never blocks a pull
+# request (it does not run on pull_request) and it does not fail the run because
+# a third-party site is slow, rate-limiting or blocking bots. Dead links show up
+# in the job summary and as a warning annotation.
+#
+# This is the only workflow that touches the network, and it only issues HTTP
+# GET/HEAD requests for URLs written in the Markdown files. No secrets.
+name: Links
+
+on:
+  schedule:
+    # Monday 05:17 UTC (off the hour to avoid the scheduled-run rush).
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: links-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lychee:
+    name: External links (lychee)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Remember results between weekly runs so that healthy links are not
+      # re-requested (lychee's --max-cache-age bounds how long a result lives).
+      - name: Restore lychee cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.run_id }}
+          restore-keys: |
+            lychee-
+
+      # Arguments, in order of intent:
+      #   --accept            2xx plus 403/418/429/999: hosts that answer "no" to
+      #                       bots but are alive (publishers, WAFs, LinkedIn-style)
+      #   --accept-timeouts   a slow host is not a dead link
+      #   --max-retries/--retry-wait-time/--timeout   ride out transient errors
+      #   --host-concurrency/--host-request-interval  be polite to a single host
+      #   --cache/--max-cache-age/--cache-exclude-status  reuse results, but
+      #                       always re-check anything that was a server error
+      #   --exclude           bot-blocking hosts (always answer with a challenge
+      #                       page or a block, so a check is noise), localhost
+      #                       and the example.* placeholder domains used in
+      #                       the lessons' sample requests
+      - name: Check links
+        id: lychee
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          fail: false
+          jobSummary: true
+          format: markdown
+          output: lychee/out.md
+          args: >-
+            --no-progress
+            --scheme https
+            --scheme http
+            --accept '200..=299,403,418,429,999'
+            --accept-timeouts
+            --max-retries 3
+            --retry-wait-time 10
+            --timeout 30
+            --max-concurrency 16
+            --host-concurrency 4
+            --host-request-interval 250ms
+            --cache
+            --max-cache-age 6d
+            --cache-exclude-status '500..'
+            --user-agent 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0 lychee-link-check'
+            --exclude '^https?://(eur-lex\.europa\.eu|dl\.acm\.org|ieeexplore\.ieee\.org)(/|$)'
+            --exclude '^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)([:/]|$)'
+            --exclude '^https?://([A-Za-z0-9-]+\.)*example\.(com|org|net)([:/]|$)'
+            'README.md' 'CONTRIBUTING.md' 'SYLLABUS.md' 'REFERENCES.md'
+            'course/**/*.md' 'slides/**/*.md' 'exercises/**/*.md' 'labs/**/*.md'
+
+      # lychee exit codes: 0 = all links fine, 2 = some links failed,
+      # anything else = lychee itself could not run (bad arguments, no input).
+      # Only a broken checker fails the job; dead links are reported, not enforced.
+      - name: Report outcome
+        if: always()
+        env:
+          LYCHEE_EXIT: ${{ steps.lychee.outputs.exit_code }}
+        run: |
+          case "$LYCHEE_EXIT" in
+            0) echo "All checked external links are reachable." ;;
+            2) echo "::warning title=Unreachable links::lychee found failing links; see the job summary. Non-blocking by design." ;;
+            *) echo "::error title=lychee did not run properly::exit code '$LYCHEE_EXIT'"; exit 1 ;;
+          esac
