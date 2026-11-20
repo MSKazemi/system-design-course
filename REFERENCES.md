@@ -1,7 +1,7 @@
 # References
 
-Every source cited by the lessons, grouped by unit. Generated from each lesson's `## References` section by
-`scripts/build_references.py`; do not edit by hand. Citation numbers match the numbers used inside each lesson.
+Every source cited by the lessons, grouped by unit. Generated automatically from each lesson's
+`## References` section; do not edit by hand. Citation numbers match the numbers used inside each lesson.
 
 **1039 distinct URLs** across **1149 references** in **47 units**. Source status per unit: `SOURCES_CHECKED` = every source was opened and checked against the claim it supports; `DRAFT` = written but sources not fully verified yet. Fast-moving facts carry an “as of 2026-11” marker in the lesson text. Nothing here is legal advice.
 

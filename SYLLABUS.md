@@ -1,6 +1,6 @@
 # Modern System Design — Syllabus
 
-Generated from lesson front matter by `scripts/build_syllabus.py`; do not edit by hand.
+Generated automatically from lesson front matter; do not edit by hand.
 Status values: `DRAFT` (written, under review) · `SOURCES_CHECKED` (every source verified).
 
 **Audience:** software, platform and ML engineers from beginner to advanced; students; interview candidates.

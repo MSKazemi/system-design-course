@@ -29,7 +29,6 @@ lab_policy: explicit-test-status
 cost_policy: free-first-disclose-cost
 repositories:
   public: MSKazemi/system-design-course
-  private: MSKazemi/system-design-course-private
 chatgpt_project: null
 modules:
 - id: '00'
